@@ -15,7 +15,7 @@ const {
   normalizeIcloudHost,
   pickReusableIcloudAlias,
   toNormalizedEmailSet,
-} = require('../icloud-utils.js');
+} = require('../shared/mail/icloud-utils.js');
 
 test('normalizeIcloudHost and host preference helpers resolve supported hosts', () => {
   assert.equal(normalizeIcloudHost('www.icloud.com'), 'icloud.com');

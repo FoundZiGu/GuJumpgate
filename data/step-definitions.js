@@ -183,6 +183,10 @@
     return options?.plusHostedCheckoutIsFinalStep !== false;
   }
 
+  function shouldSkipPostPaymentOAuth(options = {}) {
+    return Boolean(options?.skipPostPaymentOAuthEnabled);
+  }
+
   function normalizePlusPaymentMethod(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === PLUS_PAYMENT_METHOD_GPC_HELPER) {
@@ -244,6 +248,9 @@
       plusModeEnabled: true,
       plusPaymentMethod: paymentMethod,
     })) {
+      if (shouldSkipPostPaymentOAuth(options)) {
+        return PLUS_PAYPAL_HOSTED_CHECKOUT_PREFIX_STEP_DEFINITIONS;
+      }
       if (signupMethod === SIGNUP_METHOD_PHONE) {
         return reloginAfterBindEmail
           ? PLUS_PAYPAL_HOSTED_CHECKOUT_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS
@@ -506,5 +513,6 @@
     normalizeActiveFlowId,
     normalizePlusPaymentMethod,
     normalizeSignupMethod,
+    shouldSkipPostPaymentOAuth,
   };
 });

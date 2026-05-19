@@ -62,6 +62,60 @@ test('signup flow helper allocates mail2925 account before generating alias emai
   assert.deepStrictEqual(calls.setEmail, ['demo123456@2925.com']);
 });
 
+test('signup flow helper uses Hotmail registration alias instead of the base mailbox', async () => {
+  const calls = {
+    ensureHotmail: [],
+    setEmail: [],
+  };
+
+  const helpers = signupFlowApi.createSignupFlowHelpers({
+    buildGeneratedAliasEmail: () => {
+      throw new Error('should not build generated alias for Hotmail provider');
+    },
+    chrome: { tabs: { get: async () => ({ id: 1, url: 'https://auth.openai.com/create-account/password' }) } },
+    ensureContentScriptReadyOnTab: async () => {},
+    ensureHotmailAccountForFlow: async (options) => {
+      calls.ensureHotmail.push(options);
+      return {
+        id: 'hot-1',
+        email: 'user@outlook.com',
+        registrationAliasEmail: 'user+abc123@outlook.com',
+      };
+    },
+    ensureLuckmailPurchaseForFlow: async () => ({}),
+    isGeneratedAliasProvider: () => false,
+    isReusableGeneratedAliasEmail: () => false,
+    isHotmailProvider: () => true,
+    isLuckmailProvider: () => false,
+    isSignupEmailVerificationPageUrl: () => false,
+    isSignupPasswordPageUrl: () => true,
+    reuseOrCreateTab: async () => 1,
+    sendToContentScriptResilient: async () => ({}),
+    setEmailState: async (email) => {
+      calls.setEmail.push(email);
+    },
+    SIGNUP_ENTRY_URL: 'https://chatgpt.com/',
+    SIGNUP_PAGE_INJECT_FILES: [],
+    waitForTabUrlMatch: async () => null,
+  });
+
+  const email = await helpers.resolveSignupEmailForFlow({
+    mailProvider: 'hotmail-api',
+    currentHotmailAccountId: 'hot-1',
+    email: '',
+  });
+
+  assert.equal(email, 'user+abc123@outlook.com');
+  assert.deepStrictEqual(calls.ensureHotmail, [
+    {
+      allowAllocate: true,
+      markUsed: true,
+      preferredAccountId: 'hot-1',
+    },
+  ]);
+  assert.deepStrictEqual(calls.setEmail, ['user+abc123@outlook.com']);
+});
+
 test('signup flow helper skips mail2925 account allocation when account pool switch is off', async () => {
   const calls = {
     ensureMail2925: 0,

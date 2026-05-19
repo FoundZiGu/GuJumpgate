@@ -348,7 +348,7 @@
           markUsed: true,
           preferredAccountId: state.currentHotmailAccountId || null,
         });
-        resolvedEmail = account.email;
+        resolvedEmail = account.registrationAliasEmail || state.email || account.email;
       } else if (isLuckmailProvider(state)) {
         const purchase = await ensureLuckmailPurchaseForFlow({ allowReuse: true });
         resolvedEmail = purchase.email_address;

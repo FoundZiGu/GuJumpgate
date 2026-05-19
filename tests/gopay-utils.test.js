@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 function loadGoPayUtils() {
-  const source = fs.readFileSync('gopay-utils.js', 'utf8');
+  const source = fs.readFileSync('shared/payment/gopay-utils.js', 'utf8');
   const globalScope = {};
   return new Function('self', `${source}; return self.GoPayUtils;`)(globalScope);
 }

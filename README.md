@@ -14,6 +14,9 @@
    - 自动跳转 Stripe 长链接
    - 自动填写 Stripe 账单并跳转 PayPal
    - 自动填写 PayPal 账单并完成流程
+   - PayPal Hosted 接码池支持导入号码和验证码接口，号码与接口绑定管理
+   - “支付后继续 OAuth”默认关闭；需要支付完成后继续 OAuth 时，可在 PayPal Hosted 区块开启
+   - 支持操作间延迟，默认开启，默认每步等待 2 秒，降低页面输入、点击、验证码分格提交过快导致的误判；不影响邮箱/短信轮询，也不改变 `confirm-oauth` 和 `platform-verify` 节奏
 
    已将此前发布的油猴脚本移植并整合进扩展。
 
@@ -94,7 +97,17 @@
 
 ### 8. 配置扩展参数
 
-在扩展中打开侧边栏，配置 CPA、管理密钥、接码 API、PayPal 接码电话，并导入 Outlook 邮箱。
+在扩展中打开侧边栏，配置注册来源、邮箱服务、PayPal Hosted 接码池，并导入 Outlook 邮箱。
+
+PayPal Hosted 接码池格式：
+
+```text
+1234567890
+
+https://mail.test.com/api/text-relay/eca_tr_xxxxxxxxx
+```
+
+也兼容旧的一行格式：`号码----验证码接口`。扩展会保留原始号码用于记录和取码；如果号码以美国 `+1` 开头，填写 PayPal 页面时会自动转成本地号码，例如 `5822452843`。
 
 ![配置扩展并导入 Outlook 邮箱](docs/images/github-readme-1779193665779.webp)
 
@@ -103,6 +116,39 @@
 保存配置后即可开始运行。
 
 ![开始运行扩展流程](docs/images/github-readme-1779194981001.webp)
+
+## 开发与打包
+
+常用命令：
+
+```powershell
+npm test
+npm run package
+```
+
+`npm run package` 会生成 `dist/GuJumpgate<version>-<timestamp>-extension.zip`，并自动检查扩展运行必需文件是否已进入压缩包。
+
+扩展包会包含：
+
+- `manifest.json`、`background.js`、`sidepanel/`、`content/`、`background/`、`shared/`、`flows/`、`phone-sms/`、`data/`、`icons/`、`rules.json`
+- Hotmail Helper 启动脚本及其运行依赖
+
+扩展包不会包含：
+
+- `.git`、`.idea`、`.vscode`
+- `tests`、`docs`、`dist`、`node_modules`
+- 本地缓存、测试日志、本地配置文件
+
+当前源码结构：
+
+- `background/`：后台流程、步骤、状态和消息路由
+- `content/`：注入页面的自动化脚本
+- `sidepanel/`：侧边栏 UI、账号池管理和设置页逻辑
+- `shared/mail/`：邮箱服务和邮箱账号池通用工具
+- `shared/payment/`：PayPal、GoPay 支付工具
+- `shared/accounts/`：账号别名和账号池辅助工具
+- `phone-sms/`：手机号接码 provider
+- `scripts/`：本地辅助脚本和打包脚本
 
 ## 版权与来源说明
 

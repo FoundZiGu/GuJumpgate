@@ -121,6 +121,21 @@ test('step definitions module exposes ordered normal and Plus step metadata', ()
   assert.equal(plusSteps.some((step) => step.key === 'wait-registration-success'), false);
   assert.equal(plusSteps.some((step) => step.key === 'fetch-login-code'), true);
   assert.equal(plusSteps.find((step) => step.key === 'plus-checkout-create')?.title, '创建 Plus Checkout');
+  assert.deepStrictEqual(
+    api.getSteps({
+      plusModeEnabled: true,
+      plusPaymentMethod: 'paypal',
+      skipPostPaymentOAuthEnabled: true,
+    }).map((step) => step.key),
+    [
+      'open-chatgpt',
+      'submit-signup-email',
+      'fill-password',
+      'fetch-signup-code',
+      'fill-profile',
+      'plus-checkout-create',
+    ]
+  );
   assert.equal(plusPhoneSteps[1].title, '注册并输入手机号');
   assert.equal(plusPhoneSteps[3].title, '获取手机验证码');
   assert.deepStrictEqual(
@@ -236,6 +251,17 @@ test('sidepanel html exposes Plus mode, PayPal, and GoPay settings', () => {
   assert.match(html, /id="select-plus-payment-method"/);
   assert.match(html, /id="select-paypal-account"/);
   assert.match(html, /id="btn-add-paypal-account"/);
+  assert.match(html, /id="row-paypal-hosted-settings"/);
+  assert.match(html, /支付后继续 OAuth/);
+  assert.match(html, /Hosted 接码池/);
+  assert.match(html, /id="input-hosted-checkout-verification-url"/);
+  assert.match(html, /id="input-hosted-checkout-phone"/);
+  assert.match(html, /id="input-hosted-checkout-sms-pool"/);
+  assert.match(html, /id="btn-hosted-sms-pool-clear-used"/);
+  assert.match(html, /默认关闭，支付成功后直接结束/);
+  assert.match(html, /id="run-settings-card"/);
+  assert.match(html, /运行设置/);
+  assert.match(html, /当前状态/);
   assert.match(html, /id="input-gopay-phone"/);
   assert.match(html, /id="input-gopay-otp"/);
   assert.match(html, /id="input-gopay-pin"/);

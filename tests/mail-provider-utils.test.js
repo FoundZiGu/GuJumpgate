@@ -9,7 +9,7 @@ const {
   normalizeIcloudForwardMailProvider,
   normalizeIcloudTargetMailboxType,
   normalizeMailProvider,
-} = require('../mail-provider-utils.js');
+} = require('../shared/mail/mail-provider-utils.js');
 
 test('normalizeMailProvider accepts 126 and falls back to 163', () => {
   assert.equal(normalizeMailProvider('126'), '126');

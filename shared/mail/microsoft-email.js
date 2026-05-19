@@ -110,7 +110,7 @@
     const fetchImpl = getFetchImpl(options.fetchImpl);
     const mailbox = normalizeMailboxLabel(options.mailbox);
     const top = Math.max(1, Math.min(Number(options.top) || 5, 30));
-    const url = `${GRAPH_API_BASE}/${normalizeMailboxId(mailbox)}/messages?$top=${encodeURIComponent(top)}&$select=id,internetMessageId,subject,from,bodyPreview,receivedDateTime&$orderby=receivedDateTime desc`;
+    const url = `${GRAPH_API_BASE}/${normalizeMailboxId(mailbox)}/messages?$top=${encodeURIComponent(top)}&$select=id,internetMessageId,subject,from,bodyPreview,receivedDateTime,toRecipients,ccRecipients,bccRecipients&$orderby=receivedDateTime desc`;
     const response = await fetchImpl(url, {
       method: 'GET',
       headers: {
@@ -132,7 +132,7 @@
     const fetchImpl = getFetchImpl(options.fetchImpl);
     const mailbox = normalizeMailboxLabel(options.mailbox);
     const top = Math.max(1, Math.min(Number(options.top) || 5, 30));
-    const url = `${OUTLOOK_API_BASE}/${normalizeMailboxId(mailbox)}/messages?$top=${encodeURIComponent(top)}&$select=Id,Subject,From,BodyPreview,Body,ReceivedDateTime&$orderby=ReceivedDateTime desc`;
+    const url = `${OUTLOOK_API_BASE}/${normalizeMailboxId(mailbox)}/messages?$top=${encodeURIComponent(top)}&$select=Id,Subject,From,BodyPreview,Body,ReceivedDateTime,ToRecipients,CcRecipients,BccRecipients&$orderby=ReceivedDateTime desc`;
     const response = await fetchImpl(url, {
       method: 'GET',
       headers: {
@@ -150,9 +150,52 @@
     return Array.isArray(payload?.value) ? payload.value : [];
   }
 
+  function normalizeRecipientAddress(rawValue) {
+    if (!rawValue) return '';
+    if (typeof rawValue === 'string') {
+      return rawValue.trim();
+    }
+    if (typeof rawValue === 'object') {
+      const emailAddress = rawValue.EmailAddress || rawValue.emailAddress || {};
+      return String(
+        emailAddress.Address
+        || emailAddress.address
+        || rawValue.Address
+        || rawValue.address
+        || rawValue.email
+        || ''
+      ).trim();
+    }
+    return '';
+  }
+
+  function normalizeRecipientList(rawValue) {
+    const source = Array.isArray(rawValue)
+      ? rawValue
+      : (rawValue ? [rawValue] : []);
+    const results = [];
+    const seen = new Set();
+    for (const item of source) {
+      const address = normalizeRecipientAddress(item);
+      const key = address.toLowerCase();
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      results.push(address);
+    }
+    return results;
+  }
+
   function normalizeMessage(message, mailbox = 'INBOX') {
     const sender = message?.From || message?.from || {};
     const emailAddress = sender?.EmailAddress || sender?.emailAddress || {};
+    const recipients = {
+      to: normalizeRecipientList(message?.ToRecipients || message?.toRecipients || message?.to),
+      cc: normalizeRecipientList(message?.CcRecipients || message?.ccRecipients || message?.cc),
+      bcc: normalizeRecipientList(message?.BccRecipients || message?.bccRecipients || message?.bcc),
+    };
+    recipients.all = [...new Set([...recipients.to, ...recipients.cc, ...recipients.bcc])];
     return {
       mailbox: normalizeMailboxLabel(mailbox || message?.mailbox),
       from: {
@@ -167,6 +210,7 @@
       body: {
         content: String(message?.Body?.Content || message?.body?.content || '').trim(),
       },
+      recipients,
       id: String(message?.Id || message?.id || message?.internetMessageId || '').trim(),
     };
   }

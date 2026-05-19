@@ -4,7 +4,7 @@ const fs = require('fs');
 const {
   normalizeIcloudForwardMailProvider,
   normalizeIcloudTargetMailboxType,
-} = require('../mail-provider-utils.js');
+} = require('../shared/mail/mail-provider-utils.js');
 
 const source = fs.readFileSync('background.js', 'utf8');
 

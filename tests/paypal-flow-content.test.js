@@ -264,6 +264,7 @@ function createHostedVerificationApi(overrides = {}) {
     waitForDocumentComplete: async () => {},
     performPayPalOperationWithDelay: async (_metadata, operation) => operation(),
     fillInput: () => {},
+    sleep: async () => {},
     ...overrides,
   };
 
@@ -274,7 +275,10 @@ function createHostedVerificationApi(overrides = {}) {
     'waitForDocumentComplete',
     'performPayPalOperationWithDelay',
     'fillInput',
+    'sleep',
     `
+const PAYPAL_HOSTED_CODE_DIGIT_DELAY_MS = 300;
+const PAYPAL_HOSTED_CODE_SUBMIT_DELAY_MS = 800;
 ${extractFunction('fillHostedVerificationCode')}
 return { fillHostedVerificationCode };
 `
@@ -284,7 +288,8 @@ return { fillHostedVerificationCode };
     bindings.normalizeHostedVerificationCode,
     bindings.waitForDocumentComplete,
     bindings.performPayPalOperationWithDelay,
-    bindings.fillInput
+    bindings.fillInput,
+    bindings.sleep
   );
 }
 
@@ -314,6 +319,83 @@ return { runHostedCheckoutStep };
     bindings.isPayPalHostedReviewPage,
     bindings.detectPayPalHostedCheckoutStage,
     bindings.clickHostedReviewConsent
+  );
+}
+
+function createHostedGuestCheckoutApi(overrides = {}) {
+  const bindings = {
+    PAYPAL_HOSTED_STAGE_GUEST_CHECKOUT: 'guest_checkout',
+    PAYPAL_HOSTED_DEFAULT_PHONE: '1234567890',
+    PAYPAL_HOSTED_GUEST_SUBMIT_SENTINEL: '__sentinel__',
+    waitForDocumentComplete: async () => {},
+    startHostedCaptchaCleanupObserver: () => {},
+    removeHostedCaptchaArtifacts: () => {},
+    log: () => {},
+    sleep: async () => {},
+    buildHostedVisaCard: () => ({ number: '4111111111111111', expiry: '12/30', cvv: '123' }),
+    normalizeText: (value = '') => String(value || '').replace(/\s+/g, ' ').trim(),
+    buildHostedRandomEmail: () => 'fallback@example.com',
+    buildHostedRandomPassword: () => 'fallback-password',
+    fillHostedInputById: () => true,
+    selectHostedOptionByIdText: () => true,
+    hasHostedVerificationInputs: () => false,
+    clickHostedGenericSubmitButton: async () => ({}),
+    document: {
+      getElementById: () => null,
+    },
+    window: {},
+    Event: function Event(type, init) {
+      this.type = type;
+      this.init = init;
+    },
+    ...overrides,
+  };
+
+  return new Function(
+    'PAYPAL_HOSTED_STAGE_GUEST_CHECKOUT',
+    'PAYPAL_HOSTED_DEFAULT_PHONE',
+    'PAYPAL_HOSTED_GUEST_SUBMIT_SENTINEL',
+    'waitForDocumentComplete',
+    'startHostedCaptchaCleanupObserver',
+    'removeHostedCaptchaArtifacts',
+    'log',
+    'sleep',
+    'buildHostedVisaCard',
+    'normalizeText',
+    'buildHostedRandomEmail',
+    'buildHostedRandomPassword',
+    'fillHostedInputById',
+    'selectHostedOptionByIdText',
+    'hasHostedVerificationInputs',
+    'clickHostedGenericSubmitButton',
+    'document',
+    'window',
+    'Event',
+    ` 
+${extractFunction('formatHostedPayPalPhoneInput')}
+${extractFunction('fillHostedGuestCheckout')}
+return { fillHostedGuestCheckout };
+`
+  )(
+    bindings.PAYPAL_HOSTED_STAGE_GUEST_CHECKOUT,
+    bindings.PAYPAL_HOSTED_DEFAULT_PHONE,
+    bindings.PAYPAL_HOSTED_GUEST_SUBMIT_SENTINEL,
+    bindings.waitForDocumentComplete,
+    bindings.startHostedCaptchaCleanupObserver,
+    bindings.removeHostedCaptchaArtifacts,
+    bindings.log,
+    bindings.sleep,
+    bindings.buildHostedVisaCard,
+    bindings.normalizeText,
+    bindings.buildHostedRandomEmail,
+    bindings.buildHostedRandomPassword,
+    bindings.fillHostedInputById,
+    bindings.selectHostedOptionByIdText,
+    bindings.hasHostedVerificationInputs,
+    bindings.clickHostedGenericSubmitButton,
+    bindings.document,
+    bindings.window,
+    bindings.Event
   );
 }
 
@@ -477,11 +559,15 @@ test('PayPal hosted checkout verification filler writes six digits into split in
     value: '',
   }));
   const writes = [];
+  const sleeps = [];
   const api = createHostedVerificationApi({
     findHostedVerificationInputs: () => inputs,
     fillInput: (element, value) => {
       writes.push({ id: element.id, value });
       element.value = value;
+    },
+    sleep: async (ms) => {
+      sleeps.push(ms);
     },
   });
 
@@ -497,10 +583,42 @@ test('PayPal hosted checkout verification filler writes six digits into split in
     { id: 'ci-ciBasic-4', value: '5' },
     { id: 'ci-ciBasic-5', value: '6' },
   ]);
+  assert.deepEqual(sleeps, [300, 300, 300, 300, 300, 300, 800]);
   assert.deepEqual(result, {
     stage: 'verification',
     codeSubmitted: true,
   });
+});
+
+test('PayPal hosted guest checkout uses the supplied random PayPal email', async () => {
+  const writes = [];
+  const api = createHostedGuestCheckoutApi({
+    fillHostedInputById: (id, value) => {
+      writes.push({ id, value });
+      return true;
+    },
+  });
+
+  const result = await api.fillHostedGuestCheckout({
+    email: 'paypal-random@example.com',
+    password: 'paypal-password',
+    phone: '+15551234567',
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    cardNumber: '4111111111111111',
+    cardExpiry: '12/30',
+    cardCvv: '123',
+    address: {
+      street: '1 Main St',
+      city: 'New York',
+      zip: '10001',
+      state: 'NY',
+    },
+  });
+
+  assert.equal(writes.find((entry) => entry.id === 'email')?.value, 'paypal-random@example.com');
+  assert.equal(writes.find((entry) => entry.id === 'phone')?.value, '5551234567');
+  assert.equal(result.generatedEmail, 'paypal-random@example.com');
 });
 
 test('PayPal hosted review path bypasses generic stage detection and directly runs review handler', async () => {

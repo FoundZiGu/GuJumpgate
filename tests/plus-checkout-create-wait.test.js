@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync('background/steps/create-plus-checkout.js', 'utf8');
 const plusCheckoutSource = fs.readFileSync('content/plus-checkout.js', 'utf8');
-const gopayUtilsSource = fs.readFileSync('gopay-utils.js', 'utf8');
+const gopayUtilsSource = fs.readFileSync('shared/payment/gopay-utils.js', 'utf8');
 const globalScope = {};
 new Function('self', `${gopayUtilsSource};`)(globalScope);
 const api = new Function('self', `${source}; return self.MultiPageBackgroundPlusCheckoutCreate;`)(globalScope);
@@ -393,6 +393,413 @@ test('Plus checkout create waits for hosted checkout success page before continu
     plusCheckoutSource: '',
   });
   assert.equal(events.some((event) => event.type === 'log' && /等待支付成功页出现后，再继续 OAuth 流程/.test(event.message)), true);
+});
+
+test('Plus checkout hosted automation completes when it actively detects the payments success page', async () => {
+  const events = [];
+  let tabUrl = 'https://pay.openai.com/c/pay/hosted_cs_live_final';
+  let checkoutSurfaceWaits = 0;
+  const successUrl = 'https://chatgpt.com/payments/success?stripe_session_id=cs_live_done';
+  const hostedCompletion = new Promise((resolve) => {
+    events.resolveHostedCompletion = resolve;
+  });
+  const executor = api.createPlusCheckoutCreateExecutor({
+    addLog: async (message, level = 'info') => {
+      events.push({ type: 'log', message, level });
+    },
+    chrome: {
+      tabs: {
+        create: async () => ({ id: 79 }),
+        get: async () => ({ id: 79, url: tabUrl }),
+        update: async (_tabId, payload) => {
+          tabUrl = payload.url;
+          events.push({ type: 'tab-update', payload });
+        },
+      },
+      storage: {
+        local: {
+          get: async () => ({}),
+        },
+      },
+    },
+    completeNodeFromBackground: async (step, payload) => {
+      events.push({ type: 'fallback-complete', step, payload });
+    },
+    enableHostedCheckoutAutomation: true,
+    ensureContentScriptReadyOnTabUntilStopped: async (source) => {
+      events.push({ type: 'ready', source });
+    },
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        Address: '123 Main St',
+        City: 'New York',
+        State: 'New York',
+        Zip_Code: '10001',
+      }),
+    }),
+    processHostedCheckoutSuccess: async (tabId, url) => {
+      events.push({ type: 'hosted-success', tabId, url });
+      events.resolveHostedCompletion();
+      return { completed: true, plusReturnUrl: url };
+    },
+    registerTab: async () => {},
+    sendTabMessageUntilStopped: async (_tabId, _source, message) => {
+      events.push({ type: 'tab-message', message });
+      if (message.type === 'CREATE_PLUS_CHECKOUT') {
+        return {
+          hostedCheckoutUrl: 'https://pay.openai.com/c/pay/hosted_cs_live_final',
+          preferredCheckoutUrl: 'https://pay.openai.com/c/pay/hosted_cs_live_final',
+          country: 'US',
+          currency: 'USD',
+        };
+      }
+      if (message.type === 'RUN_HOSTED_OPENAI_CHECKOUT_STEP') {
+        tabUrl = successUrl;
+      }
+      return {};
+    },
+    setState: async (payload) => {
+      events.push({ type: 'set-state', payload });
+    },
+    sleepWithStop: async () => {},
+    waitForTabCompleteUntilStopped: async () => {},
+    waitForTabUrlMatchUntilStopped: async () => {
+      checkoutSurfaceWaits += 1;
+      return checkoutSurfaceWaits === 1
+        ? { id: 79, url: 'https://pay.openai.com/c/pay/hosted_cs_live_final' }
+        : { id: 79, url: successUrl };
+    },
+  });
+
+  await executor.executePlusCheckoutCreate({
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+  });
+  await hostedCompletion;
+
+  assert.deepStrictEqual(events.filter((event) => event.type === 'hosted-success'), [
+    {
+      type: 'hosted-success',
+      tabId: 79,
+      url: successUrl,
+    },
+  ]);
+  assert.equal(events.some((event) => event.type === 'fallback-complete'), false);
+});
+
+test('Plus checkout hosted automation uses frozen SMS pool phone and marks it used after success', async () => {
+  const events = [];
+  const poolLine = '+15822452843----http://a.62-us.com/api/get_sms?key=secret-key';
+  const successUrl = 'https://chatgpt.com/payments/success?stripe_session_id=cs_pool_done';
+  let tabUrl = 'https://pay.openai.com/c/pay/hosted_pool';
+  let state = {
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+    plusHostedCheckoutIsFinalStep: true,
+    plusCheckoutTabId: 80,
+    nodeStatuses: { 'plus-checkout-create': 'running' },
+    hostedCheckoutSmsPoolText: poolLine,
+    hostedCheckoutSmsPoolUsage: {},
+    hostedCheckoutCurrentSmsEntry: null,
+  };
+  const hostedCompletion = new Promise((resolve) => {
+    events.resolveHostedCompletion = resolve;
+  });
+  const executor = api.createPlusCheckoutCreateExecutor({
+    addLog: async (message, level = 'info') => events.push({ type: 'log', message, level }),
+    chrome: {
+      tabs: {
+        create: async () => ({ id: 80 }),
+        get: async () => ({ id: 80, url: tabUrl }),
+        update: async (_tabId, payload) => {
+          tabUrl = payload.url;
+          events.push({ type: 'tab-update', payload });
+        },
+      },
+      storage: {
+        local: {
+          get: async () => ({
+            hostedCheckoutSmsPoolText: poolLine,
+            hostedCheckoutSmsPoolUsage: state.hostedCheckoutSmsPoolUsage,
+          }),
+        },
+      },
+    },
+    enableHostedCheckoutAutomation: true,
+    ensureContentScriptReadyOnTabUntilStopped: async (source) => events.push({ type: 'ready', source }),
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        Address: '123 Main St',
+        City: 'New York',
+        State: 'New York',
+        Zip_Code: '10001',
+      }),
+    }),
+    getState: async () => state,
+    processHostedCheckoutSuccess: async (tabId, url) => {
+      events.push({ type: 'hosted-success', tabId, url });
+      events.resolveHostedCompletion();
+      return { completed: true, plusReturnUrl: url };
+    },
+    registerTab: async () => {},
+    sendTabMessageUntilStopped: async (_tabId, source, message) => {
+      events.push({ type: 'tab-message', source, message });
+      if (message.type === 'CREATE_PLUS_CHECKOUT') {
+        return {
+          hostedCheckoutUrl: 'https://www.paypal.com/checkoutweb/signup',
+          preferredCheckoutUrl: 'https://www.paypal.com/checkoutweb/signup',
+          country: 'US',
+          currency: 'USD',
+        };
+      }
+      if (message.type === 'PAYPAL_HOSTED_GET_STATE') {
+        return { hostedStage: 'guest_checkout' };
+      }
+      if (message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP') {
+        tabUrl = successUrl;
+      }
+      return {};
+    },
+    setState: async (payload) => {
+      state = { ...state, ...payload };
+      events.push({ type: 'set-state', payload });
+    },
+    sleepWithStop: async (ms) => events.push({ type: 'sleep', ms }),
+    waitForTabCompleteUntilStopped: async () => {},
+    waitForTabUrlMatchUntilStopped: async () => ({ id: 80, url: 'https://www.paypal.com/checkoutweb/signup' }),
+  });
+
+  await executor.executePlusCheckoutCreate({
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+  });
+  await hostedCompletion;
+
+  const guestMessage = events.find((event) => (
+    event.type === 'tab-message'
+    && event.message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP'
+    && event.message.payload?.cardNumber
+  ));
+  assert.equal(guestMessage.message.payload.phone, '5822452843');
+  const usageEntries = Object.values(state.hostedCheckoutSmsPoolUsage || {});
+  assert.equal(usageEntries.length, 1);
+  assert.equal(usageEntries[0].useCount, 1);
+  assert.ok(usageEntries[0].usedAt > 0);
+  assert.equal(state.hostedCheckoutCurrentSmsEntry, null);
+  assert.deepStrictEqual(events.filter((event) => event.type === 'hosted-success'), [
+    { type: 'hosted-success', tabId: 80, url: successUrl },
+  ]);
+});
+
+test('Plus checkout hosted PayPal verification waits before fetching code from the frozen SMS pool URL', async () => {
+  const events = [];
+  const fetchCalls = [];
+  const poolLine = '+15822452843----http://a.62-us.com/api/get_sms?key=secret-key';
+  const successUrl = 'https://chatgpt.com/payments/success?stripe_session_id=cs_verify_done';
+  let tabUrl = 'https://www.paypal.com/checkoutweb/verification';
+  let state = {
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+    plusHostedCheckoutIsFinalStep: true,
+    plusCheckoutTabId: 81,
+    nodeStatuses: { 'plus-checkout-create': 'running' },
+    hostedCheckoutSmsPoolText: poolLine,
+    hostedCheckoutSmsPoolUsage: {},
+    hostedCheckoutCurrentSmsEntry: null,
+  };
+  const hostedCompletion = new Promise((resolve) => {
+    events.resolveHostedCompletion = resolve;
+  });
+  const executor = api.createPlusCheckoutCreateExecutor({
+    addLog: async (message, level = 'info') => events.push({ type: 'log', message, level }),
+    chrome: {
+      tabs: {
+        create: async () => ({ id: 81 }),
+        get: async () => ({ id: 81, url: tabUrl }),
+        update: async (_tabId, payload) => {
+          tabUrl = payload.url;
+          events.push({ type: 'tab-update', payload });
+        },
+      },
+      storage: {
+        local: {
+          get: async () => ({
+            hostedCheckoutSmsPoolText: poolLine,
+            hostedCheckoutSmsPoolUsage: state.hostedCheckoutSmsPoolUsage,
+          }),
+        },
+      },
+    },
+    enableHostedCheckoutAutomation: true,
+    ensureContentScriptReadyOnTabUntilStopped: async (source) => events.push({ type: 'ready', source }),
+    fetch: async (url) => {
+      fetchCalls.push(url);
+      if (String(url).includes('meiguodizhi')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            Address: '123 Main St',
+            City: 'New York',
+            State: 'New York',
+            Zip_Code: '10001',
+          }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => 'Your code is 654321',
+      };
+    },
+    getState: async () => state,
+    processHostedCheckoutSuccess: async (tabId, url) => {
+      events.push({ type: 'hosted-success', tabId, url });
+      events.resolveHostedCompletion();
+      return { completed: true, plusReturnUrl: url };
+    },
+    registerTab: async () => {},
+    sendTabMessageUntilStopped: async (_tabId, source, message) => {
+      events.push({ type: 'tab-message', source, message });
+      if (message.type === 'CREATE_PLUS_CHECKOUT') {
+        return {
+          hostedCheckoutUrl: 'https://www.paypal.com/checkoutweb/verification',
+          preferredCheckoutUrl: 'https://www.paypal.com/checkoutweb/verification',
+          country: 'US',
+          currency: 'USD',
+        };
+      }
+      if (message.type === 'PAYPAL_HOSTED_GET_STATE') {
+        return { hostedStage: 'verification', verificationInputsVisible: true };
+      }
+      if (message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP') {
+        assert.equal(message.payload.verificationCode, '654321');
+        tabUrl = successUrl;
+      }
+      return {};
+    },
+    setState: async (payload) => {
+      state = { ...state, ...payload };
+      events.push({ type: 'set-state', payload });
+    },
+    sleepWithStop: async (ms) => events.push({ type: 'sleep', ms }),
+    waitForTabCompleteUntilStopped: async () => {},
+    waitForTabUrlMatchUntilStopped: async () => ({ id: 81, url: 'https://www.paypal.com/checkoutweb/verification' }),
+  });
+
+  await executor.executePlusCheckoutCreate({
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+  });
+  await hostedCompletion;
+
+  assert.equal(events.some((event) => event.type === 'sleep' && event.ms === 5000), true);
+  assert.equal(fetchCalls.some((url) => String(url).startsWith('http://a.62-us.com/api/get_sms?key=secret-key&')), true);
+  assert.deepStrictEqual(events.filter((event) => event.type === 'hosted-success'), [
+    { type: 'hosted-success', tabId: 81, url: successUrl },
+  ]);
+});
+
+test('Plus checkout hosted SMS pool reuses numbers by usage count instead of exhausting the pool', async () => {
+  const poolLine = '+15822452843----http://a.62-us.com/api/get_sms?key=secret-key';
+  const successUrl = 'https://chatgpt.com/payments/success?stripe_session_id=cs_pool_reuse';
+  const events = [];
+  let tabUrl = 'https://pay.openai.com/c/pay/hosted_pool_reuse';
+  let state = {
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+    plusHostedCheckoutIsFinalStep: true,
+    plusCheckoutTabId: 82,
+    nodeStatuses: { 'plus-checkout-create': 'running' },
+    hostedCheckoutSmsPoolText: poolLine,
+    hostedCheckoutSmsPoolUsage: {
+      [poolLine]: { useCount: 3, usedAt: 123, lastAttemptAt: 456, lastError: '' },
+    },
+    hostedCheckoutCurrentSmsEntry: null,
+  };
+  const hostedCompletion = new Promise((resolve) => {
+    events.resolveHostedCompletion = resolve;
+  });
+  const executor = api.createPlusCheckoutCreateExecutor({
+    addLog: async (message, level = 'info') => events.push({ type: 'log', message, level }),
+    chrome: {
+      tabs: {
+        create: async () => ({ id: 82 }),
+        get: async () => ({ id: 82, url: tabUrl }),
+        update: async (_tabId, payload) => {
+          tabUrl = payload.url;
+        },
+      },
+      storage: {
+        local: {
+          get: async () => ({
+            hostedCheckoutSmsPoolText: poolLine,
+            hostedCheckoutSmsPoolUsage: state.hostedCheckoutSmsPoolUsage,
+          }),
+        },
+      },
+    },
+    enableHostedCheckoutAutomation: true,
+    ensureContentScriptReadyOnTabUntilStopped: async () => {},
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        Address: '123 Main St',
+        City: 'New York',
+        State: 'New York',
+        Zip_Code: '10001',
+      }),
+    }),
+    getState: async () => state,
+    processHostedCheckoutSuccess: async () => {
+      events.resolveHostedCompletion();
+      return { completed: true, plusReturnUrl: successUrl };
+    },
+    registerTab: async () => {},
+    sendTabMessageUntilStopped: async (_tabId, source, message) => {
+      events.push({ type: 'tab-message', source, message });
+      if (message.type === 'CREATE_PLUS_CHECKOUT') {
+        return {
+          hostedCheckoutUrl: 'https://www.paypal.com/checkoutweb/signup',
+          preferredCheckoutUrl: 'https://www.paypal.com/checkoutweb/signup',
+          country: 'US',
+          currency: 'USD',
+        };
+      }
+      if (message.type === 'PAYPAL_HOSTED_GET_STATE') {
+        return { hostedStage: 'guest_checkout' };
+      }
+      if (message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP') {
+        tabUrl = successUrl;
+      }
+      return {};
+    },
+    setState: async (payload) => {
+      state = { ...state, ...payload };
+    },
+    sleepWithStop: async () => {},
+    waitForTabCompleteUntilStopped: async () => {},
+    waitForTabUrlMatchUntilStopped: async () => ({ id: 82, url: 'https://www.paypal.com/checkoutweb/signup' }),
+  });
+
+  await executor.executePlusCheckoutCreate({
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+  });
+  await hostedCompletion;
+
+  const guestMessage = events.find((event) => (
+    event.type === 'tab-message'
+    && event.message.type === 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP'
+    && event.message.payload?.cardNumber
+  ));
+  assert.equal(guestMessage.message.payload.phone, '5822452843');
+  assert.equal(state.hostedCheckoutSmsPoolUsage[poolLine].useCount, 4);
 });
 
 test('Plus checkout content routes billing operations through the operation delay gate', async () => {

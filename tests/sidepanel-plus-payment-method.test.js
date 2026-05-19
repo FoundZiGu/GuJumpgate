@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const sidepanelSource = fs.readFileSync('sidepanel/sidepanel.js', 'utf8');
+const sidepanelHtml = fs.readFileSync('sidepanel/sidepanel.html', 'utf8');
 
 function extractFunction(name) {
   const asyncStart = sidepanelSource.indexOf(`async function ${name}`);
@@ -60,6 +61,22 @@ function extractLastFunction(name) {
   }
   return sidepanelSource.slice(start, end);
 }
+
+test('sidepanel exposes hosted checkout SMS pool setting', () => {
+  assert.match(sidepanelHtml, /id="row-hosted-checkout-sms-pool"/);
+  assert.match(sidepanelHtml, /id="input-hosted-checkout-sms-pool"/);
+  assert.match(sidepanelSource, /hostedCheckoutSmsPoolText/);
+});
+
+test('sidepanel hides source settings when PayPal Hosted OAuth is closed', () => {
+  const source = extractFunction('updatePanelModeUI');
+  assert.match(sidepanelHtml, /id="row-panel-mode"/);
+  assert.match(source, /isPayPalHostedPostPaymentOAuthSkipped/);
+  assert.match(source, /rowPanelMode\.style\.display = hideOAuthSourceSettings \? 'none' : ''/);
+  assert.match(source, /rowVpsUrl\.style\.display = !hideOAuthSourceSettings && useCpa/);
+  assert.match(source, /rowSub2ApiUrl\.style\.display = !hideOAuthSourceSettings && useSub2Api/);
+  assert.match(source, /rowCodex2ApiUrl\.style\.display = !hideOAuthSourceSettings && useCodex2Api/);
+});
 
 test('sidepanel step definitions keep the selected Plus payment method', () => {
   const bundle = [

@@ -14,6 +14,8 @@ const PLUS_CHECKOUT_PAYLOAD_BASE = {
   },
 };
 const PAYPAL_DIAGNOSTIC_LOG_INTERVAL_MS = 5000;
+const HOSTED_CHECKOUT_CODE_DIGIT_DELAY_MS = 300;
+const HOSTED_CHECKOUT_CODE_SUBMIT_DELAY_MS = 800;
 const PLUS_PAYMENT_METHOD_PAYPAL = 'paypal';
 const PLUS_PAYMENT_METHOD_GOPAY = 'gopay';
 const DEFAULT_CONVERTED_CHECKOUT_PROCESSOR_ENTITY = 'openai_llc';
@@ -378,7 +380,9 @@ async function fillHostedOpenAiVerificationCode(verificationCode = '') {
     if (!fillHostedOpenAiInputById(`ci-ciBasic-${index}`, code[index] || '')) {
       throw new Error('hosted checkout OpenAI 页面未找到完整的验证码输入框。');
     }
+    await sleep(HOSTED_CHECKOUT_CODE_DIGIT_DELAY_MS);
   }
+  await sleep(HOSTED_CHECKOUT_CODE_SUBMIT_DELAY_MS);
   return {
     verificationPopupVisible: true,
     verificationCodeFilled: true,
@@ -1412,7 +1416,7 @@ function matchesCountryOption(text, desiredValue) {
 }
 
 function findCountryDropdown() {
-  const direct = document.getElementById('billingCountry');
+  const direct = document.getElementById?.('billingCountry');
   if (direct && isVisibleElement(direct) && isEnabledControl(direct)) {
     return direct;
   }
@@ -1454,7 +1458,7 @@ function matchesRegionOption(text, desiredValue) {
 }
 
 function findRegionDropdown() {
-  const direct = document.getElementById('billingAdministrativeArea');
+  const direct = document.getElementById?.('billingAdministrativeArea');
   if (direct && isVisibleElement(direct) && isEnabledControl(direct)) {
     return direct;
   }
@@ -1609,10 +1613,10 @@ async function ensureCountrySelectionBeforeAutocomplete(seed = {}) {
 }
 
 function getStructuredAddressFields() {
-  const directAddress1 = document.getElementById('billingAddressLine1');
-  const directCity = document.getElementById('billingLocality');
-  const directPostalCode = document.getElementById('billingPostalCode');
-  const directAddress2 = document.getElementById('billingAddressLine2');
+  const directAddress1 = document.getElementById?.('billingAddressLine1');
+  const directCity = document.getElementById?.('billingLocality');
+  const directPostalCode = document.getElementById?.('billingPostalCode');
+  const directAddress2 = document.getElementById?.('billingAddressLine2');
   const address1 = (directAddress1 && isVisibleElement(directAddress1) ? directAddress1 : null) || findInputByFieldText([
     /address\s*(?:line)?\s*1|address[_-]?line[_-]?1|address\[(?:address_)?line1\]|line\s*1|street|street[_-]?address/i,
     /地址\s*1|街道|详细地址|住所/i,

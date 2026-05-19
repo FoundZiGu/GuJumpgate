@@ -8,7 +8,7 @@ const {
   normalizeCloudMailDomain,
   normalizeCloudMailDomains,
   normalizeCloudMailMailApiMessages,
-} = require('../cloudmail-utils.js');
+} = require('../shared/mail/cloudmail-utils.js');
 
 test('normalizeCloudMailBaseUrl normalizes host and preserves path', () => {
   assert.equal(

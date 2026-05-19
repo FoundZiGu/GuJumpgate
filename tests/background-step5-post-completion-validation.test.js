@@ -138,3 +138,53 @@ return {
     true
   );
 });
+
+test('step 5 post-completion validation accepts left-profile completion state', async () => {
+  const api = new Function(`
+const chrome = {
+  tabs: {
+    async get() {
+      return { url: 'https://pay.openai.com/c/pay/hosted_cs_next' };
+    },
+  },
+};
+
+async function sendToContentScriptResilient(source, message) {
+  if (message.type === 'GET_STEP5_SUBMIT_STATE') {
+    return {
+      retryPage: false,
+      retryEnabled: false,
+      maxCheckAttemptsBlocked: false,
+      userAlreadyExistsBlocked: false,
+      successState: 'left_profile',
+      profileVisible: false,
+      errorText: '',
+      unknownAuthPage: false,
+      url: 'https://pay.openai.com/c/pay/hosted_cs_next',
+    };
+  }
+  throw new Error('unexpected message type: ' + message.type);
+}
+
+async function addLog() {}
+async function waitForTabStableComplete() {}
+
+${extractFunction('parseUrlSafely')}
+${extractFunction('isSignupEntryHost')}
+${extractFunction('isLikelyLoggedInChatgptHomeUrl')}
+${extractFunction('getStep5SubmitStateFromContent')}
+${extractFunction('recoverStep5SubmitRetryPageOnTab')}
+${extractFunction('validateStep5PostCompletion')}
+
+return {
+  run() {
+    return validateStep5PostCompletion(99, {});
+  },
+};
+`)();
+
+  const result = await api.run();
+
+  assert.equal(result.successState, 'left_profile');
+  assert.equal(result.url, 'https://pay.openai.com/c/pay/hosted_cs_next');
+});

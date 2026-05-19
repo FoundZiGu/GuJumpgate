@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const mail2925Utils = require('../mail2925-utils.js');
+const mail2925Utils = require('../shared/mail/mail2925-utils.js');
 
 const source = fs.readFileSync('background/mail-2925-session.js', 'utf8');
 const globalScope = {};

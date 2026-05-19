@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const source = fs.readFileSync('managed-alias-utils.js', 'utf8');
+const source = fs.readFileSync('shared/accounts/managed-alias-utils.js', 'utf8');
 const scope = {};
 const api = new Function('self', `${source}; return self.MultiPageManagedAliasUtils;`)(scope);
 

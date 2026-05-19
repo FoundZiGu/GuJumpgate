@@ -762,6 +762,10 @@ header {
   gap: 8px;
 }
 
+.settings-section-header {
+  padding-bottom: 2px;
+}
+
 .section-mini-copy {
   min-width: 0;
   display: flex;
@@ -1550,6 +1554,50 @@ header {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.hosted-checkout-settings-row {
+  align-items: flex-start;
+}
+
+.hosted-checkout-settings-row > .data-label {
+  padding-top: 10px;
+}
+
+.hosted-checkout-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-base) 74%, transparent);
+}
+
+.hosted-checkout-panel > .data-row {
+  width: 100%;
+}
+
+.hosted-checkout-panel > .data-row > .data-label {
+  width: 82px;
+}
+
+.hosted-sms-pool-box {
+  width: 100%;
+}
+
+.hosted-sms-pool-phone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hosted-sms-pool-phone-local {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .hotmail-list-shell {

@@ -81,6 +81,7 @@ const btnExportSettings = document.getElementById('btn-export-settings');
 const btnImportSettings = document.getElementById('btn-import-settings');
 const inputImportSettingsFile = document.getElementById('input-import-settings-file');
 const selectPanelMode = document.getElementById('select-panel-mode');
+const rowPanelMode = document.getElementById('row-panel-mode');
 const rowVpsUrl = document.getElementById('row-vps-url');
 const inputVpsUrl = document.getElementById('input-vps-url');
 const rowVpsPassword = document.getElementById('row-vps-password');
@@ -176,12 +177,28 @@ const selectPlusPaymentMethod = document.getElementById('select-plus-payment-met
 const btnGpcCardKeyPurchase = document.getElementById('btn-gpc-card-key-purchase');
 const plusPaymentMethodCaption = document.getElementById('plus-payment-method-caption');
 const rowPayPalAccount = document.getElementById('row-paypal-account');
+const rowPayPalHostedSettings = document.getElementById('row-paypal-hosted-settings');
 const rowPlusHostedCheckoutOauthDelay = document.getElementById('row-plus-hosted-checkout-oauth-delay');
 const inputPlusHostedCheckoutOauthDelaySeconds = document.getElementById('input-plus-hosted-checkout-oauth-delay-seconds');
+const rowSkipPostPaymentOAuth = document.getElementById('row-skip-post-payment-oauth');
+const inputSkipPostPaymentOAuthEnabled = document.getElementById('input-skip-post-payment-oauth-enabled');
+const postPaymentOauthToggleLabel = document.getElementById('post-payment-oauth-toggle-label');
+const skipPostPaymentOAuthCaption = document.getElementById('skip-post-payment-oauth-caption');
 const rowHostedCheckoutVerificationUrl = document.getElementById('row-hosted-checkout-verification-url');
 const inputHostedCheckoutVerificationUrl = document.getElementById('input-hosted-checkout-verification-url');
 const rowHostedCheckoutPhone = document.getElementById('row-hosted-checkout-phone');
 const inputHostedCheckoutPhone = document.getElementById('input-hosted-checkout-phone');
+const rowHostedCheckoutSmsPool = document.getElementById('row-hosted-checkout-sms-pool');
+const inputHostedCheckoutSmsPool = document.getElementById('input-hosted-checkout-sms-pool');
+const btnHostedSmsPoolRefresh = document.getElementById('btn-hosted-sms-pool-refresh');
+const btnHostedSmsPoolClearUsed = document.getElementById('btn-hosted-sms-pool-clear-used');
+const btnHostedSmsPoolDeleteAll = document.getElementById('btn-hosted-sms-pool-delete-all');
+const inputHostedSmsPoolImport = document.getElementById('input-hosted-sms-pool-import');
+const btnHostedSmsPoolImport = document.getElementById('btn-hosted-sms-pool-import');
+const hostedSmsPoolSummary = document.getElementById('hosted-sms-pool-summary');
+const inputHostedSmsPoolSearch = document.getElementById('input-hosted-sms-pool-search');
+const selectHostedSmsPoolFilter = document.getElementById('select-hosted-sms-pool-filter');
+const hostedSmsPoolList = document.getElementById('hosted-sms-pool-list');
 const selectPayPalAccount = document.getElementById('select-paypal-account');
 const payPalAccountPickerRoot = document.getElementById('paypal-account-picker');
 const btnPayPalAccountMenu = document.getElementById('btn-paypal-account-menu');
@@ -314,6 +331,7 @@ const rowHotmailRemoteBaseUrl = document.getElementById('row-hotmail-remote-base
 const inputHotmailRemoteBaseUrl = document.getElementById('input-hotmail-remote-base-url');
 const rowHotmailLocalBaseUrl = document.getElementById('row-hotmail-local-base-url');
 const inputHotmailLocalBaseUrl = document.getElementById('input-hotmail-local-base-url');
+const inputOutlookAliasMaxPerAccount = document.getElementById('input-outlook-alias-max-per-account');
 const inputHotmailEmail = document.getElementById('input-hotmail-email');
 const inputHotmailClientId = document.getElementById('input-hotmail-client-id');
 const inputHotmailPassword = document.getElementById('input-hotmail-password');
@@ -537,6 +555,7 @@ const PHONE_SIGNUP_REUSE_LOCK_TITLE = '手机号注册流程不使用号码复�
 let latestState = null;
 let currentPlusModeEnabled = false;
 let currentPlusPaymentMethod = DEFAULT_PLUS_PAYMENT_METHOD;
+let currentSkipPostPaymentOAuthEnabled = true;
 let currentSignupMethod = DEFAULT_SIGNUP_METHOD;
 let currentPhoneSignupReloginAfterBindEmailEnabled = DEFAULT_PHONE_SIGNUP_RELOGIN_AFTER_BIND_EMAIL_ENABLED;
 let phoneSignupReuseUiWasLocked = false;
@@ -832,6 +851,12 @@ function getStepDefinitionsForMode(plusModeEnabled = false, options = {}) {
   const phoneSignupReloginAfterBindEmailEnabled = typeof options === 'string'
     ? currentPhoneSignupReloginAfterBindEmailEnabled
     : Boolean(options.phoneSignupReloginAfterBindEmailEnabled ?? currentPhoneSignupReloginAfterBindEmailEnabled);
+  const currentSkipPostPaymentOAuth = typeof currentSkipPostPaymentOAuthEnabled !== 'undefined'
+    ? currentSkipPostPaymentOAuthEnabled
+    : true;
+  const skipPostPaymentOAuthEnabled = typeof options === 'string'
+    ? currentSkipPostPaymentOAuth
+    : Boolean(options.skipPostPaymentOAuthEnabled ?? currentSkipPostPaymentOAuth);
   const activeFlowId = typeof options === 'string'
     ? ((typeof latestState !== 'undefined' ? latestState?.activeFlowId : '') || defaultFlowId)
     : (options.activeFlowId || (typeof latestState !== 'undefined' ? latestState?.activeFlowId : '') || defaultFlowId);
@@ -841,6 +866,7 @@ function getStepDefinitionsForMode(plusModeEnabled = false, options = {}) {
     plusPaymentMethod: normalizePlusPaymentMethod(rawPaymentMethod),
     signupMethod: normalizeSignupMethod(rawSignupMethod),
     phoneSignupReloginAfterBindEmailEnabled,
+    ...(skipPostPaymentOAuthEnabled && normalizePlusPaymentMethod(rawPaymentMethod) === 'paypal' ? { skipPostPaymentOAuthEnabled: true } : {}),
   }) || [])
     .sort((left, right) => {
       const leftOrder = Number.isFinite(left.order) ? left.order : left.id;
@@ -862,6 +888,12 @@ function getWorkflowNodesForMode(plusModeEnabled = false, options = {}) {
   const phoneSignupReloginAfterBindEmailEnabled = typeof options === 'string'
     ? currentPhoneSignupReloginAfterBindEmailEnabled
     : Boolean(options.phoneSignupReloginAfterBindEmailEnabled ?? currentPhoneSignupReloginAfterBindEmailEnabled);
+  const currentSkipPostPaymentOAuth = typeof currentSkipPostPaymentOAuthEnabled !== 'undefined'
+    ? currentSkipPostPaymentOAuthEnabled
+    : true;
+  const skipPostPaymentOAuthEnabled = typeof options === 'string'
+    ? currentSkipPostPaymentOAuth
+    : Boolean(options.skipPostPaymentOAuthEnabled ?? currentSkipPostPaymentOAuth);
   const activeFlowId = typeof options === 'string'
     ? ((typeof latestState !== 'undefined' ? latestState?.activeFlowId : '') || defaultFlowId)
     : (options.activeFlowId || (typeof latestState !== 'undefined' ? latestState?.activeFlowId : '') || defaultFlowId);
@@ -871,6 +903,7 @@ function getWorkflowNodesForMode(plusModeEnabled = false, options = {}) {
     plusPaymentMethod: normalizePlusPaymentMethod(rawPaymentMethod),
     signupMethod: normalizeSignupMethod(rawSignupMethod),
     phoneSignupReloginAfterBindEmailEnabled,
+    ...(skipPostPaymentOAuthEnabled && normalizePlusPaymentMethod(rawPaymentMethod) === 'paypal' ? { skipPostPaymentOAuthEnabled: true } : {}),
   });
   if (Array.isArray(nodes) && nodes.length) {
     return nodes.slice().sort((left, right) => {
@@ -934,14 +967,24 @@ function rebuildStepDefinitionState(plusModeEnabled = false, options = {}) {
   const phoneSignupReloginAfterBindEmailEnabled = typeof options === 'string'
     ? currentPhoneSignupReloginAfterBindEmailEnabled
     : Boolean(options.phoneSignupReloginAfterBindEmailEnabled ?? currentPhoneSignupReloginAfterBindEmailEnabled);
+  const currentSkipPostPaymentOAuth = typeof currentSkipPostPaymentOAuthEnabled !== 'undefined'
+    ? currentSkipPostPaymentOAuthEnabled
+    : true;
+  const skipPostPaymentOAuthEnabled = typeof options === 'string'
+    ? currentSkipPostPaymentOAuth
+    : Boolean(options.skipPostPaymentOAuthEnabled ?? currentSkipPostPaymentOAuth);
   currentPlusPaymentMethod = normalizePlusPaymentMethod(rawPaymentMethod);
   currentSignupMethod = normalizeSignupMethod(rawSignupMethod);
   currentPhoneSignupReloginAfterBindEmailEnabled = phoneSignupReloginAfterBindEmailEnabled;
+  if (typeof currentSkipPostPaymentOAuthEnabled !== 'undefined') {
+    currentSkipPostPaymentOAuthEnabled = skipPostPaymentOAuthEnabled;
+  }
   stepDefinitions = getStepDefinitionsForMode(currentPlusModeEnabled, {
     activeFlowId: options?.activeFlowId,
     plusPaymentMethod: currentPlusPaymentMethod,
     signupMethod: currentSignupMethod,
     phoneSignupReloginAfterBindEmailEnabled: currentPhoneSignupReloginAfterBindEmailEnabled,
+    ...(skipPostPaymentOAuthEnabled && currentPlusPaymentMethod === 'paypal' ? { skipPostPaymentOAuthEnabled: true } : {}),
   });
   const nextWorkflowNodes = typeof getWorkflowNodesForMode === 'function'
     ? getWorkflowNodesForMode(currentPlusModeEnabled, {
@@ -949,6 +992,7 @@ function rebuildStepDefinitionState(plusModeEnabled = false, options = {}) {
       plusPaymentMethod: currentPlusPaymentMethod,
       signupMethod: currentSignupMethod,
       phoneSignupReloginAfterBindEmailEnabled: currentPhoneSignupReloginAfterBindEmailEnabled,
+      ...(skipPostPaymentOAuthEnabled && currentPlusPaymentMethod === 'paypal' ? { skipPostPaymentOAuthEnabled: true } : {}),
     })
     : stepDefinitions.map((step) => ({
       legacyStepId: Number(step.id),
@@ -2766,6 +2810,18 @@ function normalizePlusHostedCheckoutOauthDelaySeconds(value) {
   return Math.min(3600, Math.max(0, Math.floor(numeric)));
 }
 
+function normalizeOutlookAliasMaxPerAccount(value) {
+  const rawValue = String(value ?? '').trim();
+  if (!rawValue) {
+    return 5;
+  }
+  const numeric = Number(rawValue);
+  if (!Number.isFinite(numeric)) {
+    return 5;
+  }
+  return Math.min(50, Math.max(1, Math.floor(numeric)));
+}
+
 function normalizeHostedCheckoutVerificationUrlValue(value = '') {
   const rawValue = String(value || '').trim();
   if (!rawValue) {
@@ -2784,6 +2840,15 @@ function normalizeHostedCheckoutVerificationUrlValue(value = '') {
 
 function normalizeHostedCheckoutPhoneValue(value = '') {
   return String(value || '').trim();
+}
+
+function normalizeHostedCheckoutSmsPoolTextValue(value = '') {
+  return String(value || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 function normalizeVerificationResendCount(value, fallback) {
@@ -3912,7 +3977,7 @@ function collectSettingsPayload() {
     ipProxyRegion: currentIpProxyServiceProfile.region,
     codex2apiUrl: inputCodex2ApiUrl.value.trim(),
     codex2apiAdminKey: inputCodex2ApiAdminKey.value.trim(),
-    plusModeEnabled: FIXED_PLUS_MODE_ENABLED,
+    plusModeEnabled: typeof FIXED_PLUS_MODE_ENABLED !== 'undefined' ? FIXED_PLUS_MODE_ENABLED : true,
     plusPaymentMethod,
     paypalEmail: String(currentPayPalAccount?.email || latestState?.paypalEmail || '').trim(),
     paypalPassword: String(currentPayPalAccount?.password || latestState?.paypalPassword || ''),
@@ -3971,7 +4036,7 @@ function collectSettingsPayload() {
     ...(contributionModeEnabled ? {} : {
       customPassword: inputPassword.value,
     }),
-    mailProvider: FIXED_MAIL_PROVIDER,
+    mailProvider: typeof FIXED_MAIL_PROVIDER !== 'undefined' ? FIXED_MAIL_PROVIDER : 'hotmail-api',
     mail2925Mode: getSelectedMail2925Mode(),
     mail2925UseAccountPool,
     currentMail2925AccountId: String(latestState?.currentMail2925AccountId || '').trim(),
@@ -4027,18 +4092,32 @@ function collectSettingsPayload() {
     autoRunDelayEnabled: inputAutoDelayEnabled.checked,
     autoRunDelayMinutes: normalizeAutoDelayMinutes(inputAutoDelayMinutes.value),
     autoStepDelaySeconds: normalizeAutoStepDelaySeconds(inputAutoStepDelaySeconds.value),
-    plusHostedCheckoutOauthDelaySeconds: inputPlusHostedCheckoutOauthDelaySeconds
+    plusHostedCheckoutOauthDelaySeconds: typeof inputPlusHostedCheckoutOauthDelaySeconds !== 'undefined' && inputPlusHostedCheckoutOauthDelaySeconds
       ? normalizePlusHostedCheckoutOauthDelaySeconds(inputPlusHostedCheckoutOauthDelaySeconds.value)
       : 0,
-    hostedCheckoutVerificationUrl: inputHostedCheckoutVerificationUrl
+    skipPostPaymentOAuthEnabled: typeof getSkipPostPaymentOAuthEnabledFromInput === 'function'
+      ? getSkipPostPaymentOAuthEnabledFromInput()
+      : true,
+    hostedCheckoutVerificationUrl: typeof inputHostedCheckoutVerificationUrl !== 'undefined' && inputHostedCheckoutVerificationUrl
       ? normalizeHostedCheckoutVerificationUrlValue(inputHostedCheckoutVerificationUrl.value)
       : '',
-    hostedCheckoutPhoneNumber: inputHostedCheckoutPhone
+    hostedCheckoutPhoneNumber: typeof inputHostedCheckoutPhone !== 'undefined' && inputHostedCheckoutPhone
       ? normalizeHostedCheckoutPhoneValue(inputHostedCheckoutPhone.value)
       : '',
+    hostedCheckoutSmsPoolText: typeof inputHostedCheckoutSmsPool !== 'undefined' && inputHostedCheckoutSmsPool
+      ? normalizeHostedCheckoutSmsPoolTextValue(inputHostedCheckoutSmsPool.value)
+      : '',
+    hostedCheckoutSmsPoolUsage: latestState?.hostedCheckoutSmsPoolUsage && typeof latestState.hostedCheckoutSmsPoolUsage === 'object'
+      ? latestState.hostedCheckoutSmsPoolUsage
+      : {},
     oauthFlowTimeoutEnabled: typeof inputOAuthFlowTimeoutEnabled !== 'undefined' && inputOAuthFlowTimeoutEnabled
       ? Boolean(inputOAuthFlowTimeoutEnabled.checked)
       : true,
+    outlookAliasMaxPerAccount: typeof inputOutlookAliasMaxPerAccount !== 'undefined' && inputOutlookAliasMaxPerAccount
+      ? (typeof normalizeOutlookAliasMaxPerAccount === 'function'
+        ? normalizeOutlookAliasMaxPerAccount(inputOutlookAliasMaxPerAccount.value)
+        : Math.min(50, Math.max(1, Math.floor(Number(inputOutlookAliasMaxPerAccount.value) || 5))))
+      : 5,
     phoneVerificationEnabled: effectivePhoneVerificationEnabled,
     signupMethod: effectiveSignupMethod,
     phoneSignupReloginAfterBindEmailEnabled: typeof inputPhoneSignupReloginAfterBindEmail !== 'undefined' && inputPhoneSignupReloginAfterBindEmail
@@ -8227,6 +8306,27 @@ function updatePhoneVerificationSettingsUI() {
   updateHeroSmsPlatformDisplay();
 }
 
+function getSkipPostPaymentOAuthEnabledFromInput() {
+  if (typeof inputSkipPostPaymentOAuthEnabled !== 'undefined' && inputSkipPostPaymentOAuthEnabled) {
+    return !Boolean(inputSkipPostPaymentOAuthEnabled.checked);
+  }
+  return typeof currentSkipPostPaymentOAuthEnabled !== 'undefined'
+    ? Boolean(currentSkipPostPaymentOAuthEnabled)
+    : true;
+}
+
+function isPayPalHostedPostPaymentOAuthSkipped() {
+  const plusEnabled = typeof inputPlusModeEnabled !== 'undefined' && inputPlusModeEnabled
+    ? Boolean(inputPlusModeEnabled.checked)
+    : Boolean(latestState?.plusModeEnabled);
+  const paymentMethod = typeof getSelectedPlusPaymentMethod === 'function'
+    ? getSelectedPlusPaymentMethod()
+    : normalizePlusPaymentMethod(latestState?.plusPaymentMethod || 'paypal');
+  return Boolean(plusEnabled)
+    && paymentMethod === (typeof PLUS_PAYMENT_METHOD_PAYPAL !== 'undefined' ? PLUS_PAYMENT_METHOD_PAYPAL : 'paypal')
+    && getSkipPostPaymentOAuthEnabledFromInput();
+}
+
 function updatePlusModeUI() {
   const paypalValue = typeof PLUS_PAYMENT_METHOD_PAYPAL !== 'undefined' ? PLUS_PAYMENT_METHOD_PAYPAL : 'paypal';
   const gopayValue = typeof PLUS_PAYMENT_METHOD_GOPAY !== 'undefined' ? PLUS_PAYMENT_METHOD_GOPAY : 'gopay';
@@ -8324,10 +8424,15 @@ function updatePlusModeUI() {
     }
     row.style.display = enabled && selectedMethod === paypalValue ? '' : 'none';
   });
+  if (typeof rowPayPalHostedSettings !== 'undefined' && rowPayPalHostedSettings) {
+    rowPayPalHostedSettings.style.display = enabled && selectedMethod === paypalValue ? '' : 'none';
+  }
   [
     typeof rowPlusHostedCheckoutOauthDelay !== 'undefined' ? rowPlusHostedCheckoutOauthDelay : null,
+    typeof rowSkipPostPaymentOAuth !== 'undefined' ? rowSkipPostPaymentOAuth : null,
     typeof rowHostedCheckoutVerificationUrl !== 'undefined' ? rowHostedCheckoutVerificationUrl : null,
     typeof rowHostedCheckoutPhone !== 'undefined' ? rowHostedCheckoutPhone : null,
+    typeof rowHostedCheckoutSmsPool !== 'undefined' ? rowHostedCheckoutSmsPool : null,
   ].forEach((row) => {
     if (!row) {
       return;
@@ -8374,6 +8479,9 @@ function updatePlusModeUI() {
   }
   if (typeof btnGpcCardKeyPurchase !== 'undefined' && btnGpcCardKeyPurchase) {
     btnGpcCardKeyPurchase.style.display = gpcRowsVisible ? '' : 'none';
+  }
+  if (typeof updatePanelModeUI === 'function') {
+    updatePanelModeUI();
   }
   [
     typeof rowGoPayCountryCode !== 'undefined' ? rowGoPayCountryCode : null,
@@ -9125,6 +9233,15 @@ function syncStepDefinitionsForMode(plusModeEnabled = false, plusPaymentMethodOr
         ? inputPhoneSignupReloginAfterBindEmail.checked
         : currentPhoneSignupReloginAfterBindEmailEnabled)
   );
+  const currentSkipPostPaymentOAuth = typeof currentSkipPostPaymentOAuthEnabled !== 'undefined'
+    ? currentSkipPostPaymentOAuthEnabled
+    : true;
+  const nextSkipPostPaymentOAuthEnabled = Boolean(
+    options.skipPostPaymentOAuthEnabled
+      ?? (typeof inputSkipPostPaymentOAuthEnabled !== 'undefined' && inputSkipPostPaymentOAuthEnabled
+        ? getSkipPostPaymentOAuthEnabledFromInput()
+        : currentSkipPostPaymentOAuth)
+  );
   const nextPaymentMethod = normalizePlusPaymentMethod(rawPaymentMethod);
   const nextActiveFlowId = String(
     options.activeFlowId
@@ -9139,6 +9256,7 @@ function syncStepDefinitionsForMode(plusModeEnabled = false, plusPaymentMethodOr
     plusPaymentMethod: nextPaymentMethod,
     signupMethod: nextSignupMethod,
     phoneSignupReloginAfterBindEmailEnabled: nextPhoneSignupReloginAfterBindEmailEnabled,
+    ...(nextSkipPostPaymentOAuthEnabled && nextPaymentMethod === 'paypal' ? { skipPostPaymentOAuthEnabled: true } : {}),
   });
   const paymentTitleChanged = Boolean(nextPlusModeEnabled && currentPaymentStep && nextPaymentTitle && currentPaymentStep.title !== nextPaymentTitle);
   const shouldRender = Boolean(options.render)
@@ -9146,6 +9264,7 @@ function syncStepDefinitionsForMode(plusModeEnabled = false, plusPaymentMethodOr
     || nextPaymentMethod !== currentPlusPaymentMethod
     || nextSignupMethod !== currentSignupMethod
     || nextPhoneSignupReloginAfterBindEmailEnabled !== currentPhoneSignupReloginAfterBindEmailEnabled
+    || nextSkipPostPaymentOAuthEnabled !== currentSkipPostPaymentOAuth
     || paymentTitleChanged;
   if (!shouldRender) {
     return;
@@ -9156,6 +9275,7 @@ function syncStepDefinitionsForMode(plusModeEnabled = false, plusPaymentMethodOr
     plusPaymentMethod: nextPaymentMethod,
     signupMethod: nextSignupMethod,
     phoneSignupReloginAfterBindEmailEnabled: nextPhoneSignupReloginAfterBindEmailEnabled,
+    skipPostPaymentOAuthEnabled: nextSkipPostPaymentOAuthEnabled,
   });
   renderStepsList();
 }
@@ -9179,6 +9299,9 @@ function applySettingsState(state) {
       plusPaymentMethod: state?.plusPaymentMethod,
       signupMethod: stepDefinitionState.signupMethod,
       phoneSignupReloginAfterBindEmailEnabled: Boolean(state?.phoneSignupReloginAfterBindEmailEnabled),
+      skipPostPaymentOAuthEnabled: state?.skipPostPaymentOAuthEnabled !== undefined
+        ? Boolean(state.skipPostPaymentOAuthEnabled)
+        : true,
     });
   }
   const fallbackIpProxyService = '711proxy';
@@ -9240,7 +9363,7 @@ function applySettingsState(state) {
   }
   syncPasswordField(state || {});
   if (typeof inputPlusModeEnabled !== 'undefined' && inputPlusModeEnabled) {
-    inputPlusModeEnabled.checked = FIXED_PLUS_MODE_ENABLED;
+    inputPlusModeEnabled.checked = typeof FIXED_PLUS_MODE_ENABLED !== 'undefined' ? FIXED_PLUS_MODE_ENABLED : true;
   }
   if (typeof selectPlusPaymentMethod !== 'undefined' && selectPlusPaymentMethod) {
     selectPlusPaymentMethod.value = normalizePlusPaymentMethod(state?.plusPaymentMethod);
@@ -9416,7 +9539,7 @@ function applySettingsState(state) {
   }
   inputCodex2ApiUrl.value = state?.codex2apiUrl || '';
   inputCodex2ApiAdminKey.value = state?.codex2apiAdminKey || '';
-  const restoredMailProvider = FIXED_MAIL_PROVIDER;
+  const restoredMailProvider = typeof FIXED_MAIL_PROVIDER !== 'undefined' ? FIXED_MAIL_PROVIDER : 'hotmail-api';
   selectMailProvider.value = restoredMailProvider;
   setMail2925Mode(state?.mail2925Mode);
   {
@@ -9503,21 +9626,46 @@ function applySettingsState(state) {
   inputAutoDelayEnabled.checked = Boolean(state?.autoRunDelayEnabled);
   inputAutoDelayMinutes.value = String(normalizeAutoDelayMinutes(state?.autoRunDelayMinutes));
   inputAutoStepDelaySeconds.value = formatAutoStepDelayInputValue(state?.autoStepDelaySeconds);
-  if (inputPlusHostedCheckoutOauthDelaySeconds) {
+  if (typeof inputPlusHostedCheckoutOauthDelaySeconds !== 'undefined' && inputPlusHostedCheckoutOauthDelaySeconds) {
     inputPlusHostedCheckoutOauthDelaySeconds.value = String(
       normalizePlusHostedCheckoutOauthDelaySeconds(state?.plusHostedCheckoutOauthDelaySeconds)
     );
   }
-  if (inputHostedCheckoutVerificationUrl) {
+  if (typeof inputSkipPostPaymentOAuthEnabled !== 'undefined' && inputSkipPostPaymentOAuthEnabled) {
+    const skipPostPaymentOAuth = state?.skipPostPaymentOAuthEnabled !== undefined
+      ? Boolean(state.skipPostPaymentOAuthEnabled)
+      : true;
+    inputSkipPostPaymentOAuthEnabled.checked = !skipPostPaymentOAuth;
+    updateSkipPostPaymentOAuthCaption();
+  }
+  if (typeof inputHostedCheckoutVerificationUrl !== 'undefined' && inputHostedCheckoutVerificationUrl) {
     inputHostedCheckoutVerificationUrl.value = normalizeHostedCheckoutVerificationUrlValue(state?.hostedCheckoutVerificationUrl || '');
   }
-  if (inputHostedCheckoutPhone) {
+  if (typeof inputHostedCheckoutPhone !== 'undefined' && inputHostedCheckoutPhone) {
     inputHostedCheckoutPhone.value = normalizeHostedCheckoutPhoneValue(state?.hostedCheckoutPhoneNumber || '');
+  }
+  if (typeof inputHostedCheckoutSmsPool !== 'undefined' && inputHostedCheckoutSmsPool) {
+    const restoredHostedPoolText = normalizeHostedCheckoutSmsPoolTextValue(state?.hostedCheckoutSmsPoolText || '');
+    const fallbackHostedPhone = normalizeHostedCheckoutPhoneValue(state?.hostedCheckoutPhoneNumber || '');
+    const fallbackHostedUrl = normalizeHostedCheckoutVerificationUrlValue(state?.hostedCheckoutVerificationUrl || '');
+    inputHostedCheckoutSmsPool.value = restoredHostedPoolText || (
+      fallbackHostedPhone && fallbackHostedUrl
+        ? normalizeHostedCheckoutSmsPoolTextValue(`${fallbackHostedPhone}----${fallbackHostedUrl}`)
+        : ''
+    );
+    queueHostedSmsPoolRefresh();
   }
   if (typeof inputOAuthFlowTimeoutEnabled !== 'undefined' && inputOAuthFlowTimeoutEnabled) {
     inputOAuthFlowTimeoutEnabled.checked = state?.oauthFlowTimeoutEnabled !== undefined
       ? Boolean(state.oauthFlowTimeoutEnabled)
       : true;
+  }
+  if (typeof inputOutlookAliasMaxPerAccount !== 'undefined' && inputOutlookAliasMaxPerAccount) {
+    inputOutlookAliasMaxPerAccount.value = String(
+      typeof normalizeOutlookAliasMaxPerAccount === 'function'
+        ? normalizeOutlookAliasMaxPerAccount(state?.outlookAliasMaxPerAccount)
+        : Math.min(50, Math.max(1, Math.floor(Number(state?.outlookAliasMaxPerAccount) || 5)))
+    );
   }
   if (inputVerificationResendCount) {
     const restoredVerificationResendCount = state?.verificationResendCount !== undefined
@@ -11359,17 +11507,23 @@ function updatePanelModeUI() {
   const useSub2Api = panelMode === 'sub2api';
   const useCodex2Api = panelMode === 'codex2api';
   const useCpa = !useSub2Api && !useCodex2Api;
-  rowVpsUrl.style.display = useCpa ? '' : 'none';
-  rowVpsPassword.style.display = useCpa ? '' : 'none';
-  rowLocalCpaStep9Mode.style.display = useCpa ? '' : 'none';
-  rowSub2ApiUrl.style.display = useSub2Api ? '' : 'none';
-  rowSub2ApiEmail.style.display = useSub2Api ? '' : 'none';
-  rowSub2ApiPassword.style.display = useSub2Api ? '' : 'none';
-  rowSub2ApiGroup.style.display = useSub2Api ? '' : 'none';
-  rowSub2ApiAccountPriority.style.display = useSub2Api ? '' : 'none';
-  rowSub2ApiDefaultProxy.style.display = useSub2Api ? '' : 'none';
-  rowCodex2ApiUrl.style.display = useCodex2Api ? '' : 'none';
-  rowCodex2ApiAdminKey.style.display = useCodex2Api ? '' : 'none';
+  const hideOAuthSourceSettings = typeof isPayPalHostedPostPaymentOAuthSkipped === 'function'
+    ? isPayPalHostedPostPaymentOAuthSkipped()
+    : false;
+  if (rowPanelMode) {
+    rowPanelMode.style.display = hideOAuthSourceSettings ? 'none' : '';
+  }
+  rowVpsUrl.style.display = !hideOAuthSourceSettings && useCpa ? '' : 'none';
+  rowVpsPassword.style.display = !hideOAuthSourceSettings && useCpa ? '' : 'none';
+  rowLocalCpaStep9Mode.style.display = !hideOAuthSourceSettings && useCpa ? '' : 'none';
+  rowSub2ApiUrl.style.display = !hideOAuthSourceSettings && useSub2Api ? '' : 'none';
+  rowSub2ApiEmail.style.display = !hideOAuthSourceSettings && useSub2Api ? '' : 'none';
+  rowSub2ApiPassword.style.display = !hideOAuthSourceSettings && useSub2Api ? '' : 'none';
+  rowSub2ApiGroup.style.display = !hideOAuthSourceSettings && useSub2Api ? '' : 'none';
+  rowSub2ApiAccountPriority.style.display = !hideOAuthSourceSettings && useSub2Api ? '' : 'none';
+  rowSub2ApiDefaultProxy.style.display = !hideOAuthSourceSettings && useSub2Api ? '' : 'none';
+  rowCodex2ApiUrl.style.display = !hideOAuthSourceSettings && useCodex2Api ? '' : 'none';
+  rowCodex2ApiAdminKey.style.display = !hideOAuthSourceSettings && useCodex2Api ? '' : 'none';
 
   const step9Btn = document.querySelector('.step-btn[data-step-key="platform-verify"]');
   if (step9Btn) {
@@ -11684,7 +11838,7 @@ async function fetchGeneratedEmail(options = {}) {
         generateNew: true,
         currentEmail: inputEmail.value.trim(),
         generator: selectEmailGenerator.value,
-        mailProvider: FIXED_MAIL_PROVIDER,
+        mailProvider: typeof FIXED_MAIL_PROVIDER !== 'undefined' ? FIXED_MAIL_PROVIDER : 'hotmail-api',
         mail2925Mode: getSelectedMail2925Mode(),
         ...(getSelectedEmailGenerator() === CUSTOM_EMAIL_POOL_GENERATOR
           ? {
@@ -12094,6 +12248,74 @@ const resetCustomEmailPoolManager = customEmailPoolManager?.reset
 const bindCustomEmailPoolEvents = customEmailPoolManager?.bindEvents
   || (() => { });
 bindCustomEmailPoolEvents();
+
+const hostedSmsPoolManager = window.SidepanelHostedSmsPoolManager?.createHostedSmsPoolManager({
+  dom: {
+    btnHostedSmsPoolRefresh,
+    btnHostedSmsPoolClearUsed,
+    btnHostedSmsPoolDeleteAll,
+    inputHostedSmsPoolImport,
+    btnHostedSmsPoolImport,
+    hostedSmsPoolSummary,
+    inputHostedSmsPoolSearch,
+    selectHostedSmsPoolFilter,
+    hostedSmsPoolList,
+  },
+  helpers: {
+    copyTextToClipboard,
+    escapeHtml,
+    openConfirmModal,
+    showToast,
+  },
+  state: {
+    getText: () => normalizeHostedCheckoutSmsPoolTextValue(inputHostedCheckoutSmsPool?.value || latestState?.hostedCheckoutSmsPoolText || ''),
+    setText: (text) => {
+      const normalized = normalizeHostedCheckoutSmsPoolTextValue(text);
+      if (inputHostedCheckoutSmsPool) {
+        inputHostedCheckoutSmsPool.value = normalized;
+      }
+      syncLatestState({ hostedCheckoutSmsPoolText: normalized });
+    },
+    getUsage: () => latestState?.hostedCheckoutSmsPoolUsage || {},
+    setUsage: (usage) => {
+      syncLatestState({ hostedCheckoutSmsPoolUsage: usage && typeof usage === 'object' ? usage : {} });
+    },
+    getCurrentEntry: () => latestState?.hostedCheckoutCurrentSmsEntry || null,
+    isVisible: () => Boolean(rowHostedCheckoutSmsPool) && rowHostedCheckoutSmsPool.style.display !== 'none',
+  },
+  actions: {
+    clearFallback: () => {
+      if (inputHostedCheckoutVerificationUrl) {
+        inputHostedCheckoutVerificationUrl.value = '';
+      }
+      if (inputHostedCheckoutPhone) {
+        inputHostedCheckoutPhone.value = '';
+      }
+      syncLatestState({
+        hostedCheckoutVerificationUrl: '',
+        hostedCheckoutPhoneNumber: '',
+      });
+    },
+    persistPool: async () => {
+      markSettingsDirty(true);
+      await saveSettings({ silent: true });
+    },
+  },
+  constants: {
+    copyIcon: COPY_ICON,
+  },
+});
+const queueHostedSmsPoolRefresh = hostedSmsPoolManager?.queueRefresh
+  || (() => { });
+const refreshHostedSmsPool = hostedSmsPoolManager?.refresh
+  || (() => { });
+const renderHostedSmsPool = hostedSmsPoolManager?.render
+  || (() => { });
+const resetHostedSmsPoolManager = hostedSmsPoolManager?.reset
+  || (() => { });
+const bindHostedSmsPoolEvents = hostedSmsPoolManager?.bindEvents
+  || (() => { });
+bindHostedSmsPoolEvents();
 
 const accountRecordsManager = window.SidepanelAccountRecordsManager?.createAccountRecordsManager({
   state: {
@@ -14352,6 +14574,19 @@ function syncPlusHostedCheckoutOauthDelayInput() {
   );
 }
 
+function updateSkipPostPaymentOAuthCaption() {
+  if (!skipPostPaymentOAuthCaption || !inputSkipPostPaymentOAuthEnabled) {
+    return;
+  }
+  const continueOAuth = Boolean(inputSkipPostPaymentOAuthEnabled.checked);
+  if (postPaymentOauthToggleLabel) {
+    postPaymentOauthToggleLabel.textContent = continueOAuth ? '开启' : '关闭';
+  }
+  skipPostPaymentOAuthCaption.textContent = continueOAuth
+    ? '开启，支付成功后继续 OAuth'
+    : '关闭，支付成功后直接结束';
+}
+
 inputAutoStepDelaySeconds.addEventListener('input', () => {
   markSettingsDirty(true);
   scheduleSettingsAutoSave();
@@ -14370,6 +14605,29 @@ inputPlusHostedCheckoutOauthDelaySeconds?.addEventListener('blur', () => {
   saveSettings({ silent: true }).catch(() => { });
 });
 
+inputSkipPostPaymentOAuthEnabled?.addEventListener('change', () => {
+  updateSkipPostPaymentOAuthCaption();
+  updatePanelModeUI();
+  const stepDefinitionState = typeof resolveStepDefinitionCapabilityState === 'function'
+    ? resolveStepDefinitionCapabilityState(latestState || {})
+    : {
+        plusModeEnabled: typeof inputPlusModeEnabled !== 'undefined' && inputPlusModeEnabled
+          ? Boolean(inputPlusModeEnabled.checked)
+          : false,
+        signupMethod: currentSignupMethod,
+        phoneSignupReloginAfterBindEmailEnabled: currentPhoneSignupReloginAfterBindEmailEnabled,
+      };
+  syncStepDefinitionsForMode(stepDefinitionState.plusModeEnabled, {
+    plusPaymentMethod: getSelectedPlusPaymentMethod(),
+    signupMethod: stepDefinitionState.signupMethod,
+    phoneSignupReloginAfterBindEmailEnabled: stepDefinitionState.phoneSignupReloginAfterBindEmailEnabled,
+    skipPostPaymentOAuthEnabled: getSkipPostPaymentOAuthEnabledFromInput(),
+    render: true,
+  });
+  markSettingsDirty(true);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
 inputHostedCheckoutVerificationUrl?.addEventListener('input', () => {
   markSettingsDirty(true);
   scheduleSettingsAutoSave();
@@ -14385,6 +14643,26 @@ inputHostedCheckoutPhone?.addEventListener('input', () => {
 });
 inputHostedCheckoutPhone?.addEventListener('blur', () => {
   inputHostedCheckoutPhone.value = normalizeHostedCheckoutPhoneValue(inputHostedCheckoutPhone.value);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+inputHostedCheckoutSmsPool?.addEventListener('input', () => {
+  markSettingsDirty(true);
+  scheduleSettingsAutoSave();
+});
+inputHostedCheckoutSmsPool?.addEventListener('blur', () => {
+  inputHostedCheckoutSmsPool.value = normalizeHostedCheckoutSmsPoolTextValue(inputHostedCheckoutSmsPool.value);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+inputOutlookAliasMaxPerAccount?.addEventListener('input', () => {
+  markSettingsDirty(true);
+  scheduleSettingsAutoSave();
+});
+inputOutlookAliasMaxPerAccount?.addEventListener('blur', () => {
+  inputOutlookAliasMaxPerAccount.value = String(
+    normalizeOutlookAliasMaxPerAccount(inputOutlookAliasMaxPerAccount.value)
+  );
   saveSettings({ silent: true }).catch(() => { });
 });
 
@@ -15233,6 +15511,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (
         message.payload.plusModeEnabled !== undefined
         || message.payload.plusPaymentMethod !== undefined
+        || message.payload.skipPostPaymentOAuthEnabled !== undefined
         || message.payload.gopayHelperPhoneMode !== undefined
         || message.payload.gopayHelperAutoModeEnabled !== undefined
         || message.payload.gopayHelperOtpChannel !== undefined
@@ -15252,6 +15531,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           {
             render: true,
             signupMethod: stepDefinitionState.signupMethod,
+            skipPostPaymentOAuthEnabled: latestState?.skipPostPaymentOAuthEnabled !== undefined
+              ? Boolean(latestState.skipPostPaymentOAuthEnabled)
+              : true,
           }
         );
         updatePlusModeUI();
@@ -15366,14 +15648,30 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           normalizePlusHostedCheckoutOauthDelaySeconds(message.payload.plusHostedCheckoutOauthDelaySeconds)
         );
       }
+      if (message.payload.skipPostPaymentOAuthEnabled !== undefined && inputSkipPostPaymentOAuthEnabled) {
+        inputSkipPostPaymentOAuthEnabled.checked = !Boolean(message.payload.skipPostPaymentOAuthEnabled);
+        updateSkipPostPaymentOAuthCaption();
+      }
       if (message.payload.hostedCheckoutVerificationUrl !== undefined && inputHostedCheckoutVerificationUrl) {
         inputHostedCheckoutVerificationUrl.value = normalizeHostedCheckoutVerificationUrlValue(message.payload.hostedCheckoutVerificationUrl);
       }
       if (message.payload.hostedCheckoutPhoneNumber !== undefined && inputHostedCheckoutPhone) {
         inputHostedCheckoutPhone.value = normalizeHostedCheckoutPhoneValue(message.payload.hostedCheckoutPhoneNumber);
       }
+      if (message.payload.hostedCheckoutSmsPoolText !== undefined && inputHostedCheckoutSmsPool) {
+        inputHostedCheckoutSmsPool.value = normalizeHostedCheckoutSmsPoolTextValue(message.payload.hostedCheckoutSmsPoolText);
+        queueHostedSmsPoolRefresh();
+      }
+      if (message.payload.hostedCheckoutSmsPoolUsage !== undefined || message.payload.hostedCheckoutCurrentSmsEntry !== undefined) {
+        queueHostedSmsPoolRefresh();
+      }
       if (message.payload.oauthFlowTimeoutEnabled !== undefined && typeof inputOAuthFlowTimeoutEnabled !== 'undefined' && inputOAuthFlowTimeoutEnabled) {
         inputOAuthFlowTimeoutEnabled.checked = Boolean(message.payload.oauthFlowTimeoutEnabled);
+      }
+      if (message.payload.outlookAliasMaxPerAccount !== undefined && inputOutlookAliasMaxPerAccount) {
+        inputOutlookAliasMaxPerAccount.value = String(
+          normalizeOutlookAliasMaxPerAccount(message.payload.outlookAliasMaxPerAccount)
+        );
       }
       if (
         (

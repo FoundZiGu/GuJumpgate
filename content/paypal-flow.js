@@ -13,6 +13,8 @@ const PAYPAL_HOSTED_STAGE_APPROVAL = 'approval';
 const PAYPAL_HOSTED_STAGE_UNKNOWN = 'unknown';
 const PAYPAL_HOSTED_HERMES_AUTORUN_SENTINEL = '__MULTIPAGE_PAYPAL_HOSTED_HERMES_AUTORUN__';
 const PAYPAL_HOSTED_GUEST_SUBMIT_SENTINEL = '__MULTIPAGE_PAYPAL_HOSTED_GUEST_SUBMIT__';
+const PAYPAL_HOSTED_CODE_DIGIT_DELAY_MS = 300;
+const PAYPAL_HOSTED_CODE_SUBMIT_DELAY_MS = 800;
 
 if (document.documentElement.getAttribute(PAYPAL_FLOW_LISTENER_SENTINEL) !== '1') {
   document.documentElement.setAttribute(PAYPAL_FLOW_LISTENER_SENTINEL, '1');
@@ -118,6 +120,15 @@ function isVisibleElement(el) {
 
 function normalizeText(text = '') {
   return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
+function formatHostedPayPalPhoneInput(value = '') {
+  const rawValue = normalizeText(value);
+  const digits = rawValue.replace(/\D+/g, '');
+  if (rawValue.startsWith('+1') && digits.length === 11 && digits.startsWith('1')) {
+    return digits.slice(1);
+  }
+  return digits;
 }
 
 function getActionText(el) {
@@ -524,7 +535,11 @@ function normalizeHostedVerificationCode(value = '') {
 async function submitHostedPayLogin(payload = {}) {
   await waitForDocumentComplete();
   removeHostedCaptchaArtifacts();
-  const email = normalizeText(payload.email || buildHostedRandomEmail());
+  const payloadEmail = normalizeText(payload.email || '');
+  if (!payloadEmail) {
+    log('PayPal hosted checkout：background 未传入随机 PayPal 邮箱，已使用内容脚本兜底随机邮箱。', 'warn');
+  }
+  const email = payloadEmail || buildHostedRandomEmail();
   if (!email) {
     throw new Error('PayPal hosted checkout 缺少邮箱。');
   }
@@ -559,9 +574,16 @@ async function fillHostedVerificationCode(payload = {}) {
     throw new Error('PayPal hosted checkout 当前页面未显示验证码输入框。');
   }
   await delayOperation({ stepKey: 'plus-checkout-create', kind: 'fill', label: 'hosted-paypal-verification-code' }, async () => {
-    inputs.forEach((input, index) => {
+    for (let index = 0; index < inputs.length && index < 6; index += 1) {
+      const input = inputs[index];
       fillInput(input, code[index] || '');
-    });
+      if (typeof sleep === 'function') {
+        await sleep(typeof PAYPAL_HOSTED_CODE_DIGIT_DELAY_MS !== 'undefined' ? PAYPAL_HOSTED_CODE_DIGIT_DELAY_MS : 300);
+      }
+    }
+    if (typeof sleep === 'function') {
+      await sleep(typeof PAYPAL_HOSTED_CODE_SUBMIT_DELAY_MS !== 'undefined' ? PAYPAL_HOSTED_CODE_SUBMIT_DELAY_MS : 800);
+    }
   });
   return {
     stage: PAYPAL_HOSTED_STAGE_VERIFICATION,
@@ -584,8 +606,12 @@ async function fillHostedGuestCheckout(payload = {}) {
   }
 
   const card = buildHostedVisaCard();
-  const email = normalizeText(payload.email || buildHostedRandomEmail());
-  const phone = normalizeText(payload.phone || PAYPAL_HOSTED_DEFAULT_PHONE);
+  const payloadEmail = normalizeText(payload.email || '');
+  if (!payloadEmail) {
+    log('PayPal guest checkout：background 未传入随机 PayPal 邮箱，已使用内容脚本兜底随机邮箱。', 'warn');
+  }
+  const email = payloadEmail || buildHostedRandomEmail();
+  const phone = formatHostedPayPalPhoneInput(payload.phone || PAYPAL_HOSTED_DEFAULT_PHONE);
   const password = String(payload.password || buildHostedRandomPassword());
   const firstName = normalizeText(payload.firstName || 'James');
   const lastName = normalizeText(payload.lastName || 'Smith');
@@ -627,6 +653,7 @@ async function fillHostedGuestCheckout(payload = {}) {
   return {
     stage: PAYPAL_HOSTED_STAGE_GUEST_CHECKOUT,
     submitted: true,
+    generatedEmail: email,
     verificationRequired: Boolean(hasHostedVerificationInputs()),
     submitScheduled: true,
   };

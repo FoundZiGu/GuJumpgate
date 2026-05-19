@@ -183,7 +183,8 @@
     }
 
     async function fetchContributionJson(endpoint, options = {}) {
-      if (!API_BASE_URL) {
+      const apiBaseUrl = normalizeString(options.apiBaseUrl || API_BASE_URL);
+      if (!apiBaseUrl && chrome?.runtime?.id) {
         throw new Error('贡献服务未配置，当前构建已禁用默认贡献接口。');
       }
       const controller = new AbortController();
@@ -191,7 +192,7 @@
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${apiBaseUrl}${endpoint}`, {
           method: options.method || 'GET',
           headers: {
             Accept: 'application/json',

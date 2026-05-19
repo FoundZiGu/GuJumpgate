@@ -190,6 +190,7 @@ const LOGIN_CODE_ONLY_ACTION_PATTERN = /one[-\s]*time|passcode|use\s+(?:a\s+)?co
 const RESEND_VERIFICATION_CODE_PATTERN = /重新发送(?:验证码)?|再次发送(?:验证码)?|重发(?:验证码)?|未收到(?:验证码|邮件)|resend(?:\s+code)?|send\s+(?:a\s+)?new\s+code|send\s+(?:it\s+)?again|request\s+(?:a\s+)?new\s+code|didn'?t\s+receive/i;
 const PHONE_RESEND_SERVER_ERROR_PREFIX = 'PHONE_RESEND_SERVER_ERROR::';
 const CONTACT_VERIFICATION_SERVER_ERROR_PATTERN = /this\s+page\s+isn['’]?t\s+working|currently\s+unable\s+to\s+handle\s+this\s+request|http\s+error\s+500|500\s+internal\s+server\s+error/i;
+const VERIFICATION_CODE_DIGIT_DELAY_MS = 140;
 
 function isVisibleElement(el) {
   if (!el) return false;
@@ -222,6 +223,37 @@ function getVerificationCodeTarget() {
   }
 
   return null;
+}
+
+async function fillSplitVerificationInputsWithDelay(inputs = [], code = '') {
+  for (let i = 0; i < 6 && i < inputs.length; i++) {
+    const digit = String(code[i] || '');
+    const targetInput = inputs[i];
+    try {
+      targetInput.focus?.();
+    } catch {}
+    fillInput(targetInput, digit);
+    try {
+      targetInput.dispatchEvent(new KeyboardEvent('keyup', { key: digit, bubbles: true }));
+    } catch {}
+    await sleep(VERIFICATION_CODE_DIGIT_DELAY_MS);
+  }
+}
+
+async function fillSingleVerificationInputWithDelay(input, code = '') {
+  fillInput(input, '');
+  let nextValue = '';
+  for (const digit of String(code || '')) {
+    try {
+      input.focus?.();
+    } catch {}
+    nextValue += digit;
+    fillInput(input, nextValue);
+    try {
+      input.dispatchEvent(new KeyboardEvent('keyup', { key: digit, bubbles: true }));
+    } catch {}
+    await sleep(VERIFICATION_CODE_DIGIT_DELAY_MS);
+  }
 }
 
 function getActionText(el) {
@@ -5092,6 +5124,43 @@ async function fillVerificationCode(step, payload) {
         const gate = rootScope?.CodexOperationDelay?.performOperationWithDelay;
         return typeof gate === 'function' ? gate(metadata, operation) : operation();
       };
+  const fillSplitCodeWithDelay = typeof fillSplitVerificationInputsWithDelay === 'function'
+    ? fillSplitVerificationInputsWithDelay
+    : async (inputs = [], targetCode = '') => {
+        for (let i = 0; i < 6 && i < inputs.length; i++) {
+          const digit = String(targetCode[i] || '');
+          const targetInput = inputs[i];
+          try {
+            targetInput.focus?.();
+          } catch {}
+          fillInput(targetInput, digit);
+          try {
+            targetInput.dispatchEvent(new KeyboardEvent('keyup', { key: digit, bubbles: true }));
+          } catch {}
+          if (typeof sleep === 'function') {
+            await sleep(typeof VERIFICATION_CODE_DIGIT_DELAY_MS !== 'undefined' ? VERIFICATION_CODE_DIGIT_DELAY_MS : 140);
+          }
+        }
+      };
+  const fillSingleCodeWithDelay = typeof fillSingleVerificationInputWithDelay === 'function'
+    ? fillSingleVerificationInputWithDelay
+    : async (input, targetCode = '') => {
+        fillInput(input, '');
+        let nextValue = '';
+        for (const digit of String(targetCode || '')) {
+          try {
+            input.focus?.();
+          } catch {}
+          nextValue += digit;
+          fillInput(input, nextValue);
+          try {
+            input.dispatchEvent(new KeyboardEvent('keyup', { key: digit, bubbles: true }));
+          } catch {}
+          if (typeof sleep === 'function') {
+            await sleep(typeof VERIFICATION_CODE_DIGIT_DELAY_MS !== 'undefined' ? VERIFICATION_CODE_DIGIT_DELAY_MS : 140);
+          }
+        }
+      };
 
   if (step === 4) {
     const postVerificationState = getStep4PostVerificationState();
@@ -5184,16 +5253,7 @@ async function fillVerificationCode(step, payload) {
   if (splitInputs?.length >= 6) {
     log(`步骤 ${step}：发现分开的单字符验证码输入框，正在逐个填写...`);
     await performOperationWithDelay({ stepKey: 'fetch-signup-code', kind: 'grouped-code', label: 'split-code' }, async () => {
-      for (let i = 0; i < 6 && i < splitInputs.length; i++) {
-        const targetInput = splitInputs[i];
-        try {
-          targetInput.focus?.();
-        } catch {}
-        fillInput(splitInputs[i], code[i]);
-        try {
-          targetInput.dispatchEvent(new KeyboardEvent('keyup', { key: code[i], bubbles: true }));
-        } catch {}
-      }
+      await fillSplitCodeWithDelay(splitInputs, code);
     });
     const filled = await waitForSplitVerificationInputsFilled(splitInputs, code, 2500);
     if (!filled) {
@@ -5241,7 +5301,7 @@ async function fillVerificationCode(step, payload) {
   }
 
   await performOperationWithDelay({ stepKey: step === 8 ? 'oauth-login' : 'fetch-signup-code', kind: 'fill', label: 'verification-code' }, async () => {
-    fillInput(codeInput, code);
+    await fillSingleCodeWithDelay(codeInput, code);
   });
   log(`步骤 ${step}：验证码已填写`);
 

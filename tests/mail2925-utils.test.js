@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const utils = require('../mail2925-utils.js');
+const utils = require('../shared/mail/mail2925-utils.js');
 
 test('normalizeMail2925Account normalizes key fields', () => {
   const account = utils.normalizeMail2925Account({

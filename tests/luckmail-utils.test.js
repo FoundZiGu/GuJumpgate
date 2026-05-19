@@ -22,7 +22,7 @@ const {
   normalizeLuckmailTokenMail,
   pickReusableLuckmailPurchase,
   pickLuckmailVerificationMail,
-} = require('../luckmail-utils.js');
+} = require('../shared/mail/luckmail-utils.js');
 
 test('normalizeLuckmailEmailType keeps supported values and falls back to ms_graph', () => {
   assert.equal(normalizeLuckmailEmailType('self_built'), 'self_built');
@@ -240,7 +240,7 @@ test('isLuckmailMailNewerThanCursor compares message id and timestamp safely', (
 });
 
 test('normalizeLuckmailMailCursor tolerates null cursor input', () => {
-  const { normalizeLuckmailMailCursor } = require('../luckmail-utils.js');
+  const { normalizeLuckmailMailCursor } = require('../shared/mail/luckmail-utils.js');
   assert.deepEqual(normalizeLuckmailMailCursor(null), {
     messageId: '',
     receivedAt: '',

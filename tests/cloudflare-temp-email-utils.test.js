@@ -8,7 +8,7 @@ const {
   normalizeCloudflareTempEmailDomain,
   normalizeCloudflareTempEmailDomains,
   normalizeCloudflareTempEmailMailApiMessages,
-} = require('../cloudflare-temp-email-utils.js');
+} = require('../shared/mail/cloudflare-temp-email-utils.js');
 
 test('normalizeCloudflareTempEmailBaseUrl normalizes host and preserves path', () => {
   assert.equal(

@@ -3,6 +3,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "package": "powershell -ExecutionPolicy Bypass -File scripts/package-extension.ps1",
     "test": "node --test tests/*.test.js"
   }
 }

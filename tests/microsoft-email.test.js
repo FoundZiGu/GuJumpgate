@@ -6,7 +6,7 @@ const {
   fetchMicrosoftMailboxMessages,
   fetchMicrosoftVerificationCode,
   normalizeMailboxId,
-} = require('../microsoft-email.js');
+} = require('../shared/mail/microsoft-email.js');
 
 test('extractVerificationCodeFromMessages 支持显式过滤条件并跳过排除的验证码', () => {
   const result = extractVerificationCodeFromMessages([
@@ -58,6 +58,12 @@ test('extractVerificationCodeFromMessages 支持显式过滤条件并跳过排�
       bodyPreview: 'Use 334455 to continue',
       body: {
         content: '',
+      },
+      recipients: {
+        to: [],
+        cc: [],
+        bcc: [],
+        all: [],
       },
       id: 'matched',
     },

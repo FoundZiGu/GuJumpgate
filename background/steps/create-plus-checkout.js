@@ -21,8 +21,11 @@
   const HOSTED_CHECKOUT_PAYPAL_LOOP_TIMEOUT_MS = 10 * 60 * 1000;
   const HOSTED_CHECKOUT_VERIFICATION_POLL_ATTEMPTS = 12;
   const HOSTED_CHECKOUT_VERIFICATION_POLL_INTERVAL_MS = 5000;
+  const HOSTED_CHECKOUT_OPENAI_VERIFICATION_FETCH_DELAY_MS = 3000;
+  const HOSTED_CHECKOUT_PAYPAL_VERIFICATION_FETCH_DELAY_MS = 5000;
   const HOSTED_CHECKOUT_PAYPAL_DEFAULT_PHONE = '1234567890';
   const HOSTED_CHECKOUT_SUCCESS_URL_PATTERN = /^https:\/\/(?:chatgpt\.com|www\.chatgpt\.com|chat\.openai\.com)\/(?:backend-api\/)?payments\/success(?:[/?#]|$)/i;
+  const HOSTED_CHECKOUT_SMS_POOL_SEPARATOR = '----';
 
   function createPlusCheckoutCreateExecutor(deps = {}) {
     const {
@@ -35,6 +38,7 @@
       failNodeFromBackground = null,
       fetch: fetchImpl = null,
       getState = null,
+      processHostedCheckoutSuccess = null,
       registerTab,
       sendTabMessageUntilStopped,
       setState,
@@ -101,6 +105,187 @@
       return /paypal\.com\/webapps\/hermes/i.test(String(url || ''));
     }
 
+    function normalizeHostedCheckoutSmsPoolText(value = '') {
+      return String(value || '')
+        .replace(/\r/g, '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join('\n');
+    }
+
+    function normalizeHostedCheckoutPoolPhone(value = '') {
+      return String(value || '').trim();
+    }
+
+    function formatHostedCheckoutPayPalFormPhone(value = '') {
+      const rawValue = String(value || '').trim();
+      const digits = rawValue.replace(/\D+/g, '');
+      if (rawValue.startsWith('+1') && digits.length === 11 && digits.startsWith('1')) {
+        return digits.slice(1);
+      }
+      return digits;
+    }
+
+    function normalizeHostedCheckoutPoolUrl(value = '') {
+      const rawValue = String(value || '').trim();
+      if (!rawValue) {
+        return '';
+      }
+      try {
+        const parsed = new URL(rawValue);
+        parsed.searchParams.delete('t');
+        return parsed.toString();
+      } catch {
+        return rawValue
+          .replace(/([?&])t=\d+(?=(&|$))/i, '$1')
+          .replace(/[?&]$/g, '');
+      }
+    }
+
+    function buildHostedCheckoutSmsPoolEntryKey(phone = '', verificationUrl = '') {
+      const normalizedPhone = normalizeHostedCheckoutPoolPhone(phone);
+      const normalizedUrl = normalizeHostedCheckoutPoolUrl(verificationUrl);
+      return normalizedPhone && normalizedUrl ? `${normalizedPhone}${HOSTED_CHECKOUT_SMS_POOL_SEPARATOR}${normalizedUrl}` : '';
+    }
+
+    function parseHostedCheckoutSmsPoolText(value = '') {
+      const lines = normalizeHostedCheckoutSmsPoolText(value).split('\n').filter(Boolean);
+      const entries = [];
+      const seen = new Set();
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index];
+        const separatorIndex = line.indexOf(HOSTED_CHECKOUT_SMS_POOL_SEPARATOR);
+        const hasSeparator = separatorIndex > 0;
+        const phone = hasSeparator
+          ? normalizeHostedCheckoutPoolPhone(line.slice(0, separatorIndex))
+          : normalizeHostedCheckoutPoolPhone(line);
+        const verificationUrl = hasSeparator
+          ? normalizeHostedCheckoutPoolUrl(line.slice(separatorIndex + HOSTED_CHECKOUT_SMS_POOL_SEPARATOR.length))
+          : normalizeHostedCheckoutPoolUrl(lines[index + 1] || '');
+        if (!hasSeparator && verificationUrl) {
+          index += 1;
+        }
+        const key = buildHostedCheckoutSmsPoolEntryKey(phone, verificationUrl);
+        if (!phone || !verificationUrl || !key || seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        entries.push({
+          index,
+          key,
+          phone,
+          verificationUrl,
+        });
+      }
+      return entries;
+    }
+
+    function normalizeHostedCheckoutSmsPoolUsage(value = {}) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+      }
+      return Object.fromEntries(Object.entries(value).map(([key, usage]) => {
+        const item = usage && typeof usage === 'object' && !Array.isArray(usage) ? usage : {};
+        const legacyUsedCount = Number(item.usedAt) > 0 ? 1 : 0;
+        const useCount = Math.max(0, Math.floor(Number(item.useCount ?? item.usageCount ?? legacyUsedCount) || 0));
+        return [String(key || '').trim(), {
+          useCount,
+          usedAt: Math.max(0, Number(item.usedAt) || 0),
+          lastAttemptAt: Math.max(0, Number(item.lastAttemptAt) || 0),
+          lastError: String(item.lastError || '').trim(),
+        }];
+      }).filter(([key]) => Boolean(key)));
+    }
+
+    function normalizeHostedCheckoutCurrentSmsEntry(value = {}) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return null;
+      }
+      const phone = normalizeHostedCheckoutPoolPhone(value.phone);
+      const verificationUrl = normalizeHostedCheckoutPoolUrl(value.verificationUrl);
+      const key = String(value.key || buildHostedCheckoutSmsPoolEntryKey(phone, verificationUrl)).trim();
+      if (!phone || !verificationUrl || !key) {
+        return null;
+      }
+      return {
+        key,
+        phone,
+        verificationUrl,
+        index: Math.max(0, Number(value.index) || 0),
+      };
+    }
+
+    function redactHostedCheckoutVerificationUrl(value = '') {
+      const rawValue = String(value || '').trim();
+      if (!rawValue) {
+        return '(空)';
+      }
+      try {
+        const parsed = new URL(rawValue);
+        for (const key of Array.from(parsed.searchParams.keys())) {
+          if (/key|token|auth|secret|pass|api/i.test(key)) {
+            parsed.searchParams.set(key, '***');
+          }
+        }
+        return parsed.toString();
+      } catch {
+        return rawValue.replace(/([?&](?:key|token|auth|secret|pass|api)[^=]*=)[^&]+/gi, '$1***');
+      }
+    }
+
+    function selectHostedCheckoutSmsPoolEntry(state = {}, stored = {}) {
+      const poolText = normalizeHostedCheckoutSmsPoolText(
+        stored?.hostedCheckoutSmsPoolText
+        || state?.hostedCheckoutSmsPoolText
+        || ''
+      );
+      const poolEntries = parseHostedCheckoutSmsPoolText(poolText);
+      if (!poolEntries.length) {
+        return {
+          poolText,
+          poolEntries,
+          usage: normalizeHostedCheckoutSmsPoolUsage(stored?.hostedCheckoutSmsPoolUsage || state?.hostedCheckoutSmsPoolUsage || {}),
+          entry: null,
+        };
+      }
+      const usage = normalizeHostedCheckoutSmsPoolUsage(stored?.hostedCheckoutSmsPoolUsage || state?.hostedCheckoutSmsPoolUsage || {});
+      const current = normalizeHostedCheckoutCurrentSmsEntry(state?.hostedCheckoutCurrentSmsEntry);
+      if (current && poolEntries.some((entry) => entry.key === current.key) && !usage[current.key]?.usedAt) {
+        return {
+          poolText,
+          poolEntries,
+          usage,
+          entry: current,
+          reused: true,
+        };
+      }
+      const orderedEntries = poolEntries
+        .map((entry) => {
+          const itemUsage = usage[entry.key] || {};
+          return {
+            ...entry,
+            useCount: Math.max(0, Math.floor(Number(itemUsage.useCount) || 0)),
+            lastError: String(itemUsage.lastError || '').trim(),
+            lastAttemptAt: Math.max(0, Number(itemUsage.lastAttemptAt) || 0),
+          };
+        })
+        .sort((left, right) => (
+          (left.lastError ? 1 : 0) - (right.lastError ? 1 : 0)
+          || left.useCount - right.useCount
+          || left.lastAttemptAt - right.lastAttemptAt
+          || left.index - right.index
+        ));
+      const entry = orderedEntries[0] || null;
+      return {
+        poolText,
+        poolEntries,
+        usage,
+        entry,
+        reused: false,
+      };
+    }
+
     async function getHostedCheckoutRuntimeConfig() {
       const state = typeof getState === 'function' ? await getState().catch(() => ({})) : {};
       let stored = {};
@@ -108,7 +293,42 @@
         stored = await chrome.storage.local.get([
           'hostedCheckoutVerificationUrl',
           'hostedCheckoutPhoneNumber',
+          'hostedCheckoutSmsPoolText',
+          'hostedCheckoutSmsPoolUsage',
         ]).catch(() => ({}));
+      }
+      const poolSelection = selectHostedCheckoutSmsPoolEntry(state, stored);
+      if (poolSelection.entry) {
+        const nextUsage = {
+          ...poolSelection.usage,
+          [poolSelection.entry.key]: {
+            ...(poolSelection.usage[poolSelection.entry.key] || {}),
+            usedAt: Math.max(0, Number(poolSelection.usage[poolSelection.entry.key]?.usedAt) || 0),
+            lastAttemptAt: Date.now(),
+            lastError: '',
+          },
+        };
+        if (!poolSelection.reused && typeof setState === 'function') {
+          await setState({
+            hostedCheckoutCurrentSmsEntry: poolSelection.entry,
+            hostedCheckoutSmsPoolUsage: nextUsage,
+          });
+        } else if (typeof setState === 'function') {
+          await setState({
+            hostedCheckoutSmsPoolUsage: nextUsage,
+          });
+        }
+        return {
+          verificationUrl: poolSelection.entry.verificationUrl,
+          phone: poolSelection.entry.phone,
+          smsPoolEntry: poolSelection.entry,
+          smsPoolUsage: nextUsage,
+          smsPoolSize: poolSelection.poolEntries.length,
+          smsPoolReused: Boolean(poolSelection.reused),
+        };
+      }
+      if (poolSelection.poolEntries.length && !poolSelection.entry) {
+        throw new Error('hosted checkout 手机号池没有可用号码，请补充新号码。');
       }
       const verificationUrl = String(
         stored?.hostedCheckoutVerificationUrl
@@ -125,6 +345,9 @@
       return {
         verificationUrl,
         phone,
+        smsPoolEntry: null,
+        smsPoolUsage: poolSelection.usage,
+        smsPoolSize: poolSelection.poolEntries.length,
       };
     }
 
@@ -319,6 +542,7 @@
         cardExpiry: card.expiry,
         cardCvv: card.cvv,
         address,
+        runtimeConfig: config,
       };
     }
 
@@ -347,10 +571,13 @@
       return '';
     }
 
-    async function fetchHostedCheckoutVerificationCode() {
-      const runtimeConfig = await getHostedCheckoutRuntimeConfig();
+    async function fetchHostedCheckoutVerificationCode(runtimeConfigOverride = null) {
+      const runtimeConfig = runtimeConfigOverride || await getHostedCheckoutRuntimeConfig();
       const verificationUrl = runtimeConfig.verificationUrl;
-      await addLog(`步骤 6：当前 hosted checkout 验证码接口配置为 ${verificationUrl || '(空)'}。`, 'info');
+      await addLog(
+        `步骤 6：当前 hosted checkout 验证码接口配置为 ${redactHostedCheckoutVerificationUrl(verificationUrl)}。`,
+        'info'
+      );
       const fetcher = typeof fetchImpl === 'function'
         ? fetchImpl
         : (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
@@ -381,12 +608,12 @@
       return code;
     }
 
-    async function pollHostedCheckoutVerificationCode() {
+    async function pollHostedCheckoutVerificationCode(runtimeConfigOverride = null) {
       let lastError = null;
       for (let attempt = 1; attempt <= HOSTED_CHECKOUT_VERIFICATION_POLL_ATTEMPTS; attempt += 1) {
         throwIfStopped();
         try {
-          const code = await fetchHostedCheckoutVerificationCode();
+          const code = await fetchHostedCheckoutVerificationCode(runtimeConfigOverride);
           await addLog(`步骤 6：已获取 hosted checkout 验证码（${attempt}/${HOSTED_CHECKOUT_VERIFICATION_POLL_ATTEMPTS}）。`, 'info');
           return code;
         } catch (error) {
@@ -401,6 +628,49 @@
         }
       }
       throw lastError || new Error('hosted checkout 验证码轮询失败。');
+    }
+
+    async function markHostedCheckoutSmsEntryFailure(errorLike = '') {
+      const state = typeof getState === 'function' ? await getState().catch(() => ({})) : {};
+      const entry = normalizeHostedCheckoutCurrentSmsEntry(state?.hostedCheckoutCurrentSmsEntry);
+      if (!entry || typeof setState !== 'function') {
+        return;
+      }
+      const usage = normalizeHostedCheckoutSmsPoolUsage(state?.hostedCheckoutSmsPoolUsage || {});
+      await setState({
+        hostedCheckoutSmsPoolUsage: {
+          ...usage,
+          [entry.key]: {
+            ...(usage[entry.key] || {}),
+            usedAt: Math.max(0, Number(usage[entry.key]?.usedAt) || 0),
+            lastAttemptAt: Math.max(Date.now(), Number(usage[entry.key]?.lastAttemptAt) || 0),
+            lastError: String(errorLike?.message || errorLike || '').trim().slice(0, 300),
+          },
+        },
+      });
+    }
+
+    async function markHostedCheckoutSmsEntryUsed() {
+      const state = typeof getState === 'function' ? await getState().catch(() => ({})) : {};
+      const entry = normalizeHostedCheckoutCurrentSmsEntry(state?.hostedCheckoutCurrentSmsEntry);
+      if (!entry || typeof setState !== 'function') {
+        return;
+      }
+      const usage = normalizeHostedCheckoutSmsPoolUsage(state?.hostedCheckoutSmsPoolUsage || {});
+      await setState({
+            hostedCheckoutSmsPoolUsage: {
+          ...usage,
+          [entry.key]: {
+            ...(usage[entry.key] || {}),
+            useCount: Math.max(0, Number(usage[entry.key]?.useCount) || 0) + 1,
+            usedAt: Date.now(),
+            lastAttemptAt: Math.max(Date.now(), Number(usage[entry.key]?.lastAttemptAt) || 0),
+            lastError: '',
+          },
+        },
+        hostedCheckoutCurrentSmsEntry: null,
+      });
+      await addLog(`步骤 6：hosted checkout 号池号码 ${entry.phone} 已标记为已使用。`, 'ok');
     }
 
     async function runHostedCheckoutOpenAiFlow(tabId, guestProfile) {
@@ -446,8 +716,13 @@
           throw new Error(state.error);
         }
         if (state?.hostedVerificationVisible && !verificationSubmitted) {
-          await addLog('步骤 6：检测到 hosted checkout OpenAI 验证码弹窗，正在获取并填写验证码...', 'info');
-          const verificationCode = await pollHostedCheckoutVerificationCode();
+          await addLog(
+            `步骤 6：检测到 hosted checkout OpenAI 验证码弹窗，先等待 ${Math.round(HOSTED_CHECKOUT_OPENAI_VERIFICATION_FETCH_DELAY_MS / 1000)} 秒再获取验证码...`,
+            'info'
+          );
+          await sleepWithStop(HOSTED_CHECKOUT_OPENAI_VERIFICATION_FETCH_DELAY_MS);
+          await addLog('步骤 6：正在获取并填写 hosted checkout OpenAI 验证码...', 'info');
+          const verificationCode = await pollHostedCheckoutVerificationCode(guestProfile.runtimeConfig);
           const verifyResult = await sendTabMessageUntilStopped(tabId, PLUS_CHECKOUT_SOURCE, {
             type: 'RUN_HOSTED_OPENAI_CHECKOUT_STEP',
             source: 'background',
@@ -457,6 +732,13 @@
           });
           if (verifyResult?.error) {
             throw new Error(verifyResult.error);
+          }
+          const success = await checkCurrentHostedCheckoutSuccess(tabId, 'OpenAI hosted checkout 验证码填写');
+          if (success) {
+            return {
+              transitioned: true,
+              url: success.url,
+            };
           }
           verificationSubmitted = true;
         }
@@ -516,6 +798,45 @@
       return successTab;
     }
 
+    async function checkCurrentHostedCheckoutSuccess(tabId, label = '') {
+      const tab = await chrome?.tabs?.get?.(tabId).catch(() => null);
+      const currentUrl = String(tab?.url || '').trim();
+      if (!currentUrl || !isPaymentsSuccessUrl(currentUrl)) {
+        return null;
+      }
+      if (label) {
+        await addLog(`步骤 6：${label}后检测到 ChatGPT 支付成功页。`, 'ok');
+      }
+      await completeHostedCheckoutSuccess(tabId, currentUrl);
+      return {
+        url: currentUrl,
+        completed: true,
+      };
+    }
+
+    async function completeHostedCheckoutSuccess(tabId, successUrl = '') {
+      const normalizedSuccessUrl = String(successUrl || '').trim();
+      if (!normalizedSuccessUrl || !isPaymentsSuccessUrl(normalizedSuccessUrl)) {
+        return null;
+      }
+      await markHostedCheckoutSmsEntryUsed();
+      if (typeof processHostedCheckoutSuccess === 'function') {
+        return processHostedCheckoutSuccess(tabId, normalizedSuccessUrl);
+      }
+      if (typeof completeNodeFromBackground === 'function') {
+        await completeNodeFromBackground('plus-checkout-create', {
+          plusReturnUrl: normalizedSuccessUrl,
+          plusHostedCheckoutCompleted: true,
+        });
+        return {
+          completed: true,
+          plusReturnUrl: normalizedSuccessUrl,
+          fallback: true,
+        };
+      }
+      return null;
+    }
+
     async function runHostedCheckoutPayPalFlow(tabId, guestProfile) {
       const startedAt = Date.now();
       while (Date.now() - startedAt < HOSTED_CHECKOUT_PAYPAL_LOOP_TIMEOUT_MS) {
@@ -531,29 +852,42 @@
         }
         if (isPaymentsSuccessUrl(currentUrl)) {
           await addLog('步骤 6：hosted checkout 已直接进入 ChatGPT 支付成功页。', 'ok');
-          return;
+          await completeHostedCheckoutSuccess(tabId, currentUrl);
+          return { url: currentUrl };
         }
         if (!isPayPalUrl(currentUrl)) {
           await addLog(`步骤 6：hosted checkout 已离开 PayPal（${currentUrl}），继续等待 ChatGPT 支付成功页...`, 'info');
-          await waitForHostedCheckoutPaymentsSuccess(tabId);
-          return;
+          return waitForHostedCheckoutPaymentsSuccess(tabId);
         }
 
         if (isPayPalHermesUrl(currentUrl)) {
           await addLog(`步骤 6：检测到 PayPal Hermes 复核页（${currentUrl}），按油猴脚本方式直接等待并点击 Agree and Continue...`, 'info');
           await runHostedCheckoutPayPalStep(tabId, {});
-          await sleepWithStop(1000);
+          const success = await checkCurrentHostedCheckoutSuccess(tabId, 'PayPal Hermes 点击');
+          if (success) {
+            return success;
+          }
+          await sleepWithStop(1500);
           continue;
         }
 
         const pageState = await getHostedCheckoutPayPalState(tabId);
         if (pageState.hostedStage === 'verification' && pageState.verificationInputsVisible) {
-          await addLog('步骤 6：检测到 PayPal hosted checkout 验证码弹窗，正在获取并填写验证码...', 'info');
-          const verificationCode = await pollHostedCheckoutVerificationCode();
+          await addLog(
+            `步骤 6：检测到 PayPal hosted checkout 验证码弹窗，先等待 ${Math.round(HOSTED_CHECKOUT_PAYPAL_VERIFICATION_FETCH_DELAY_MS / 1000)} 秒再获取验证码...`,
+            'info'
+          );
+          await sleepWithStop(HOSTED_CHECKOUT_PAYPAL_VERIFICATION_FETCH_DELAY_MS);
+          await addLog('步骤 6：正在获取并填写 PayPal hosted checkout 验证码...', 'info');
+          const verificationCode = await pollHostedCheckoutVerificationCode(guestProfile.runtimeConfig);
           await runHostedCheckoutPayPalStep(tabId, {
             verificationCode,
           });
-          await sleepWithStop(1000);
+          const success = await checkCurrentHostedCheckoutSuccess(tabId, 'PayPal 验证码填写');
+          if (success) {
+            return success;
+          }
+          await sleepWithStop(1500);
           continue;
         }
 
@@ -562,31 +896,50 @@
           await runHostedCheckoutPayPalStep(tabId, {
             email: guestProfile.email,
           });
-          await sleepWithStop(1000);
+          const success = await checkCurrentHostedCheckoutSuccess(tabId, 'PayPal 邮箱提交');
+          if (success) {
+            return success;
+          }
+          await sleepWithStop(1500);
           continue;
         }
 
         if (pageState.hostedStage === 'guest_checkout') {
-          const runtimeConfig = await getHostedCheckoutRuntimeConfig();
-          const configuredPhone = String(runtimeConfig?.phone || '').trim();
-          await addLog(`步骤 6：当前 hosted checkout 电话配置为 ${configuredPhone || '(空，将回退默认值)'}。`, 'info');
+          const runtimeConfig = guestProfile.runtimeConfig || await getHostedCheckoutRuntimeConfig();
+          const configuredPhone = String(runtimeConfig?.phone || guestProfile.phone || '').trim();
+          const payPalFormPhone = formatHostedCheckoutPayPalFormPhone(configuredPhone) || configuredPhone;
+          await addLog(
+            runtimeConfig?.smsPoolEntry
+              ? `步骤 6：当前 hosted checkout 使用号池号码 ${configuredPhone}（${runtimeConfig.smsPoolEntry.index + 1}/${runtimeConfig.smsPoolSize}）。`
+              : `步骤 6：当前 hosted checkout 电话配置为 ${configuredPhone || '(空，将回退默认值)'}。`,
+            'info'
+          );
           await addLog(`步骤 6：发送到 PayPal guest checkout 的 payload：${JSON.stringify({
-            phone: String(runtimeConfig?.phone || guestProfile.phone || '').trim(),
+            phone: payPalFormPhone,
+            originalPhone: configuredPhone,
             address: guestProfile.address || {},
           })}`, 'info');
           await addLog('步骤 6：检测到 PayPal hosted checkout 卡支付页，正在填写卡资料并提交...', 'info');
           await runHostedCheckoutPayPalStep(tabId, {
             ...guestProfile,
-            phone: String(runtimeConfig?.phone || guestProfile.phone || '').trim(),
+            phone: payPalFormPhone,
           });
-          await sleepWithStop(1500);
+          const success = await checkCurrentHostedCheckoutSuccess(tabId, 'PayPal guest checkout 提交');
+          if (success) {
+            return success;
+          }
+          await sleepWithStop(2000);
           continue;
         }
 
         if (pageState.hostedStage === 'review_consent') {
           await addLog('步骤 6：检测到 PayPal hosted checkout 账单确认页，正在点击继续...', 'info');
           await runHostedCheckoutPayPalStep(tabId, {});
-          await sleepWithStop(1000);
+          const success = await checkCurrentHostedCheckoutSuccess(tabId, 'PayPal 账单确认');
+          if (success) {
+            return success;
+          }
+          await sleepWithStop(1500);
           continue;
         }
 
@@ -602,9 +955,26 @@
     async function runHostedCheckoutAutomation(tabId) {
       const runtimeConfig = await getHostedCheckoutRuntimeConfig();
       const address = await fetchHostedCheckoutAddress();
-      await addLog(`步骤 6：hosted checkout 初始电话配置为 ${runtimeConfig.phone || '(空)'}。`, 'info');
+      await addLog(
+        runtimeConfig.smsPoolEntry
+          ? `步骤 6：hosted checkout 已冻结号池号码 ${runtimeConfig.phone}（${runtimeConfig.smsPoolEntry.index + 1}/${runtimeConfig.smsPoolSize}），验证码接口 ${redactHostedCheckoutVerificationUrl(runtimeConfig.verificationUrl)}。`
+          : `步骤 6：hosted checkout 初始电话配置为 ${runtimeConfig.phone || '(空)'}。`,
+        'info'
+      );
       await addLog(`步骤 6：hosted checkout 地址数据：${JSON.stringify(address)}`, 'info');
       const guestProfile = buildHostedCheckoutGuestProfile(address, runtimeConfig);
+      const currentTab = await chrome?.tabs?.get?.(tabId).catch(() => null);
+      const currentUrl = String(currentTab?.url || '').trim();
+      if (isPaymentsSuccessUrl(currentUrl)) {
+        await addLog('步骤 6：hosted checkout 启动时已在 ChatGPT 支付成功页。', 'ok');
+        await completeHostedCheckoutSuccess(tabId, currentUrl);
+        return;
+      }
+      if (isPayPalUrl(currentUrl)) {
+        await addLog('步骤 6：hosted checkout 启动时已在 PayPal 页面，直接继续 PayPal 自动化。', 'info');
+        await runHostedCheckoutPayPalFlow(tabId, guestProfile);
+        return;
+      }
       await runHostedCheckoutOpenAiFlow(tabId, guestProfile);
 
       const transitionTab = await waitForUrlMatch(
@@ -619,11 +989,16 @@
       }
       if (isPaymentsSuccessUrl(transitionUrl)) {
         await addLog('步骤 6：hosted checkout 在提交后已直接进入 ChatGPT 支付成功页。', 'ok');
+        await completeHostedCheckoutSuccess(tabId, transitionUrl);
         return;
       }
 
       await addLog('步骤 6：hosted checkout 已跳转到 PayPal，准备继续 guest/card 流自动化。', 'info');
-      await runHostedCheckoutPayPalFlow(tabId, guestProfile);
+      const successTab = await runHostedCheckoutPayPalFlow(tabId, guestProfile);
+      const successUrl = String(successTab?.url || '').trim();
+      if (successUrl) {
+        await completeHostedCheckoutSuccess(tabId, successUrl);
+      }
     }
 
     function startHostedCheckoutAutomation(tabId) {
@@ -633,6 +1008,7 @@
       void runHostedCheckoutAutomation(tabId).catch(async (error) => {
         const message = error?.message || String(error || 'hosted checkout automation failed');
         await addLog(`步骤 6：hosted checkout 自动化失败：${message}`, 'error');
+        await markHostedCheckoutSmsEntryFailure(message);
         if (typeof failNodeFromBackground === 'function') {
           await failNodeFromBackground('plus-checkout-create', message);
         }

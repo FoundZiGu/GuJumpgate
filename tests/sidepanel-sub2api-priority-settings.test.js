@@ -39,7 +39,7 @@ test('sidepanel persists and locks SUB2API account priority setting', () => {
     source,
     /inputSub2ApiAccountPriority\.value = String\(normalizeSub2ApiAccountPriorityValue\(state\?\.sub2apiAccountPriority\)\);/
   );
-  assert.match(source, /rowSub2ApiAccountPriority\.style\.display = useSub2Api \? '' : 'none';/);
+  assert.match(source, /rowSub2ApiAccountPriority\.style\.display = !hideOAuthSourceSettings && useSub2Api \? '' : 'none';/);
   assert.match(source, /inputSub2ApiAccountPriority\.disabled = locked;/);
   assert.match(
     source,

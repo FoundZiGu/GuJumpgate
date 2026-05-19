@@ -276,7 +276,7 @@ Plus 模式新增 `plusPaymentMethod`：
 | --- | --- |
 | `sidepanel/sidepanel.html` | Plus 支付下拉、GoPay 手机号、GoPay 验证码、GoPay PIN 输入。 |
 | `sidepanel/sidepanel.js` | 保存 `plusPaymentMethod / gopayCountryCode / gopayPhone / gopayOtp / gopayPin`，按支付方式切换配置行，第 8 步标题按 PayPal / GoPay 动态匹配，并提供 GoPay 验证码手动输入弹窗。 |
-| `gopay-utils.js` | GoPay 支付方式、手机号、验证码、PIN 规范化工具。 |
+| `shared/payment/gopay-utils.js` | GoPay 支付方式、手机号、验证码、PIN 规范化工具。 |
 | `content/plus-checkout.js` | 创建 GoPay checkout payload，识别/选择 GoPay 付款方式。 |
 | `background/steps/fill-plus-checkout.js` | 第 7 步按支付方式选择 PayPal 或 GoPay，并为 GoPay 使用印尼地址。 |
 | `background/steps/gopay-approve.js` | 第 8 步 GoPay 手机号、手动验证码、PIN 自动化骨架。 |

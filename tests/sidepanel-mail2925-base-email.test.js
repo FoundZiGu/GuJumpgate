@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const {
   normalizeIcloudForwardMailProvider,
   normalizeIcloudTargetMailboxType,
-} = require('../mail-provider-utils');
+} = require('../shared/mail/mail-provider-utils');
 
 const sidepanelSource = fs.readFileSync('sidepanel/sidepanel.js', 'utf8');
 

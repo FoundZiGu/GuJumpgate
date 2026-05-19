@@ -12,7 +12,11 @@ const {
   getHotmailMailApiRequestConfig,
   getHotmailVerificationPollConfig,
   getHotmailVerificationRequestTimestamp,
+  buildOutlookPlusAliasEmail,
+  findSubscriptionMessageForAlias,
+  isHotmailAliasCapacityExhausted,
   normalizeHotmailServiceMode,
+  normalizeOutlookAliasMaxPerAccount,
   normalizeHotmailMailApiMessages,
   parseHotmailImportText,
   pickHotmailAccountForRun,
@@ -21,7 +25,7 @@ const {
   pickVerificationMessageWithTimeFallback,
   shouldClearHotmailCurrentSelection,
   upsertHotmailAccountInList,
-} = require('../hotmail-utils.js');
+} = require('../shared/mail/hotmail-utils.js');
 
 test('pickHotmailAccountForRun prefers authorized account with oldest lastUsedAt', () => {
   const now = Date.UTC(2026, 3, 10, 10, 0, 0);
@@ -88,6 +92,64 @@ test('pickHotmailAccountForRun skips used accounts but ignores legacy enabled fl
   const selected = pickHotmailAccountForRun(accounts, {});
 
   assert.equal(selected.id, 'disabled');
+});
+
+test('Outlook alias helpers generate plus aliases and enforce default capacity', () => {
+  assert.equal(buildOutlookPlusAliasEmail('user@outlook.com', 'AbC_123'), 'user+abc_123@outlook.com');
+  assert.equal(normalizeOutlookAliasMaxPerAccount(undefined), 5);
+
+  const account = { id: 'base-1', email: 'user@outlook.com' };
+  const usage = {
+    'base-1': {
+      aliases: Object.fromEntries(Array.from({ length: 5 }, (_, index) => [
+        `user+tag${index}@outlook.com`,
+        {
+          email: `user+tag${index}@outlook.com`,
+          used: true,
+          reason: 'flow_completed',
+        },
+      ])),
+    },
+  };
+
+  assert.equal(isHotmailAliasCapacityExhausted(account, usage, undefined), true);
+  assert.equal(isHotmailAliasCapacityExhausted(account, usage, 6), false);
+});
+
+test('Outlook alias subscription precheck requires matching recipient fields', () => {
+  const alias = 'user+tag1@outlook.com';
+  const matched = findSubscriptionMessageForAlias([
+    {
+      subject: 'ChatGPT Plus Subscription',
+      bodyPreview: 'subscription receipt',
+      recipients: {
+        to: [alias],
+        all: [alias],
+      },
+    },
+  ], alias);
+  assert.equal(matched.matched, true);
+
+  const missingRecipients = findSubscriptionMessageForAlias([
+    {
+      subject: 'ChatGPT Plus Subscription',
+      bodyPreview: 'subscription receipt',
+    },
+  ], alias);
+  assert.equal(missingRecipients.matched, false);
+  assert.equal(missingRecipients.missingRecipients, true);
+
+  const otherRecipient = findSubscriptionMessageForAlias([
+    {
+      subject: 'ChatGPT Plus Subscription',
+      recipients: {
+        to: ['user+other@outlook.com'],
+        all: ['user+other@outlook.com'],
+      },
+    },
+  ], alias);
+  assert.equal(otherRecipient.matched, false);
+  assert.equal(otherRecipient.missingRecipients, false);
 });
 
 test('pickHotmailAccountForRun returns null for used-only pools', () => {
@@ -456,6 +518,7 @@ test('normalizeHotmailMailApiMessages maps third-party payload fields into verif
       from: { emailAddress: { address: 'noreply@openai.com' } },
       bodyPreview: 'Use 135790 to continue',
       receivedDateTime: '2026-04-10T10:02:00.000Z',
+      recipients: { to: [], cc: [], bcc: [], all: [] },
     },
     {
       id: 'mail-2',
@@ -463,6 +526,7 @@ test('normalizeHotmailMailApiMessages maps third-party payload fields into verif
       from: { emailAddress: { address: 'alerts@example.com' } },
       bodyPreview: 'No code here',
       receivedDateTime: '2026-04-10T10:03:00.000Z',
+      recipients: { to: [], cc: [], bcc: [], all: [] },
     },
   ]);
 });

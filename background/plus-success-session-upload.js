@@ -79,9 +79,17 @@
         await setState({
           plusReturnUrl: normalizedSuccessUrl,
         });
-        await addLog('步骤 6：检测到 ChatGPT 支付成功页，准备继续 OAuth 流程。', 'ok');
+        const skipPostPaymentOAuthEnabled = Boolean(latestState?.skipPostPaymentOAuthEnabled);
+        await addLog(
+          skipPostPaymentOAuthEnabled
+            ? '步骤 6：检测到 ChatGPT 支付成功页，已按设置跳过后续 OAuth 流程。'
+            : '步骤 6：检测到 ChatGPT 支付成功页，准备继续 OAuth 流程。',
+          'ok'
+        );
 
-        const oauthDelaySeconds = normalizeOauthDelaySeconds(latestState?.plusHostedCheckoutOauthDelaySeconds);
+        const oauthDelaySeconds = skipPostPaymentOAuthEnabled
+          ? 0
+          : normalizeOauthDelaySeconds(latestState?.plusHostedCheckoutOauthDelaySeconds);
         if (oauthDelaySeconds > 0) {
           await addLog(`步骤 6：已按设置等待 ${oauthDelaySeconds} 秒，之后再进入 OAuth 登录。`, 'info');
           await delay(oauthDelaySeconds * 1000);
@@ -96,6 +104,7 @@
             plusReturnUrl: normalizedSuccessUrl,
             plusHostedCheckoutCompleted: true,
             plusHostedCheckoutOauthDelaySeconds: oauthDelaySeconds,
+            skipPostPaymentOAuthEnabled,
           });
         }
 
@@ -103,6 +112,7 @@
           completed: true,
           plusReturnUrl: normalizedSuccessUrl,
           oauthDelaySeconds,
+          skipPostPaymentOAuthEnabled,
         };
       } catch (error) {
         const message = normalizeString(error?.message) || 'unknown error';

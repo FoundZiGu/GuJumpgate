@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const { pickHotmailAccountForRun } = require('../hotmail-utils.js');
+const { pickHotmailAccountForRun } = require('../shared/mail/hotmail-utils.js');
 
 const source = fs.readFileSync('background.js', 'utf8');
 

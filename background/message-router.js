@@ -776,6 +776,18 @@
       if (stepKey === 'plus-checkout-create') {
         const latestState = await getState();
         if (getLastNodeIdForState(latestState) === 'plus-checkout-create') {
+          if (latestState?.skipPostPaymentOAuthEnabled) {
+            if (typeof markCurrentRegistrationAccountUsed === 'function') {
+              await markCurrentRegistrationAccountUsed(latestState, {
+                logPrefix: '支付完成',
+                level: 'ok',
+              });
+            }
+            if (typeof finalizePhoneActivationAfterSuccessfulFlow === 'function') {
+              await finalizePhoneActivationAfterSuccessfulFlow(latestState);
+            }
+            return;
+          }
           await handlePlatformVerifyStepData(payload);
         }
         return;

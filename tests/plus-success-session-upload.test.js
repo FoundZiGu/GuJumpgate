@@ -41,6 +41,7 @@ test('payments success continuation completes hosted checkout and stores the suc
     completed: true,
     plusReturnUrl: successUrl,
     oauthDelaySeconds: 0,
+    skipPostPaymentOAuthEnabled: false,
   });
   assert.deepStrictEqual(stateUpdates, [
     { plusReturnUrl: successUrl },
@@ -52,6 +53,7 @@ test('payments success continuation completes hosted checkout and stores the suc
         plusReturnUrl: successUrl,
         plusHostedCheckoutCompleted: true,
         plusHostedCheckoutOauthDelaySeconds: 0,
+        skipPostPaymentOAuthEnabled: false,
       },
     },
   ]);
@@ -91,10 +93,98 @@ test('payments success continuation waits configured seconds before continuing o
     completed: true,
     plusReturnUrl: successUrl,
     oauthDelaySeconds: 12,
+    skipPostPaymentOAuthEnabled: false,
   });
   assert.equal(events.includes('delay:12000'), true);
   assert.equal(events.some((entry) => /等待 12 秒/.test(entry)), true);
   assert.equal(events.includes('complete:12'), true);
+});
+
+test('payments success continuation can finish without oauth when skip toggle is enabled', async () => {
+  const api = createApi();
+  const events = [];
+  const successUrl = 'https://chatgpt.com/payments/success?stripe_session_id=cs_live_skip';
+  const manager = api.createPlusSuccessSessionUploadManager({
+    addLog: async (message, level = 'info') => {
+      events.push(`log:${level}:${message}`);
+    },
+    delay: async (ms) => {
+      events.push(`delay:${ms}`);
+    },
+    completeNodeFromBackground: async (_nodeId, payload) => {
+      events.push(`complete:${payload.plusHostedCheckoutOauthDelaySeconds}:${payload.skipPostPaymentOAuthEnabled}`);
+    },
+    getState: async () => ({
+      plusCheckoutTabId: 77,
+      plusPaymentMethod: 'paypal',
+      plusHostedCheckoutOauthDelaySeconds: 12,
+      skipPostPaymentOAuthEnabled: true,
+      nodeStatuses: {
+        'plus-checkout-create': 'running',
+      },
+    }),
+    setState: async () => {
+      events.push('set-state');
+    },
+  });
+
+  const result = await manager.handleTabUpdated(77, { status: 'complete' }, { url: successUrl });
+
+  assert.deepStrictEqual(result, {
+    completed: true,
+    plusReturnUrl: successUrl,
+    oauthDelaySeconds: 0,
+    skipPostPaymentOAuthEnabled: true,
+  });
+  assert.equal(events.some((entry) => /跳过后续 OAuth 流程/.test(entry)), true);
+  assert.equal(events.some((entry) => entry.startsWith('delay:')), false);
+  assert.equal(events.includes('complete:0:true'), true);
+});
+
+test('payments success continuation is idempotent when active polling and tab update fire together', async () => {
+  const api = createApi();
+  const events = [];
+  let releaseComplete;
+  let resolveCompleteEntered;
+  const successUrl = 'https://chatgpt.com/payments/success?stripe_session_id=cs_live_race';
+  const completionBlocker = new Promise((resolve) => {
+    releaseComplete = resolve;
+  });
+  const completeEntered = new Promise((resolve) => {
+    resolveCompleteEntered = resolve;
+  });
+  const manager = api.createPlusSuccessSessionUploadManager({
+    addLog: async (message, level = 'info') => {
+      events.push(`log:${level}:${message}`);
+    },
+    completeNodeFromBackground: async () => {
+      events.push('complete');
+      resolveCompleteEntered();
+      await completionBlocker;
+    },
+    getState: async () => ({
+      plusCheckoutTabId: 77,
+      plusPaymentMethod: 'paypal',
+      plusHostedCheckoutOauthDelaySeconds: 0,
+      nodeStatuses: {
+        'plus-checkout-create': 'running',
+      },
+    }),
+    setState: async () => {
+      events.push('set-state');
+    },
+  });
+
+  const first = manager.processPaymentsSuccessTab(77, successUrl);
+  await completeEntered;
+  const second = manager.handleTabUpdated(77, { status: 'complete' }, { url: successUrl });
+  const secondResult = await second;
+  releaseComplete();
+  const firstResult = await first;
+
+  assert.equal(secondResult, null);
+  assert.equal(firstResult.completed, true);
+  assert.deepStrictEqual(events.filter((event) => event === 'complete'), ['complete']);
 });
 
 test('payments success continuation ignores unrelated tabs or non-running checkout state', async () => {

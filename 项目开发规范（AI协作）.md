@@ -1,4 +1,4 @@
-﻿# 项目开发规范（AI协作）
+# 项目开发规范（AI协作）
 
 本文档是面向 AI 与开发者的项目开发规范。
 
@@ -244,7 +244,7 @@
 
 当前约定：
 
-- Gmail / 2925 的基邮箱解析、兼容性判断、别名生成、UI 文案优先收敛到 `managed-alias-utils.js`
+- Gmail / 2925 的基邮箱解析、兼容性判断、别名生成、UI 文案优先收敛到 `shared/accounts/managed-alias-utils.js`
 - `2925` 是否参与“共享别名邮箱链路”必须由共享层统一判断；当前只有 `mail2925Mode = provide` 才允许把 `2925` 视为别名邮箱 provider，`receive` 不能在 sidepanel / step / provider 分支里各自偷写一套判断
 - `background/generated-email-helpers.js` 只负责调度，不应再次复制 Gmail / 2925 规则
 - `background/signup-flow-helpers.js` 只负责“复用已有邮箱还是重新生成”的流程决策
@@ -472,7 +472,7 @@ npm test
 6. 我有没有更新三份根目录文档？
 7. 我新增或修改的文件是否有可见乱码？
 8. 我有没有逐个检查本次改动涉及的中文文案、日志、注释、文档没有乱码？
-9. 如果改动影响 Gmail / 2925 别名邮箱逻辑，我有没有同步检查 `managed-alias-utils.js`、sidepanel 接线、background 调度、auto-run reset 和回归测试？
+9. 如果改动影响 Gmail / 2925 别名邮箱逻辑，我有没有同步检查 `shared/accounts/managed-alias-utils.js`、sidepanel 接线、background 调度、auto-run reset 和回归测试？
 10. 如果改动影响步骤日志，我有没有确认日志步骤号来自结构化 `step`，而不是来自日志正文？
 11. 如果改动影响 OAuth / 接码 / 注册身份链路，我有没有逐项区分邮箱注册模式、手机号注册模式、OAuth 授权页、添加邮箱页、添加手机号页、邮箱验证码页、短信验证码页？
 12. 如果某个页面在当前步骤不应该出现，我有没有删除或禁止对应分支，而不是继续兜底兼容？
