@@ -1168,14 +1168,29 @@ function FindProxyForURL(url, host) {
     }
 
     function extractHostedCheckoutVerificationCode(payload = {}) {
-      const candidates = [
-        payload?.data,
-        payload?.code,
-        payload?.text,
-        payload?.message,
-        payload,
-      ];
-      for (const candidate of candidates) {
+      const seen = new Set();
+      const candidates = [payload?.code, payload?.text, payload?.message, payload?.data, payload];
+
+      for (let index = 0; index < candidates.length; index += 1) {
+        const candidate = candidates[index];
+        if (candidate && typeof candidate === 'object') {
+          if (seen.has(candidate)) {
+            continue;
+          }
+          seen.add(candidate);
+          if (Array.isArray(candidate)) {
+            candidates.push(...candidate);
+          } else {
+            candidates.push(
+              candidate.code,
+              candidate.text,
+              candidate.message,
+              candidate.data,
+              ...Object.values(candidate)
+            );
+          }
+          continue;
+        }
         const text = String(candidate || '').trim();
         if (!text) {
           continue;
@@ -1184,9 +1199,11 @@ function FindProxyForURL(url, host) {
         if (match) {
           return match[0];
         }
-        const digits = text.replace(/\D+/g, '').slice(0, 6);
-        if (digits.length === 6) {
-          return digits;
+        const contextualMatch = text.match(
+          /(?:security\s*code|verification\s*code|one[-\s]?time\s*(?:passcode|code)|passcode|otp|code|验证码|安全码)[\s\S]{0,50}?(\d[\s-]?\d[\s-]?\d[\s-]?\d[\s-]?\d[\s-]?\d)|(\d[\s-]?\d[\s-]?\d[\s-]?\d[\s-]?\d[\s-]?\d)[\s\S]{0,50}?(?:security\s*code|verification\s*code|one[-\s]?time\s*(?:passcode|code)|passcode|otp|code|验证码|安全码)/i
+        );
+        if (contextualMatch) {
+          return (contextualMatch[1] || contextualMatch[2]).replace(/\D+/g, '');
         }
       }
       return '';
