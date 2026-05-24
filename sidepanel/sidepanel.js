@@ -319,6 +319,16 @@ const inputCloudMailAdminEmail = document.getElementById('input-cloud-mail-admin
 const inputCloudMailAdminPassword = document.getElementById('input-cloud-mail-admin-password');
 const inputCloudMailReceiveMailbox = document.getElementById('input-cloud-mail-receive-mailbox');
 const inputCloudMailDomain = document.getElementById('input-cloud-mail-domain');
+const freemailSection = document.getElementById('freemail-section');
+const rowFreemailBaseUrl = document.getElementById('row-freemail-base-url');
+const rowFreemailAdminUsername = document.getElementById('row-freemail-admin-username');
+const rowFreemailAdminPassword = document.getElementById('row-freemail-admin-password');
+const rowFreemailDomain = document.getElementById('row-freemail-domain');
+const inputFreemailBaseUrl = document.getElementById('input-freemail-base-url');
+const inputFreemailAdminUsername = document.getElementById('input-freemail-admin-username');
+const inputFreemailAdminPassword = document.getElementById('input-freemail-admin-password');
+const inputFreemailDomain = document.getElementById('input-freemail-domain');
+const btnFreemailGithub = document.getElementById('btn-freemail-github');
 const hotmailSection = document.getElementById('hotmail-section');
 const mail2925Section = document.getElementById('mail2925-section');
 const luckmailSection = document.getElementById('luckmail-section');
@@ -1092,6 +1102,7 @@ const HOTMAIL_PROVIDER = 'hotmail-api';
 const LUCKMAIL_PROVIDER = 'luckmail-api';
 const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
 const CLOUD_MAIL_PROVIDER = 'cloudmail';
+const FREEMAIL_PROVIDER = 'freemail';
 const CUSTOM_EMAIL_POOL_GENERATOR = 'custom-pool';
 const DEFAULT_LUCKMAIL_BASE_URL = 'https://mails.luckyous.com';
 const DEFAULT_LUCKMAIL_EMAIL_TYPE = 'ms_graph';
@@ -1673,6 +1684,11 @@ const MAIL_PROVIDER_LOGIN_CONFIGS = {
   'cloudflare-temp-email': {
     label: 'Cloudflare Temp Email 部署',
     url: 'https://github.com/QLHazyCoder/cloudflare_temp_email',
+    buttonLabel: '部署',
+  },
+  freemail: {
+    label: 'freemail 部署',
+    url: 'https://github.com/idinging/freemail',
     buttonLabel: '部署',
   },
   '2925': {
@@ -3131,6 +3147,9 @@ function normalizeSupportedMailProvider(value = '') {
   if (normalized === CLOUD_MAIL_PROVIDER) {
     return CLOUD_MAIL_PROVIDER;
   }
+  if (normalized === FREEMAIL_PROVIDER) {
+    return FREEMAIL_PROVIDER;
+  }
   return HOTMAIL_PROVIDER;
 }
 
@@ -3503,6 +3522,14 @@ function normalizeCloudMailDomainValue(value = '') {
   return normalizeCloudflareDomainValue(value);
 }
 
+function normalizeFreemailBaseUrlValue(value = '') {
+  return normalizeCloudflareTempEmailBaseUrlValue(value);
+}
+
+function normalizeFreemailDomainValue(value = '') {
+  return normalizeCloudflareDomainValue(value);
+}
+
 function getCloudflareDomainsFromState() {
   const domains = normalizeCloudflareDomains(latestState?.cloudflareDomains || []);
   const activeDomain = normalizeCloudflareDomainValue(latestState?.cloudflareDomain || '');
@@ -3593,6 +3620,51 @@ function applyCloudMailSettingsState(state = {}) {
   }
 }
 
+function applyFreemailSettingsState(state = {}) {
+  if (inputFreemailBaseUrl) inputFreemailBaseUrl.value = state?.freemailBaseUrl || '';
+  if (inputFreemailAdminUsername) inputFreemailAdminUsername.value = state?.freemailAdminUsername || '';
+  if (inputFreemailAdminPassword) inputFreemailAdminPassword.value = state?.freemailAdminPassword || '';
+  if (inputFreemailDomain) inputFreemailDomain.value = state?.freemailDomain || '';
+}
+
+function validateFreemailConfigForGeneration(options = {}) {
+  const { focusOnError = false } = options;
+  if (getSelectedEmailGenerator() !== FREEMAIL_PROVIDER) {
+    return { valid: true };
+  }
+
+  const baseUrl = normalizeFreemailBaseUrlValue(inputFreemailBaseUrl?.value || '');
+  if (!baseUrl) {
+    if (focusOnError) {
+      inputFreemailBaseUrl?.focus();
+      inputFreemailBaseUrl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    return {
+      valid: false,
+      message: '请先填写 freemail API 地址，例如 https://your-worker-domain。',
+    };
+  }
+
+  const adminUsername = String(inputFreemailAdminUsername?.value || '').trim();
+  if (!adminUsername) {
+    if (focusOnError) {
+      inputFreemailAdminUsername?.focus();
+      inputFreemailAdminUsername?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    return { valid: false, message: '请先填写 freemail 管理员用户名。' };
+  }
+
+  if (!String(inputFreemailAdminPassword?.value || '')) {
+    if (focusOnError) {
+      inputFreemailAdminPassword?.focus();
+      inputFreemailAdminPassword?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    return { valid: false, message: '请先填写 freemail 管理员密码。' };
+  }
+
+  return { valid: true };
+}
+
 function collectSettingsPayload() {
   const defaultGpcHelperApiUrl = typeof DEFAULT_GPC_HELPER_API_URL !== 'undefined'
     ? DEFAULT_GPC_HELPER_API_URL
@@ -3613,6 +3685,12 @@ function collectSettingsPayload() {
     : normalizeCloudflareTempEmailReceiveMailboxValue;
   const normalizeCloudMailDomainInput = typeof normalizeCloudMailDomainValue === 'function'
     ? normalizeCloudMailDomainValue
+    : normalizeCloudflareTempEmailDomainValue;
+  const normalizeFreemailBaseUrlInput = typeof normalizeFreemailBaseUrlValue === 'function'
+    ? normalizeFreemailBaseUrlValue
+    : normalizeCloudflareTempEmailBaseUrlValue;
+  const normalizeFreemailDomainInput = typeof normalizeFreemailDomainValue === 'function'
+    ? normalizeFreemailDomainValue
     : normalizeCloudflareTempEmailDomainValue;
   const contributionModeEnabled = Boolean(latestState?.contributionMode);
   const icloudFetchModeRawValue = typeof selectIcloudFetchMode !== 'undefined'
@@ -4420,6 +4498,10 @@ function collectSettingsPayload() {
     cloudMailAdminPassword: (typeof inputCloudMailAdminPassword !== 'undefined' && inputCloudMailAdminPassword) ? inputCloudMailAdminPassword.value : '',
     cloudMailReceiveMailbox: normalizeCloudMailReceiveMailboxInput((typeof inputCloudMailReceiveMailbox !== 'undefined' && inputCloudMailReceiveMailbox) ? inputCloudMailReceiveMailbox.value : ''),
     cloudMailDomain: normalizeCloudMailDomainInput((typeof inputCloudMailDomain !== 'undefined' && inputCloudMailDomain) ? inputCloudMailDomain.value : ''),
+    freemailBaseUrl: normalizeFreemailBaseUrlInput(inputFreemailBaseUrl?.value || ''),
+    freemailAdminUsername: String(inputFreemailAdminUsername?.value || '').trim(),
+    freemailAdminPassword: inputFreemailAdminPassword?.value || '',
+    freemailDomain: normalizeFreemailDomainInput(inputFreemailDomain?.value || ''),
     autoRunSkipFailures: inputAutoSkipFailures.checked,
     autoRunRetryNonFreeTrial: Boolean(inputAutoRunRetryNonFreeTrial?.checked),
     autoRunRetryPaypalCallback: Boolean(inputAutoRunRetryPaypalCallback?.checked),
@@ -10166,6 +10248,9 @@ function applySettingsState(state) {
   if (typeof applyCloudMailSettingsState === 'function') {
     applyCloudMailSettingsState(state);
   }
+  if (typeof applyFreemailSettingsState === 'function') {
+    applyFreemailSettingsState(state);
+  }
   renderCloudflareDomainOptions(state?.cloudflareDomain || '');
   setCloudflareDomainEditMode(false, { clearInput: true });
   inputAutoSkipFailures.checked = Boolean(state?.autoRunSkipFailures);
@@ -10969,6 +11054,7 @@ function getSelectedEmailGenerator() {
   if (generator === 'cloudflare') return 'cloudflare';
   if (generator === 'cloudflare-temp-email') return 'cloudflare-temp-email';
   if (generator === 'cloudmail') return 'cloudmail';
+  if (generator === FREEMAIL_PROVIDER) return FREEMAIL_PROVIDER;
   return 'duck';
 }
 
@@ -11022,6 +11108,14 @@ function getEmailGeneratorUiCopy() {
       placeholder: '点击生成 Cloud Mail 邮箱，或手动粘贴邮箱',
       successVerb: '生成',
       label: 'Cloud Mail',
+    };
+  }
+  if (getSelectedEmailGenerator() === FREEMAIL_PROVIDER) {
+    return {
+      buttonLabel: '生成',
+      placeholder: '点击生成 freemail 邮箱，或手动粘贴邮箱',
+      successVerb: '生成',
+      label: 'freemail',
     };
   }
 
@@ -11421,6 +11515,7 @@ function updateMailProviderUI() {
   const useCustomEmail = isCustomMailProvider();
   const useCloudflareTempEmailProvider = selectMailProvider.value === 'cloudflare-temp-email';
   const useCloudMailProvider = selectMailProvider.value === 'cloudmail';
+  const useFreemailProvider = selectMailProvider.value === FREEMAIL_PROVIDER;
   const gmailAliasGenerator = typeof GMAIL_ALIAS_GENERATOR === 'string'
     ? GMAIL_ALIAS_GENERATOR
     : 'gmail-alias';
@@ -11429,11 +11524,13 @@ function updateMailProviderUI() {
     : 'custom-pool';
   const allowedEmailGenerators = useHotmail || useLuckmail || useCustomEmail
     ? new Set()
-    : (useCloudflareTempEmailProvider
-      ? new Set(['cloudflare-temp-email'])
-      : (useCloudMailProvider
-        ? new Set(['cloudmail'])
-        : (useGmail ? new Set([gmailAliasGenerator, customEmailPoolGenerator]) : null)));
+      : (useCloudflareTempEmailProvider
+        ? new Set(['cloudflare-temp-email'])
+        : (useCloudMailProvider
+          ? new Set(['cloudmail'])
+          : (useFreemailProvider
+            ? new Set([FREEMAIL_PROVIDER])
+            : (useGmail ? new Set([gmailAliasGenerator, customEmailPoolGenerator]) : null))));
   Array.from(selectEmailGenerator?.options || []).forEach((option) => {
     if (!option) return;
     const optionValue = String(option.value || '').trim().toLowerCase();
@@ -11462,6 +11559,9 @@ function updateMailProviderUI() {
   if (useCloudMailProvider && String(selectEmailGenerator?.value || '').trim().toLowerCase() !== 'cloudmail') {
     selectEmailGenerator.value = 'cloudmail';
   }
+  if (useFreemailProvider && String(selectEmailGenerator?.value || '').trim().toLowerCase() !== FREEMAIL_PROVIDER) {
+    selectEmailGenerator.value = FREEMAIL_PROVIDER;
+  }
   const useEmailGenerator = !useHotmail && !useLuckmail && !useCustomEmail && (!useGeneratedAlias || useGmail);
   const aliasUiCopy = useGeneratedAlias
     ? getManagedAliasProviderUiCopy(selectMailProvider.value, mail2925Mode)
@@ -11486,6 +11586,7 @@ function updateMailProviderUI() {
   const useIcloud = selectedGenerator === 'icloud';
   const useCloudflareTempEmailGenerator = selectedGenerator === 'cloudflare-temp-email';
   const useCloudMailGenerator = selectedGenerator === 'cloudmail';
+  const useFreemailGenerator = selectedGenerator === FREEMAIL_PROVIDER;
   const showCloudflareDomain = useEmailGenerator && useCloudflare;
   const showCloudflareTempEmailSettings = useCloudflareTempEmailProvider || (useEmailGenerator && useCloudflareTempEmailGenerator);
   const showCloudflareTempEmailLookupMode = useCloudflareTempEmailProvider;
@@ -11502,6 +11603,8 @@ function updateMailProviderUI() {
   const showCloudMailSettings = useCloudMailProvider || (useEmailGenerator && useCloudMailGenerator);
   const showCloudMailReceiveMailbox = useCloudMailProvider && !useCloudMailGenerator;
   const showCloudMailDomain = useEmailGenerator && useCloudMailGenerator;
+  const showFreemailSettings = useFreemailProvider || (useEmailGenerator && useFreemailGenerator);
+  const showFreemailDomain = useEmailGenerator && useFreemailGenerator;
   const selectedIcloudHost = typeof getSelectedIcloudHostPreference === 'function'
     ? getSelectedIcloudHostPreference()
     : (normalizeIcloudHostValue(icloudHostPreferenceValue || latestState?.icloudHostPreference || '')
@@ -11530,11 +11633,18 @@ function updateMailProviderUI() {
   if (typeof cloudMailSection !== 'undefined' && cloudMailSection) {
     cloudMailSection.style.display = showCloudMailSettings ? '' : 'none';
   }
+  if (typeof freemailSection !== 'undefined' && freemailSection) {
+    freemailSection.style.display = showFreemailSettings ? '' : 'none';
+  }
   if (typeof rowCloudMailBaseUrl !== 'undefined' && rowCloudMailBaseUrl) rowCloudMailBaseUrl.style.display = showCloudMailSettings ? '' : 'none';
   if (typeof rowCloudMailAdminEmail !== 'undefined' && rowCloudMailAdminEmail) rowCloudMailAdminEmail.style.display = showCloudMailSettings ? '' : 'none';
   if (typeof rowCloudMailAdminPassword !== 'undefined' && rowCloudMailAdminPassword) rowCloudMailAdminPassword.style.display = showCloudMailSettings ? '' : 'none';
   if (typeof rowCloudMailReceiveMailbox !== 'undefined' && rowCloudMailReceiveMailbox) rowCloudMailReceiveMailbox.style.display = showCloudMailReceiveMailbox ? '' : 'none';
   if (typeof rowCloudMailDomain !== 'undefined' && rowCloudMailDomain) rowCloudMailDomain.style.display = showCloudMailDomain ? '' : 'none';
+  if (rowFreemailBaseUrl) rowFreemailBaseUrl.style.display = showFreemailSettings ? '' : 'none';
+  if (rowFreemailAdminUsername) rowFreemailAdminUsername.style.display = showFreemailSettings ? '' : 'none';
+  if (rowFreemailAdminPassword) rowFreemailAdminPassword.style.display = showFreemailSettings ? '' : 'none';
+  if (rowFreemailDomain) rowFreemailDomain.style.display = showFreemailDomain ? '' : 'none';
   if (icloudSection) {
     const showIcloudSection = (useEmailGenerator && useIcloud) || useIcloudProvider;
     icloudSection.style.display = showIcloudSection ? '' : 'none';
@@ -11602,6 +11712,7 @@ function updateMailProviderUI() {
     || useCustomEmail
     || useCloudflareTempEmailProvider
     || useCloudMailProvider
+    || useFreemailProvider
     || (useGeneratedAlias && !useGmail);
   if (useGmail) {
     labelEmailPrefix.textContent = 'Gmail 原邮箱';
@@ -12480,6 +12591,7 @@ async function fetchGeneratedEmail(options = {}) {
   btnFetchEmail.textContent = '...';
 
   try {
+    await persistCurrentSettingsForAction();
     const response = await chrome.runtime.sendMessage({
       type: 'FETCH_GENERATED_EMAIL',
       source: 'sidepanel',
@@ -12489,6 +12601,10 @@ async function fetchGeneratedEmail(options = {}) {
         generator: selectEmailGenerator.value,
         mailProvider: normalizeSupportedMailProvider(selectMailProvider?.value || latestState?.mailProvider),
         mail2925Mode: getSelectedMail2925Mode(),
+        freemailBaseUrl: normalizeFreemailBaseUrlValue(inputFreemailBaseUrl?.value || ''),
+        freemailAdminUsername: String(inputFreemailAdminUsername?.value || '').trim(),
+        freemailAdminPassword: inputFreemailAdminPassword?.value || '',
+        freemailDomain: normalizeFreemailDomainValue(inputFreemailDomain?.value || ''),
         ...(getSelectedEmailGenerator() === CUSTOM_EMAIL_POOL_GENERATOR
           ? {
               customEmailPool: getActiveCustomEmailPoolEmails(),
@@ -13645,6 +13761,10 @@ btnCloudflareTempEmailUsageGuide?.addEventListener('click', () => {
 
 btnCloudflareTempEmailGithub?.addEventListener('click', () => {
   openCloudflareTempEmailRepositoryPage();
+});
+
+btnFreemailGithub?.addEventListener('click', () => {
+  openExternalUrl('https://github.com/idinging/freemail');
 });
 
 extensionUpdateStatus?.addEventListener('click', () => {

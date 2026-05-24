@@ -63,7 +63,9 @@ importScripts(
   'luckmail-utils.js',
   'cloudflare-temp-email-utils.js',
   'cloudmail-utils.js',
+  'freemail-utils.js',
   'background/cloudmail-provider.js',
+  'background/freemail-provider.js',
   'icloud-utils.js',
   'mail-provider-utils.js',
   'content/activation-utils.js'
@@ -319,6 +321,17 @@ const {
   normalizeCloudMailMailApiMessages,
 } = self.CloudMailUtils;
 const {
+  DEFAULT_MAIL_PAGE_SIZE: FREEMAIL_DEFAULT_PAGE_SIZE,
+  buildFreemailHeaders,
+  getFreemailAddressFromResponse,
+  joinFreemailUrl,
+  normalizeFreemailAddress,
+  normalizeFreemailBaseUrl,
+  normalizeFreemailDomain,
+  normalizeFreemailDomains,
+  normalizeFreemailMessages,
+} = self.FreemailUtils;
+const {
   findIcloudAliasByEmail,
   getConfiguredIcloudHostPreference,
   getIcloudHostHintFromMessage,
@@ -462,6 +475,8 @@ const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
 const CLOUDFLARE_TEMP_EMAIL_GENERATOR = 'cloudflare-temp-email';
 const CLOUD_MAIL_PROVIDER = 'cloudmail';
 const CLOUD_MAIL_GENERATOR = 'cloudmail';
+const FREEMAIL_PROVIDER = 'freemail';
+const FREEMAIL_GENERATOR = 'freemail';
 const CUSTOM_EMAIL_POOL_GENERATOR = 'custom-pool';
 const HOTMAIL_MAILBOXES = ['INBOX', 'Junk'];
 const STOP_ERROR_MESSAGE = '流程已被用户停止。';
@@ -1117,6 +1132,11 @@ const PERSISTED_SETTING_DEFAULTS = {
   cloudMailReceiveMailbox: '',
   cloudMailDomain: '',
   cloudMailDomains: [],
+  freemailBaseUrl: '',
+  freemailAdminUsername: '',
+  freemailAdminPassword: '',
+  freemailDomain: '',
+  freemailDomains: [],
   hotmailAccounts: [],
   hotmailAliasEnabled: false,
   outlookAliasMaxPerAccount: OUTLOOK_ALIAS_DEFAULT_MAX_PER_ACCOUNT,
@@ -2321,6 +2341,7 @@ function normalizeEmailGenerator(value = '') {
   if (normalized === 'cloudflare') return 'cloudflare';
   if (normalized === CLOUDFLARE_TEMP_EMAIL_GENERATOR) return CLOUDFLARE_TEMP_EMAIL_GENERATOR;
   if (normalized === 'cloudmail') return 'cloudmail';
+  if (normalized === FREEMAIL_GENERATOR) return FREEMAIL_GENERATOR;
   return 'duck';
 }
 
@@ -2622,6 +2643,7 @@ function normalizeMailProvider(value = '') {
     case LUCKMAIL_PROVIDER:
     case CLOUDFLARE_TEMP_EMAIL_PROVIDER:
     case CLOUD_MAIL_PROVIDER:
+    case FREEMAIL_PROVIDER:
     case '163':
     case '163-vip':
     case '126':
@@ -2859,6 +2881,35 @@ const {
   pollCloudMailVerificationCode,
   resolveCloudMailPollTargetEmail,
 } = cloudMailProvider;
+
+const freemailProvider = self.MultiPageBackgroundFreemailProvider.createFreemailProvider({
+  addLog,
+  buildFreemailHeaders,
+  fetchImpl: typeof fetch === 'function' ? fetch.bind(globalThis) : null,
+  FREEMAIL_DEFAULT_PAGE_SIZE,
+  FREEMAIL_GENERATOR,
+  FREEMAIL_PROVIDER,
+  getFreemailAddressFromResponse,
+  getState,
+  joinFreemailUrl,
+  normalizeFreemailAddress,
+  normalizeFreemailBaseUrl,
+  normalizeFreemailDomain,
+  normalizeFreemailDomains,
+  normalizeFreemailMessages,
+  persistRegistrationEmailState,
+  pickVerificationMessageWithTimeFallback,
+  setEmailState,
+  setPersistentSettings,
+  sleepWithStop,
+  throwIfStopped,
+});
+const {
+  getFreemailConfig,
+  fetchFreemailAddress,
+  pollFreemailVerificationCode,
+  resolveFreemailPollTargetEmail,
+} = freemailProvider;
 
 function normalizeSub2ApiGroupNames(value = '') {
   const source = Array.isArray(value)
@@ -3240,6 +3291,9 @@ function normalizePersistentSettingValue(key, value) {
         if (normalizedMailProvider === CLOUD_MAIL_PROVIDER) {
           return CLOUD_MAIL_PROVIDER;
         }
+        if (normalizedMailProvider === FREEMAIL_PROVIDER) {
+          return FREEMAIL_PROVIDER;
+        }
         return HOTMAIL_PROVIDER;
       }
     case 'mail2925Mode':
@@ -3330,6 +3384,16 @@ function normalizePersistentSettingValue(key, value) {
       return normalizeCloudMailDomain(value);
     case 'cloudMailDomains':
       return normalizeCloudMailDomains(value);
+    case 'freemailBaseUrl':
+      return normalizeFreemailBaseUrl(value);
+    case 'freemailAdminUsername':
+      return String(value || '').trim();
+    case 'freemailAdminPassword':
+      return String(value || '');
+    case 'freemailDomain':
+      return normalizeFreemailDomain(value);
+    case 'freemailDomains':
+      return normalizeFreemailDomains(value);
     case 'hotmailAccounts':
       return normalizeHotmailAccounts(value);
     case 'hotmailAliasEnabled':
@@ -3477,6 +3541,13 @@ function buildPersistentSettingsPayload(input = {}, options = {}) {
       domains.unshift(payload.cloudMailDomain);
     }
     payload.cloudMailDomains = domains;
+  }
+  if (payload.freemailDomains) {
+    const domains = normalizeFreemailDomains(payload.freemailDomains);
+    if (payload.freemailDomain && !domains.includes(payload.freemailDomain)) {
+      domains.unshift(payload.freemailDomain);
+    }
+    payload.freemailDomains = domains;
   }
   if (
     Object.prototype.hasOwnProperty.call(payload, 'sub2apiGroupName')
@@ -11850,6 +11921,7 @@ function getEmailGeneratorLabel(generator) {
   if (generator === 'cloudflare') return 'Cloudflare 邮箱';
   if (generator === CLOUDFLARE_TEMP_EMAIL_GENERATOR) return 'Cloudflare Temp Email';
   if (generator === CLOUD_MAIL_GENERATOR) return 'Cloud Mail';
+  if (generator === FREEMAIL_GENERATOR) return 'freemail';
   return 'Duck 邮箱';
 }
 const mail2925SessionManager = self.MultiPageBackgroundMail2925Session?.createMail2925SessionManager({
@@ -12026,9 +12098,19 @@ async function fetchDuckEmail(options = {}) {
 
 async function fetchGeneratedEmail(state, options = {}) {
   const currentState = state || await getState();
+  const mergedState = {
+    ...currentState,
+    freemailBaseUrl: options.freemailBaseUrl ?? currentState.freemailBaseUrl,
+    freemailAdminUsername: options.freemailAdminUsername ?? currentState.freemailAdminUsername,
+    freemailAdminPassword: options.freemailAdminPassword ?? currentState.freemailAdminPassword,
+    freemailDomain: options.freemailDomain ?? currentState.freemailDomain,
+  };
   const generator = normalizeEmailGenerator(options.generator ?? currentState.emailGenerator);
   if (generator === CLOUD_MAIL_GENERATOR) {
     return fetchCloudMailAddress(currentState, options);
+  }
+  if (generator === FREEMAIL_GENERATOR) {
+    return fetchFreemailAddress(mergedState, options);
   }
   return generatedEmailHelpers.fetchGeneratedEmail(state, options);
 }
@@ -13520,6 +13602,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   closeConflictingTabsForSource,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
   CLOUD_MAIL_PROVIDER,
+  FREEMAIL_PROVIDER,
   completeNodeFromBackground,
   confirmCustomVerificationStepBypassRequest: (step) => chrome.runtime.sendMessage({
     type: 'REQUEST_CUSTOM_VERIFICATION_BYPASS_CONFIRMATION',
@@ -13540,6 +13623,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   MAIL_2925_VERIFICATION_MAX_ATTEMPTS,
   pollCloudflareTempEmailVerificationCode,
   pollCloudMailVerificationCode,
+  pollFreemailVerificationCode,
   pollHotmailVerificationCode,
   pollLuckmailVerificationCode,
   sendToContentScript,
@@ -13671,6 +13755,7 @@ const step4Executor = self.MultiPageBackgroundStep4?.createStep4Executor({
   LUCKMAIL_PROVIDER,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
   CLOUD_MAIL_PROVIDER,
+  FREEMAIL_PROVIDER,
   resolveVerificationStep: verificationFlowHelpers.resolveVerificationStep,
   reuseOrCreateTab,
   sendToContentScript,
@@ -13729,6 +13814,7 @@ const step8Executor = self.MultiPageBackgroundStep8?.createStep8Executor({
   chrome,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
   CLOUD_MAIL_PROVIDER,
+  FREEMAIL_PROVIDER,
   completeNodeFromBackground,
   confirmCustomVerificationStepBypass: verificationFlowHelpers.confirmCustomVerificationStepBypass,
   ensureMail2925MailboxSession,
@@ -14345,6 +14431,9 @@ function getMailConfig(state) {
   }
   if (provider === 'cloudmail') {
     return { provider: 'cloudmail', label: 'Cloud Mail' };
+  }
+  if (provider === FREEMAIL_PROVIDER) {
+    return { provider: FREEMAIL_PROVIDER, label: 'freemail' };
   }
   if (provider === '163') {
     return { source: 'mail-163', url: 'https://mail.163.com/js6/main.jsp?df=mail163_letter#module=mbox.ListModule%7C%7B%22fid%22%3A1%2C%22order%22%3A%22date%22%2C%22desc%22%3Atrue%7D', label: '163 邮箱' };

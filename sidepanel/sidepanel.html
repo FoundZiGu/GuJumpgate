@@ -552,6 +552,7 @@
           <select id="select-mail-provider" class="data-select">
             <option value="hotmail-api">Outlook/Hotmail 账号池</option>
             <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
+            <option value="freemail">freemail</option>
             <option value="cloudmail">Cloud Mail</option>
           </select>
           <button id="btn-mail-login" class="btn btn-outline btn-sm data-inline-btn" type="button" disabled>登录</button>
@@ -578,6 +579,7 @@
           <option value="cloudflare">Cloudflare</option>
           <option value="icloud">iCloud 隐私邮箱</option>
           <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
+          <option value="freemail">freemail</option>
           <option value="cloudmail">Cloud Mail</option>
         </select>
       </div>
@@ -919,6 +921,40 @@
       <div class="data-row" id="row-cloud-mail-domain" style="display:none;">
         <span class="data-label">域名</span>
         <input type="text" id="input-cloud-mail-domain" class="data-input" placeholder="例如 mail.example.com" />
+      </div>
+    </div>
+    <div id="freemail-section" class="data-card hotmail-card" style="display:none;">
+      <div class="section-mini-header">
+        <div class="section-mini-copy">
+          <span class="section-label">freemail</span>
+          <span class="data-value">用于生成邮箱并自动接收验证码</span>
+        </div>
+        <div class="section-mini-actions">
+          <button id="btn-freemail-github" class="btn btn-ghost btn-xs" type="button">部署</button>
+        </div>
+      </div>
+      <div class="data-row" id="row-freemail-base-url" style="display:none;">
+        <span class="data-label">API 地址</span>
+        <input type="text" id="input-freemail-base-url" class="data-input" placeholder="https://your-worker-domain" />
+      </div>
+      <div class="data-row" id="row-freemail-admin-username" style="display:none;">
+        <span class="data-label">Admin</span>
+        <input type="text" id="input-freemail-admin-username" class="data-input" placeholder="管理员用户名" />
+      </div>
+      <div class="data-row" id="row-freemail-admin-password" style="display:none;">
+        <span class="data-label">密码</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-freemail-admin-password" class="data-input data-input-with-icon"
+            placeholder="管理员密码" />
+          <button id="btn-toggle-freemail-admin-password" class="input-icon-btn" type="button"
+            data-password-toggle="input-freemail-admin-password" data-show-label="显示 freemail 密码"
+            data-hide-label="隐藏 freemail 密码" aria-label="显示 freemail 密码" title="显示 freemail 密码"></button>
+        </div>
+      </div>
+      <div class="data-row" id="row-freemail-domain" style="display:none;">
+        <span class="data-label">主域名</span>
+        <input type="text" id="input-freemail-domain" class="data-input"
+          placeholder="可留空，生成时自动取 freemail 返回的第一个域名" />
       </div>
     </div>
     <div id="hotmail-section" class="data-card hotmail-card" style="display:none;">

@@ -35,6 +35,7 @@
         'luckmail-api': 'LuckMail（API 购邮）',
         'cloudflare-temp-email': 'Cloudflare Temp Email',
         'cloudmail': 'Cloud Mail',
+        'freemail': 'freemail',
         'plus-checkout': 'Plus Checkout',
         'paypal-flow': 'PayPal 授权页',
         'gopay-flow': 'GoPay 授权页',

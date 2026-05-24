@@ -9,6 +9,7 @@
       chrome,
       CLOUDFLARE_TEMP_EMAIL_PROVIDER,
       CLOUD_MAIL_PROVIDER = 'cloudmail',
+      FREEMAIL_PROVIDER = 'freemail',
       completeNodeFromBackground,
       confirmCustomVerificationStepBypass,
       ensureMail2925MailboxSession,
@@ -603,6 +604,7 @@
         || mail.provider === LUCKMAIL_PROVIDER
         || mail.provider === CLOUDFLARE_TEMP_EMAIL_PROVIDER
         || mail.provider === CLOUD_MAIL_PROVIDER
+        || mail.provider === FREEMAIL_PROVIDER
       ) {
         await addLog(`步骤 ${visibleStep}：正在通过 ${mail.label} 轮询验证码...`);
       } else {
