@@ -16,6 +16,7 @@
       getMailConfig,
       getTabId,
       HOTMAIL_PROVIDER,
+      ICLOUD_API_PROVIDER = 'icloud-api',
       isTabAlive,
       LUCKMAIL_PROVIDER,
       CLOUDFLARE_TEMP_EMAIL_PROVIDER,
@@ -117,6 +118,7 @@
       throwIfStopped();
       if (
         mail.provider === HOTMAIL_PROVIDER
+        || mail.provider === ICLOUD_API_PROVIDER
         || mail.provider === LUCKMAIL_PROVIDER
         || mail.provider === CLOUDFLARE_TEMP_EMAIL_PROVIDER
         || mail.provider === CLOUD_MAIL_PROVIDER
@@ -143,6 +145,7 @@
 
       const shouldRequestFreshCodeFirst = ![
         HOTMAIL_PROVIDER,
+        ICLOUD_API_PROVIDER,
         LUCKMAIL_PROVIDER,
         CLOUDFLARE_TEMP_EMAIL_PROVIDER,
         CLOUD_MAIL_PROVIDER,
@@ -157,7 +160,7 @@
         signupProfile,
         resendIntervalMs: mail.provider === LUCKMAIL_PROVIDER
           ? 15000
-          : ((mail.provider === HOTMAIL_PROVIDER || mail.provider === '2925')
+          : ((mail.provider === HOTMAIL_PROVIDER || mail.provider === ICLOUD_API_PROVIDER || mail.provider === '2925')
             ? 0
             : STANDARD_MAIL_VERIFICATION_RESEND_INTERVAL_MS),
       });

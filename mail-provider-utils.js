@@ -12,6 +12,7 @@
   const HOTMAIL_PROVIDER = 'hotmail-api';
   const GMAIL_PROVIDER = 'gmail';
   const ICLOUD_PROVIDER = 'icloud';
+  const ICLOUD_API_PROVIDER = 'icloud-api';
   const NETEASE_LIST_PATH = '/js6/main.jsp?df=mail163_letter#module=mbox.ListModule%7C%7B%22fid%22%3A1%2C%22order%22%3A%22date%22%2C%22desc%22%3Atrue%7D';
   const ICLOUD_TARGET_MAILBOX_TYPE_INBOX = 'icloud-inbox';
   const ICLOUD_TARGET_MAILBOX_TYPE_FORWARD = 'forward-mailbox';
@@ -28,6 +29,7 @@
     switch (normalized) {
       case HOTMAIL_PROVIDER:
       case ICLOUD_PROVIDER:
+      case ICLOUD_API_PROVIDER:
       case '163':
       case '163-vip':
       case '126':
@@ -86,6 +88,9 @@
         navigateOnReuse: true,
       };
     }
+    if (provider === ICLOUD_API_PROVIDER) {
+      return { provider: ICLOUD_API_PROVIDER, label: 'iCloud API（QQ 转发）' };
+    }
     if (provider === '163') {
       return {
         source: 'mail-163',
@@ -131,6 +136,7 @@
   return {
     GMAIL_PROVIDER,
     HOTMAIL_PROVIDER,
+    ICLOUD_API_PROVIDER,
     ICLOUD_PROVIDER,
     getIcloudForwardMailConfig,
     getIcloudForwardMailProviderOptions,

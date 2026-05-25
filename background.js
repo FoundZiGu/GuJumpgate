@@ -469,6 +469,7 @@ const ICLOUD_ALIAS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const ICLOUD_TRANSIENT_RETRY_MAX_ATTEMPTS = 2;
 const ICLOUD_TRANSIENT_RETRY_DELAY_MS = 1200;
 const ICLOUD_PROVIDER = 'icloud';
+const ICLOUD_API_PROVIDER = 'icloud-api';
 const GMAIL_PROVIDER = 'gmail';
 const GMAIL_ALIAS_GENERATOR = 'gmail-alias';
 const HOTMAIL_PROVIDER = 'hotmail-api';
@@ -1143,6 +1144,8 @@ const PERSISTED_SETTING_DEFAULTS = {
   icloudHostPreference: 'auto',
   icloudTargetMailboxType: 'icloud-inbox',
   icloudForwardMailProvider: 'qq',
+  icloudApiBaseUrl: '',
+  icloudApiAdminKey: '',
   icloudFetchMode: 'reuse_existing',
   accountRunHistoryTextEnabled: true,
   accountRunHistoryHelperBaseUrl: DEFAULT_ACCOUNT_RUN_HISTORY_HELPER_BASE_URL,
@@ -2558,8 +2561,19 @@ function normalizeCustomEmailPool(value = []) {
     : String(value || '').split(/[\r\n,，;；]+/);
 
   return source
-    .map((item) => String(item || '').trim().toLowerCase())
+    .map((item) => parseHiddenEmailCredential(item).email)
     .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
+}
+
+function parseHiddenEmailCredential(value = '') {
+  const raw = String(value || '').trim();
+  const separatorIndex = raw.indexOf('----');
+  const emailSource = separatorIndex >= 0 ? raw.slice(0, separatorIndex) : raw;
+  const credential = separatorIndex >= 0 ? raw : '';
+  return {
+    email: emailSource.trim().toLowerCase(),
+    credential: credential.trim(),
+  };
 }
 
 function normalizeCustomEmailPoolEntryObjects(value = []) {
@@ -2571,7 +2585,8 @@ function normalizeCustomEmailPoolEntryObjects(value = []) {
     const asObject = rawEntry && typeof rawEntry === 'object'
       ? rawEntry
       : { email: rawEntry };
-    const email = String(asObject.email || '').trim().toLowerCase();
+    const parsedCredential = parseHiddenEmailCredential(asObject.credential || asObject.email || '');
+    const email = parsedCredential.email;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       continue;
     }
@@ -2582,6 +2597,7 @@ function normalizeCustomEmailPoolEntryObjects(value = []) {
     entries.push({
       id: String(asObject.id || `custom-pool-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`),
       email,
+      credential: parsedCredential.credential || String(asObject.credential || '').trim(),
       enabled: asObject.enabled !== undefined ? Boolean(asObject.enabled) : true,
       used: Boolean(asObject.used),
       note: String(asObject.note || '').trim(),
@@ -2627,6 +2643,13 @@ function getCustomEmailPoolEntries(state = {}) {
     note: '',
     lastUsedAt: 0,
   }));
+}
+
+function getCustomEmailPoolCredentialForEmail(state = {}, email = '') {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return '';
+  const entry = getCustomEmailPoolEntries(state).find((item) => item.email === normalizedEmail);
+  return String(entry?.credential || '').trim();
 }
 
 async function markCurrentCustomEmailPoolEntryUsed(state = {}, options = {}) {
@@ -2962,6 +2985,7 @@ function normalizeMailProvider(value = '') {
   switch (normalized) {
     case 'custom':
     case ICLOUD_PROVIDER:
+    case ICLOUD_API_PROVIDER:
     case GMAIL_PROVIDER:
     case HOTMAIL_PROVIDER:
     case LUCKMAIL_PROVIDER:
@@ -3105,6 +3129,31 @@ function normalizeHotmailLocalBaseUrl(rawValue = '') {
   } catch {
     return DEFAULT_HOTMAIL_LOCAL_BASE_URL;
   }
+}
+
+function normalizeIcloudApiBaseUrl(rawValue = '') {
+  const value = String(rawValue || '').trim();
+  if (!value) return '';
+
+  try {
+    const parsed = new URL(value);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return '';
+    }
+    if (parsed.pathname.endsWith('/api/verification-code') || parsed.pathname.endsWith('/api/latest-mail')) {
+      parsed.pathname = parsed.pathname.replace(/\/api\/(?:verification-code|latest-mail)$/, '');
+      parsed.search = '';
+      parsed.hash = '';
+    }
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return '';
+  }
+}
+
+function buildIcloudApiEndpoint(baseUrl = '') {
+  const normalizedBaseUrl = normalizeIcloudApiBaseUrl(baseUrl);
+  return normalizedBaseUrl ? `${normalizedBaseUrl}/api/verification-code` : '';
 }
 
 function normalizeAccountRunHistoryHelperBaseUrl(rawValue = '') {
@@ -3646,6 +3695,9 @@ function normalizePersistentSettingValue(key, value) {
         if (normalizedMailProvider === CLOUD_MAIL_PROVIDER) {
           return CLOUD_MAIL_PROVIDER;
         }
+        if (normalizedMailProvider === ICLOUD_PROVIDER || normalizedMailProvider === ICLOUD_API_PROVIDER) {
+          return normalizedMailProvider;
+        }
         return HOTMAIL_PROVIDER;
       }
     case 'mail2925Mode':
@@ -3669,6 +3721,10 @@ function normalizePersistentSettingValue(key, value) {
       return normalizeIcloudTargetMailboxType(value);
     case 'icloudForwardMailProvider':
       return normalizeIcloudForwardMailProvider(value);
+    case 'icloudApiBaseUrl':
+      return normalizeIcloudApiBaseUrl(value);
+    case 'icloudApiAdminKey':
+      return String(value || '');
     case 'icloudFetchMode':
       return normalizeIcloudFetchMode(value);
     case 'accountRunHistoryHelperBaseUrl':
@@ -6086,6 +6142,68 @@ async function pollHotmailVerificationCode(step, state, pollPayload = {}) {
   }
 
   throw lastError || new Error(`步骤 ${step}：未在 Hotmail 收件箱中找到新的匹配验证码。`);
+}
+
+async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
+  const baseUrl = normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl);
+  const adminKey = String(state?.icloudApiAdminKey || '');
+  const targetEmail = String(pollPayload?.targetEmail || state?.email || '').trim().toLowerCase();
+  const credential = getCustomEmailPoolCredentialForEmail(state, targetEmail) || targetEmail;
+  const endpoint = buildIcloudApiEndpoint(baseUrl);
+
+  if (!endpoint) {
+    throw new Error('iCloud API 地址为空，请在侧栏配置 qq-hidden-mail-viewer 的 Worker 地址。');
+  }
+  if (!adminKey) {
+    throw new Error('iCloud API 管理员密码为空，请在侧栏配置 qq-hidden-mail-viewer 的管理员密码。');
+  }
+  if (!credential || !credential.includes('----')) {
+    throw new Error('当前邮箱缺少隐藏邮箱凭据，请在自定义邮箱池导入“隐藏邮箱地址----密钥”。');
+  }
+
+  const maxAttempts = Number(pollPayload.maxAttempts) || 5;
+  const intervalMs = Number(pollPayload.intervalMs) || 3000;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    throwIfStopped();
+    try {
+      await addLog(`步骤 ${step}：正在通过 iCloud API 获取验证码（${attempt}/${maxAttempts}）...`, 'info');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminKey,
+          credential,
+          codePatterns: pollPayload.codePatterns || [],
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || `HTTP ${response.status}`);
+      }
+      if (payload?.code) {
+        await addLog(`步骤 ${step}：已通过 iCloud API 找到验证码：${payload.code}`, 'ok');
+        return {
+          ok: true,
+          code: String(payload.code),
+          emailTimestamp: Date.now(),
+          mailId: payload?.mail?.id || '',
+        };
+      }
+      lastError = new Error(`步骤 ${step}：iCloud API 暂未返回验证码（${attempt}/${maxAttempts}）。`);
+      await addLog(lastError.message, attempt === maxAttempts ? 'warn' : 'info');
+    } catch (error) {
+      lastError = error;
+      await addLog(`步骤 ${step}：iCloud API 查询失败：${error.message}`, 'warn');
+    }
+
+    if (attempt < maxAttempts) {
+      await sleepWithStop(intervalMs);
+    }
+  }
+
+  throw lastError || new Error(`步骤 ${step}：iCloud API 未返回验证码。`);
 }
 
 function generateRandomSuffix(length = 6) {
@@ -14115,6 +14233,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   getState,
   getTabId,
   HOTMAIL_PROVIDER,
+  ICLOUD_API_PROVIDER,
   isMail2925LimitReachedError,
   isRetryableContentScriptTransportError,
   isStopError,
@@ -14124,6 +14243,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   pollCloudflareTempEmailVerificationCode,
   pollCloudMailVerificationCode,
   pollHotmailVerificationCode,
+  pollIcloudApiVerificationCode,
   pollLuckmailVerificationCode,
   sendToContentScript,
   sendToContentScriptResilient,
@@ -14261,6 +14381,7 @@ const step4Executor = self.MultiPageBackgroundStep4?.createStep4Executor({
   getMailConfig,
   getTabId,
   HOTMAIL_PROVIDER,
+  ICLOUD_API_PROVIDER,
   isTabAlive,
   LUCKMAIL_PROVIDER,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
@@ -14335,6 +14456,7 @@ const step8Executor = self.MultiPageBackgroundStep8?.createStep8Executor({
   getState,
   getTabId,
   HOTMAIL_PROVIDER,
+  ICLOUD_API_PROVIDER,
   isTabAlive,
   isVerificationMailPollingError,
   LUCKMAIL_PROVIDER,
@@ -14930,6 +15052,9 @@ function getMailConfig(state) {
       label: 'iCloud 邮箱',
       navigateOnReuse: true,
     };
+  }
+  if (provider === ICLOUD_API_PROVIDER) {
+    return { provider: ICLOUD_API_PROVIDER, label: 'iCloud API（QQ 转发）' };
   }
   if (provider === GMAIL_PROVIDER) {
     return {

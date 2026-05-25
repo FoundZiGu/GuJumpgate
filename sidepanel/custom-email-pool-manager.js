@@ -33,7 +33,8 @@
     }
 
     function normalizeEntry(rawEntry = {}) {
-      const email = normalizeEmail(rawEntry?.email || '');
+      const parsedCredential = parseHiddenEmailCredential(rawEntry?.credential || rawEntry?.email || '');
+      const email = normalizeEmail(parsedCredential.email || '');
       if (!isValidEmail(email)) {
         return null;
       }
@@ -41,10 +42,22 @@
       return {
         id: String(rawEntry?.id || createEntryId()),
         email,
+        credential: parsedCredential.credential || String(rawEntry?.credential || '').trim(),
         enabled: rawEntry?.enabled !== undefined ? Boolean(rawEntry.enabled) : true,
         used: Boolean(rawEntry?.used),
         note: String(rawEntry?.note || '').trim(),
         lastUsedAt: Number.isFinite(Number(rawEntry?.lastUsedAt)) ? Number(rawEntry.lastUsedAt) : 0,
+      };
+    }
+
+    function parseHiddenEmailCredential(value = '') {
+      const raw = String(value || '').trim();
+      const separatorIndex = raw.indexOf('----');
+      const emailSource = separatorIndex >= 0 ? raw.slice(0, separatorIndex) : raw;
+      const credential = separatorIndex >= 0 ? raw : '';
+      return {
+        email: emailSource.trim().toLowerCase(),
+        credential: credential.trim(),
       };
     }
 
@@ -200,6 +213,7 @@
             </div>
             <div class="luckmail-item-meta">
               ${entry.current ? '<span class="luckmail-tag current">当前</span>' : ''}
+              ${entry.credential ? '<span class="luckmail-tag active">含 API 密钥</span>' : ''}
               ${entry.used ? '<span class="luckmail-tag used">已用</span>' : '<span class="luckmail-tag active">未用</span>'}
               ${entry.enabled ? '<span class="luckmail-tag active">启用</span>' : '<span class="luckmail-tag disabled">停用</span>'}
               ${entry.note ? `<span class="luckmail-tag">${helpers.escapeHtml(entry.note)}</span>` : ''}
@@ -337,7 +351,8 @@
       let skippedCount = 0;
 
       for (const line of String(text || '').split(/[\r\n,，;；]+/)) {
-        const email = normalizeEmail(line);
+        const parsedCredential = parseHiddenEmailCredential(line);
+        const email = normalizeEmail(parsedCredential.email);
         if (!email) {
           continue;
         }
@@ -350,6 +365,7 @@
         importedEntries.push({
           id: createEntryId(),
           email,
+          credential: parsedCredential.credential,
           enabled: true,
           used: false,
           note: '',

@@ -357,6 +357,10 @@ const rowIcloudTargetMailboxType = document.getElementById('row-icloud-target-ma
 const selectIcloudTargetMailboxType = document.getElementById('select-icloud-target-mailbox-type');
 const rowIcloudForwardMailProvider = document.getElementById('row-icloud-forward-mail-provider');
 const selectIcloudForwardMailProvider = document.getElementById('select-icloud-forward-mail-provider');
+const rowIcloudApiBaseUrl = document.getElementById('row-icloud-api-base-url');
+const rowIcloudApiAdminKey = document.getElementById('row-icloud-api-admin-key');
+const inputIcloudApiBaseUrl = document.getElementById('input-icloud-api-base-url');
+const inputIcloudApiAdminKey = document.getElementById('input-icloud-api-admin-key');
 const selectIcloudFetchMode = document.getElementById('select-icloud-fetch-mode');
 const checkboxAutoDeleteIcloud = document.getElementById('checkbox-auto-delete-icloud');
 const inputIcloudSearch = document.getElementById('input-icloud-search');
@@ -1129,6 +1133,7 @@ const AUTO_RUN_FALLBACK_RISK_WARNING_MIN_RUNS = 6;
 const HOTMAIL_SERVICE_MODE_REMOTE = 'remote';
 const HOTMAIL_SERVICE_MODE_LOCAL = 'local';
 const ICLOUD_PROVIDER = 'icloud';
+const ICLOUD_API_PROVIDER = 'icloud-api';
 const GMAIL_PROVIDER = 'gmail';
 const GMAIL_ALIAS_GENERATOR = 'gmail-alias';
 const HOTMAIL_PROVIDER = 'hotmail-api';
@@ -3140,6 +3145,9 @@ function normalizeSupportedMailProvider(value = '') {
   if (normalized === CLOUD_MAIL_PROVIDER) {
     return CLOUD_MAIL_PROVIDER;
   }
+  if (normalized === ICLOUD_PROVIDER || normalized === ICLOUD_API_PROVIDER) {
+    return normalized;
+  }
   return HOTMAIL_PROVIDER;
 }
 
@@ -3171,8 +3179,19 @@ function normalizeCustomEmailPoolEntries(value = '') {
     : String(value || '').split(/[\r\n,，;；]+/);
 
   return source
-    .map((item) => String(item || '').trim().toLowerCase())
+    .map((item) => parseHiddenEmailCredential(item).email)
     .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
+}
+
+function parseHiddenEmailCredential(value = '') {
+  const raw = String(value || '').trim();
+  const separatorIndex = raw.indexOf('----');
+  const emailSource = separatorIndex >= 0 ? raw.slice(0, separatorIndex) : raw;
+  const credential = separatorIndex >= 0 ? raw : '';
+  return {
+    email: emailSource.trim().toLowerCase(),
+    credential: credential.trim(),
+  };
 }
 
 function normalizeCustomEmailPoolEntryEmail(value = '') {
@@ -3195,7 +3214,8 @@ function normalizeCustomEmailPoolEntryObjects(value = []) {
     const asObject = rawEntry && typeof rawEntry === 'object'
       ? rawEntry
       : { email: rawEntry };
-    const email = normalizeCustomEmailPoolEntryEmail(asObject.email || '');
+    const parsedCredential = parseHiddenEmailCredential(asObject.credential || asObject.email || '');
+    const email = normalizeCustomEmailPoolEntryEmail(parsedCredential.email || '');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       continue;
     }
@@ -3206,6 +3226,7 @@ function normalizeCustomEmailPoolEntryObjects(value = []) {
     entries.push({
       id: String(asObject.id || createCustomEmailPoolEntryId()),
       email,
+      credential: parsedCredential.credential || String(asObject.credential || '').trim(),
       enabled: asObject.enabled !== undefined ? Boolean(asObject.enabled) : true,
       used: Boolean(asObject.used),
       note: String(asObject.note || '').trim(),
@@ -4492,6 +4513,8 @@ function collectSettingsPayload() {
     icloudHostPreference: selectIcloudHostPreference?.value || 'auto',
     icloudTargetMailboxType: normalizedIcloudTargetMailboxType,
     icloudForwardMailProvider: normalizedIcloudForwardMailProvider,
+    icloudApiBaseUrl: inputIcloudApiBaseUrl?.value.trim() || '',
+    icloudApiAdminKey: inputIcloudApiAdminKey?.value || '',
     icloudFetchMode: (icloudFetchModeRawValue.trim().toLowerCase() === 'always_new'
       ? 'always_new'
       : 'reuse_existing'),
@@ -11087,6 +11110,12 @@ function applySettingsState(state) {
   if (selectIcloudForwardMailProvider) {
     selectIcloudForwardMailProvider.value = normalizeIcloudForwardMailProvider(state?.icloudForwardMailProvider);
   }
+  if (inputIcloudApiBaseUrl) {
+    inputIcloudApiBaseUrl.value = state?.icloudApiBaseUrl || '';
+  }
+  if (inputIcloudApiAdminKey) {
+    inputIcloudApiAdminKey.value = state?.icloudApiAdminKey || '';
+  }
   if (checkboxAutoDeleteIcloud) {
     checkboxAutoDeleteIcloud.checked = Boolean(state?.autoDeleteUsedIcloudAlias);
   }
@@ -11965,7 +11994,12 @@ function isLuckmailProvider(provider = selectMailProvider.value) {
 }
 
 function isIcloudMailProvider(provider = selectMailProvider.value) {
-  return String(provider || '').trim().toLowerCase() === ICLOUD_PROVIDER;
+  const normalized = String(provider || '').trim().toLowerCase();
+  return normalized === ICLOUD_PROVIDER || normalized === ICLOUD_API_PROVIDER;
+}
+
+function isIcloudApiMailProvider(provider = selectMailProvider.value) {
+  return String(provider || '').trim().toLowerCase() === ICLOUD_API_PROVIDER;
 }
 
 function normalizeLuckmailBaseUrl(value = '') {
@@ -12545,6 +12579,7 @@ function updateMailProviderUI() {
   const showCloudMailSettings = useCloudMailProvider || (useEmailGenerator && useCloudMailGenerator);
   const showCloudMailReceiveMailbox = useCloudMailProvider && !useCloudMailGenerator;
   const showCloudMailDomain = useEmailGenerator && useCloudMailGenerator;
+  const useIcloudApiProvider = isIcloudApiMailProvider();
   const selectedIcloudHost = typeof getSelectedIcloudHostPreference === 'function'
     ? getSelectedIcloudHostPreference()
     : (normalizeIcloudHostValue(icloudHostPreferenceValue || latestState?.icloudHostPreference || '')
@@ -12552,8 +12587,8 @@ function updateMailProviderUI() {
       || 'icloud.com');
   const icloudTargetMailboxType = normalizeIcloudTargetMailboxType(icloudTargetMailboxTypeValue);
   const isIcloudComCnHost = selectedIcloudHost === 'icloud.com.cn';
-  const showIcloudTargetMailboxType = useIcloudProvider;
-  const showIcloudForwardMailProvider = useIcloudProvider && icloudTargetMailboxType === 'forward-mailbox';
+  const showIcloudTargetMailboxType = useIcloudProvider && !useIcloudApiProvider;
+  const showIcloudForwardMailProvider = useIcloudProvider && !useIcloudApiProvider && icloudTargetMailboxType === 'forward-mailbox';
   const showCloudflareTempEmailRandomSubdomainToggle = useEmailGenerator && useCloudflareTempEmailGenerator;
   const showCloudflareTempEmailDomain = useEmailGenerator && useCloudflareTempEmailGenerator;
   if (rowEmailGenerator) {
@@ -12593,6 +12628,12 @@ function updateMailProviderUI() {
   }
   if (typeof rowIcloudForwardMailProvider !== 'undefined' && rowIcloudForwardMailProvider) {
     rowIcloudForwardMailProvider.style.display = showIcloudForwardMailProvider ? '' : 'none';
+  }
+  if (typeof rowIcloudApiBaseUrl !== 'undefined' && rowIcloudApiBaseUrl) {
+    rowIcloudApiBaseUrl.style.display = useIcloudApiProvider ? '' : 'none';
+  }
+  if (typeof rowIcloudApiAdminKey !== 'undefined' && rowIcloudApiAdminKey) {
+    rowIcloudApiAdminKey.style.display = useIcloudApiProvider ? '' : 'none';
   }
   rowCfDomain.style.display = showCloudflareDomain ? '' : 'none';
   const { domains } = getCloudflareDomainsFromState();
