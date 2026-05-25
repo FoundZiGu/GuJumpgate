@@ -11,6 +11,7 @@
 })(typeof self !== 'undefined' ? self : globalThis, function createMailProviderUtils() {
   const HOTMAIL_PROVIDER = 'hotmail-api';
   const GMAIL_PROVIDER = 'gmail';
+  const ICLOUD_PROVIDER = 'icloud';
   const NETEASE_LIST_PATH = '/js6/main.jsp?df=mail163_letter#module=mbox.ListModule%7C%7B%22fid%22%3A1%2C%22order%22%3A%22date%22%2C%22desc%22%3Atrue%7D';
   const ICLOUD_TARGET_MAILBOX_TYPE_INBOX = 'icloud-inbox';
   const ICLOUD_TARGET_MAILBOX_TYPE_FORWARD = 'forward-mailbox';
@@ -26,6 +27,7 @@
     const normalized = String(value || '').trim().toLowerCase();
     switch (normalized) {
       case HOTMAIL_PROVIDER:
+      case ICLOUD_PROVIDER:
       case '163':
       case '163-vip':
       case '126':
@@ -76,6 +78,14 @@
     if (provider === HOTMAIL_PROVIDER) {
       return { provider: HOTMAIL_PROVIDER, label: 'Hotmail（微软 Graph）' };
     }
+    if (provider === ICLOUD_PROVIDER) {
+      return {
+        source: 'icloud-mail',
+        url: 'https://www.icloud.com/mail/',
+        label: 'iCloud 邮箱',
+        navigateOnReuse: true,
+      };
+    }
     if (provider === '163') {
       return {
         source: 'mail-163',
@@ -121,6 +131,7 @@
   return {
     GMAIL_PROVIDER,
     HOTMAIL_PROVIDER,
+    ICLOUD_PROVIDER,
     getIcloudForwardMailConfig,
     getIcloudForwardMailProviderOptions,
     getMailProviderConfig,
