@@ -290,7 +290,10 @@
       const mail2925Mode = options.mail2925Mode !== undefined
         ? options.mail2925Mode
         : currentState.mail2925Mode;
-      const generator = normalizeEmailGenerator(options.generator ?? currentState.emailGenerator);
+      const providerIsIcloudApi = String(provider || '').trim().toLowerCase() === 'icloud-api';
+      const generator = providerIsIcloudApi
+        ? 'icloud'
+        : normalizeEmailGenerator(options.generator ?? currentState.emailGenerator);
       const mergedState = {
         ...currentState,
         mailProvider: provider || currentState.mailProvider,

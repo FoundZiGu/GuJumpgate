@@ -240,6 +240,42 @@
       return parsed.toString();
     }
 
+    async function saveIcloudApiCredentials(credentials = []) {
+      const currentState = await getState();
+      const currentCredentials = currentState?.icloudApiCredentials && typeof currentState.icloudApiCredentials === 'object'
+        ? { ...currentState.icloudApiCredentials }
+        : {};
+      for (const credential of credentials) {
+        const raw = String(credential || '').trim();
+        const separatorIndex = raw.indexOf('----');
+        if (separatorIndex <= 0) continue;
+        const email = raw.slice(0, separatorIndex).trim().toLowerCase();
+        if (!email) continue;
+        currentCredentials[email] = raw;
+      }
+      await setPersistentSettings({ icloudApiCredentials: currentCredentials });
+      await setState({ icloudApiCredentials: currentCredentials });
+      return currentCredentials;
+    }
+
+    async function syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey) {
+      if (!apiBaseUrl || !apiAdminKey) {
+        return { synced: false, syncError: '' };
+      }
+      try {
+        const response = await fetch(joinIcloudApiWorkerUrl(apiBaseUrl, '/api/admin/import'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminKey: apiAdminKey, credentialsText }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+        return { synced: true, syncError: '' };
+      } catch (err) {
+        return { synced: false, syncError: err?.message || String(err || '同步失败') };
+      }
+    }
+
     async function appendManualAccountRunRecordIfNeeded(status, stateOverride = null, reason = '') {
       if (typeof appendAccountRunRecord !== 'function') {
         return null;
@@ -2392,22 +2428,8 @@
             credentials.push(`${email}----${secret}`);
           }
           const credentialsText = credentials.join('\n');
-          let synced = false;
-          let syncError = '';
-          if (apiBaseUrl && apiAdminKey) {
-            try {
-              const response = await fetch(joinIcloudApiWorkerUrl(apiBaseUrl, '/api/admin/import'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminKey: apiAdminKey, credentialsText }),
-              });
-              const data = await response.json().catch(() => ({}));
-              if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
-              synced = true;
-            } catch (err) {
-              syncError = err?.message || String(err || '同步失败');
-            }
-          }
+          await saveIcloudApiCredentials(credentials);
+          const { synced, syncError } = await syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey);
           return { ok: true, created, credentialsText, synced, syncError };
         }
 
@@ -2425,22 +2447,8 @@
             return `${email}----${secret}`;
           });
           const credentialsText = credentials.join('\n');
-          let synced = false;
-          let syncError = '';
-          if (apiBaseUrl && apiAdminKey) {
-            try {
-              const response = await fetch(joinIcloudApiWorkerUrl(apiBaseUrl, '/api/admin/import'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminKey: apiAdminKey, credentialsText }),
-              });
-              const data = await response.json().catch(() => ({}));
-              if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
-              synced = true;
-            } catch (err) {
-              syncError = err?.message || String(err || '同步失败');
-            }
-          }
+          await saveIcloudApiCredentials(credentials);
+          const { synced, syncError } = await syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey);
           return { ok: true, credentialsText, synced, syncError, count: emails.length };
         }
 

@@ -1146,6 +1146,7 @@ const PERSISTED_SETTING_DEFAULTS = {
   icloudForwardMailProvider: 'qq',
   icloudApiBaseUrl: '',
   icloudApiAdminKey: '',
+  icloudApiCredentials: {},
   icloudFetchMode: 'reuse_existing',
   accountRunHistoryTextEnabled: true,
   accountRunHistoryHelperBaseUrl: DEFAULT_ACCOUNT_RUN_HISTORY_HELPER_BASE_URL,
@@ -2650,6 +2651,51 @@ function getCustomEmailPoolCredentialForEmail(state = {}, email = '') {
   if (!normalizedEmail) return '';
   const entry = getCustomEmailPoolEntries(state).find((item) => item.email === normalizedEmail);
   return String(entry?.credential || '').trim();
+}
+
+function getIcloudApiCredentialForEmail(state = {}, email = '') {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return '';
+  const credentials = state?.icloudApiCredentials && typeof state.icloudApiCredentials === 'object'
+    ? state.icloudApiCredentials
+    : {};
+  return String(credentials[normalizedEmail] || '').trim();
+}
+
+async function ensureIcloudApiCredentialForEmail(email = '', state = null) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return '';
+  const resolvedState = state || await getState();
+  const existing = getIcloudApiCredentialForEmail(resolvedState, normalizedEmail);
+  if (existing) return existing;
+
+  const secretBytes = crypto.getRandomValues(new Uint8Array(24));
+  const secret = Array.from(secretBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  const credential = `${normalizedEmail}----${secret}`;
+  const credentials = resolvedState?.icloudApiCredentials && typeof resolvedState.icloudApiCredentials === 'object'
+    ? { ...resolvedState.icloudApiCredentials }
+    : {};
+  credentials[normalizedEmail] = credential;
+  await setPersistentSettings({ icloudApiCredentials: credentials });
+  await setState({ icloudApiCredentials: credentials });
+
+  const baseUrl = normalizeIcloudApiBaseUrl(resolvedState?.icloudApiBaseUrl);
+  const adminKey = String(resolvedState?.icloudApiAdminKey || '');
+  if (baseUrl && adminKey) {
+    try {
+      const response = await fetch(buildIcloudApiEndpoint(baseUrl).replace(/\/api\/verification-code$/, '/api/admin/import'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminKey, credentialsText: credential }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      await addLog(`iCloud API：已为 ${normalizedEmail} 自动同步密钥。`, 'ok');
+    } catch (err) {
+      await addLog(`iCloud API：${normalizedEmail} 密钥已本地保存，但同步 Worker 失败：${err.message}`, 'warn');
+    }
+  }
+  return credential;
 }
 
 async function markCurrentCustomEmailPoolEntryUsed(state = {}, options = {}) {
@@ -6148,7 +6194,9 @@ async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
   const baseUrl = normalizeIcloudApiBaseUrl(state?.icloudApiBaseUrl);
   const adminKey = String(state?.icloudApiAdminKey || '');
   const targetEmail = String(pollPayload?.targetEmail || state?.email || '').trim().toLowerCase();
-  const credential = getCustomEmailPoolCredentialForEmail(state, targetEmail) || targetEmail;
+  const credential = getIcloudApiCredentialForEmail(state, targetEmail)
+    || getCustomEmailPoolCredentialForEmail(state, targetEmail)
+    || targetEmail;
   const endpoint = buildIcloudApiEndpoint(baseUrl);
 
   if (!endpoint) {
@@ -6158,7 +6206,7 @@ async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
     throw new Error('iCloud API 管理员密码为空，请在侧栏配置 qq-hidden-mail-viewer 的管理员密码。');
   }
   if (!credential || !credential.includes('----')) {
-    throw new Error('当前邮箱缺少隐藏邮箱凭据，请在自定义邮箱池导入“隐藏邮箱地址----密钥”。');
+    throw new Error('当前邮箱缺少隐藏邮箱凭据，请先在 iCloud 隐私邮箱列表中同步到 API，或在自定义邮箱池导入“隐藏邮箱地址----密钥”。');
   }
 
   const maxAttempts = Number(pollPayload.maxAttempts) || 5;
@@ -12717,7 +12765,11 @@ async function fetchGeneratedEmail(state, options = {}) {
   if (generator === CLOUD_MAIL_GENERATOR) {
     return fetchCloudMailAddress(currentState, options);
   }
-  return generatedEmailHelpers.fetchGeneratedEmail(state, options);
+  const email = await generatedEmailHelpers.fetchGeneratedEmail(state, options);
+  if (String(currentState.mailProvider || '').trim().toLowerCase() === ICLOUD_API_PROVIDER) {
+    await ensureIcloudApiCredentialForEmail(email, await getState());
+  }
+  return email;
 }
 
 // ============================================================
