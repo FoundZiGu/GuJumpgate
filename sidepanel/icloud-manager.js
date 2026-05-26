@@ -25,6 +25,7 @@
         const matchesFilter = (() => {
           switch (filterMode) {
             case 'active': return Boolean(alias.active);
+            case 'current': return Boolean(isCurrent);
             case 'used': return Boolean(alias.used);
             case 'unused': return !alias.used;
             case 'preserved': return Boolean(alias.preserved);
