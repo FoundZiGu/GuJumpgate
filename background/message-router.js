@@ -260,7 +260,7 @@
 
     async function syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey) {
       if (!apiBaseUrl || !apiAdminKey) {
-        return { synced: false, syncError: '' };
+        return { synced: false, syncError: '', credentialsText };
       }
       try {
         const response = await fetch(joinIcloudApiWorkerUrl(apiBaseUrl, '/api/admin/import'), {
@@ -270,9 +270,11 @@
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
-        return { synced: true, syncError: '' };
+        const finalCredentialsText = String(data?.exportText || '').trim() || credentialsText;
+        await saveIcloudApiCredentials(finalCredentialsText.split('\n'));
+        return { synced: true, syncError: '', credentialsText: finalCredentialsText };
       } catch (err) {
-        return { synced: false, syncError: err?.message || String(err || '同步失败') };
+        return { synced: false, syncError: err?.message || String(err || '同步失败'), credentialsText };
       }
     }
 
@@ -2429,8 +2431,8 @@
           }
           const credentialsText = credentials.join('\n');
           await saveIcloudApiCredentials(credentials);
-          const { synced, syncError } = await syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey);
-          return { ok: true, created, credentialsText, synced, syncError };
+          const syncResult = await syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey);
+          return { ok: true, created, credentialsText: syncResult.credentialsText, synced: syncResult.synced, syncError: syncResult.syncError };
         }
 
         case 'SYNC_SELECTED_ICLOUD_API_CREDENTIALS': {
@@ -2448,8 +2450,8 @@
           });
           const credentialsText = credentials.join('\n');
           await saveIcloudApiCredentials(credentials);
-          const { synced, syncError } = await syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey);
-          return { ok: true, credentialsText, synced, syncError, count: emails.length };
+          const syncResult = await syncIcloudApiCredentialsToWorker(credentialsText, apiBaseUrl, apiAdminKey);
+          return { ok: true, credentialsText: syncResult.credentialsText, synced: syncResult.synced, syncError: syncResult.syncError, count: emails.length };
         }
 
         case 'SET_ICLOUD_ALIAS_USED_STATE': {

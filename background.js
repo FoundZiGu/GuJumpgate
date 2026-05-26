@@ -2690,6 +2690,12 @@ async function ensureIcloudApiCredentialForEmail(email = '', state = null) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      const finalCredential = String(data?.exportText || '').trim().split('\n')[0]?.trim() || credential;
+      if (finalCredential !== credential) {
+        credentials[normalizedEmail] = finalCredential;
+        await setPersistentSettings({ icloudApiCredentials: credentials });
+        await setState({ icloudApiCredentials: credentials });
+      }
       await addLog(`iCloud API：已为 ${normalizedEmail} 自动同步密钥。`, 'ok');
     } catch (err) {
       await addLog(`iCloud API：${normalizedEmail} 密钥已本地保存，但同步 Worker 失败：${err.message}`, 'warn');
