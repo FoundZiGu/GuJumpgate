@@ -373,6 +373,7 @@ const btnIcloudBulkUsed = document.getElementById('btn-icloud-bulk-used');
 const btnIcloudBulkUnused = document.getElementById('btn-icloud-bulk-unused');
 const btnIcloudBulkPreserve = document.getElementById('btn-icloud-bulk-preserve');
 const btnIcloudBulkUnpreserve = document.getElementById('btn-icloud-bulk-unpreserve');
+const btnIcloudBulkSyncApi = document.getElementById('btn-icloud-bulk-sync-api');
 const btnIcloudBulkDelete = document.getElementById('btn-icloud-bulk-delete');
 const rowHotmailServiceMode = document.getElementById('row-hotmail-service-mode');
 const hotmailServiceModeButtons = Array.from(document.querySelectorAll('[data-hotmail-service-mode]'));
@@ -13846,6 +13847,7 @@ const icloudManager = window.SidepanelIcloudManager?.createIcloudManager({
   dom: {
     btnIcloudBulkDelete,
     btnIcloudBulkPreserve,
+    btnIcloudBulkSyncApi,
     btnIcloudBulkUnpreserve,
     btnIcloudBulkUnused,
     btnIcloudBulkUsed,

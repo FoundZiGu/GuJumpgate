@@ -69,6 +69,7 @@
       if (dom.btnIcloudBulkUnused) dom.btnIcloudBulkUnused.disabled = !hasSelection;
       if (dom.btnIcloudBulkPreserve) dom.btnIcloudBulkPreserve.disabled = !hasSelection;
       if (dom.btnIcloudBulkUnpreserve) dom.btnIcloudBulkUnpreserve.disabled = !hasSelection;
+      if (dom.btnIcloudBulkSyncApi) dom.btnIcloudBulkSyncApi.disabled = !hasSelection;
       if (dom.btnIcloudBulkDelete) dom.btnIcloudBulkDelete.disabled = !hasSelection;
     }
 
@@ -84,6 +85,7 @@
       if (dom.btnIcloudBulkUnused) dom.btnIcloudBulkUnused.disabled = loading || selectedEmails.size === 0;
       if (dom.btnIcloudBulkPreserve) dom.btnIcloudBulkPreserve.disabled = loading || selectedEmails.size === 0;
       if (dom.btnIcloudBulkUnpreserve) dom.btnIcloudBulkUnpreserve.disabled = loading || selectedEmails.size === 0;
+      if (dom.btnIcloudBulkSyncApi) dom.btnIcloudBulkSyncApi.disabled = loading || selectedEmails.size === 0;
       if (dom.btnIcloudBulkDelete) dom.btnIcloudBulkDelete.disabled = loading || selectedEmails.size === 0;
       if (summary && dom.icloudSummary) dom.icloudSummary.textContent = summary;
     }
@@ -425,6 +427,46 @@
       }
     }
 
+    async function syncSelectedIcloudApiCredentials() {
+      const emails = [...selectedEmails];
+      if (!emails.length) {
+        updateIcloudBulkUI();
+        return;
+      }
+      setIcloudLoadingState(true, `正在同步 ${emails.length} 个已选 iCloud 隐藏邮箱...`);
+      try {
+        const response = await runtime.sendMessage({
+          type: 'SYNC_SELECTED_ICLOUD_API_CREDENTIALS',
+          source: 'sidepanel',
+          payload: {
+            emails,
+            apiBaseUrl: dom.inputIcloudApiBaseUrl?.value || '',
+            apiAdminKey: dom.inputIcloudApiAdminKey?.value || '',
+          },
+        });
+        if (response?.error) throw new Error(response.error);
+        const credentialsText = String(response?.credentialsText || '').trim();
+        if (!credentialsText) throw new Error('未生成凭据。');
+        await helpers.copyTextToClipboard(credentialsText);
+        if (dom.icloudSummary) {
+          dom.icloudSummary.textContent = response.synced
+            ? `已同步 ${response.count || emails.length} 个已选凭据，同时已复制到剪贴板。`
+            : `已生成 ${response.count || emails.length} 个已选凭据，并复制到剪贴板。${response.syncError ? `同步失败：${response.syncError}` : ''}`;
+        }
+        helpers.showToast(
+          response.synced ? '已选 iCloud 凭据已同步到 qq-hidden-mail-viewer。' : '已选 iCloud 凭据已复制，可手动导入 qq-hidden-mail-viewer。',
+          response.synced ? 'success' : 'warn',
+          3600
+        );
+      } catch (err) {
+        if (dom.icloudSummary) dom.icloudSummary.textContent = err.message;
+        helpers.showToast(`同步已选 iCloud 凭据失败：${err.message}`, 'error');
+      } finally {
+        setIcloudLoadingState(false);
+        updateIcloudBulkUI();
+      }
+    }
+
     function isLikelyIcloudLoginRequiredMessage(message = '') {
       const lower = String(message || '').toLowerCase();
       return lower.includes('请先在新打开的 icloud 页面中完成登录')
@@ -535,6 +577,10 @@
 
       dom.btnIcloudBulkUnpreserve?.addEventListener('click', async () => {
         await runBulkIcloudAction('unpreserve');
+      });
+
+      dom.btnIcloudBulkSyncApi?.addEventListener('click', async () => {
+        await syncSelectedIcloudApiCredentials();
       });
 
       dom.btnIcloudBulkDelete?.addEventListener('click', async () => {

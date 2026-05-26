@@ -2411,6 +2411,39 @@
           return { ok: true, created, credentialsText, synced, syncError };
         }
 
+        case 'SYNC_SELECTED_ICLOUD_API_CREDENTIALS': {
+          clearStopRequest();
+          const emails = Array.isArray(message.payload?.emails)
+            ? message.payload.emails.map((email) => String(email || '').trim().toLowerCase()).filter(Boolean)
+            : [];
+          if (!emails.length) throw new Error('请选择要同步的 iCloud 隐藏邮箱。');
+          const apiBaseUrl = String(message.payload?.apiBaseUrl || '').trim();
+          const apiAdminKey = String(message.payload?.apiAdminKey || '');
+          const credentials = emails.map((email) => {
+            const secretBytes = crypto.getRandomValues(new Uint8Array(24));
+            const secret = Array.from(secretBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+            return `${email}----${secret}`;
+          });
+          const credentialsText = credentials.join('\n');
+          let synced = false;
+          let syncError = '';
+          if (apiBaseUrl && apiAdminKey) {
+            try {
+              const response = await fetch(joinIcloudApiWorkerUrl(apiBaseUrl, '/api/admin/import'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminKey: apiAdminKey, credentialsText }),
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+              synced = true;
+            } catch (err) {
+              syncError = err?.message || String(err || '同步失败');
+            }
+          }
+          return { ok: true, credentialsText, synced, syncError, count: emails.length };
+        }
+
         case 'SET_ICLOUD_ALIAS_USED_STATE': {
           clearStopRequest();
           const result = await setIcloudAliasUsedState(message.payload || {});
