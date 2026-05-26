@@ -8046,6 +8046,45 @@ async function buildNexSmsPricePreviewLines(options = {}) {
   return [`${providerLabel}:`, ...previews];
 }
 
+function collectPriceEntries(payload, entries = []) {
+  if (Array.isArray(payload)) {
+    payload.forEach((entry) => collectPriceEntries(entry, entries));
+    return entries;
+  }
+  if (!payload || typeof payload !== 'object') {
+    return entries;
+  }
+  const cost = Number(payload.cost);
+  const count = Number(payload.count);
+  if (Number.isFinite(cost) && cost > 0) {
+    entries.push({
+      cost: Math.round(cost * 10000) / 10000,
+      count: Number.isFinite(count) ? count : 0,
+    });
+  }
+  Object.entries(payload).forEach(([key, value]) => {
+    const keyedPrice = Number(key);
+    if (!Number.isFinite(keyedPrice) || keyedPrice <= 0) {
+      return;
+    }
+    if (value && typeof value === 'object') {
+      const keyedCount = Number(value.count);
+      entries.push({
+        cost: Math.round(keyedPrice * 10000) / 10000,
+        count: Number.isFinite(keyedCount) ? keyedCount : 0,
+      });
+      return;
+    }
+    const numericCount = Number(value);
+    entries.push({
+      cost: Math.round(keyedPrice * 10000) / 10000,
+      count: Number.isFinite(numericCount) ? numericCount : 0,
+    });
+  });
+  Object.values(payload).forEach((entry) => collectPriceEntries(entry, entries));
+  return entries;
+}
+
 async function previewFiveSimPriceTiers() {
   if (!displayHeroSmsPriceTiers) {
     return;
@@ -8079,45 +8118,6 @@ async function previewFiveSimPriceTiers() {
     displayHeroSmsPriceTiers.textContent = '请先选择至少 1 个国家，再查询价格';
     return;
   }
-
-  const collectPriceEntries = (payload, entries = []) => {
-    if (Array.isArray(payload)) {
-      payload.forEach((entry) => collectPriceEntries(entry, entries));
-      return entries;
-    }
-    if (!payload || typeof payload !== 'object') {
-      return entries;
-    }
-    const cost = Number(payload.cost);
-    const count = Number(payload.count);
-    if (Number.isFinite(cost) && cost > 0) {
-      entries.push({
-        cost: Math.round(cost * 10000) / 10000,
-        count: Number.isFinite(count) ? count : 0,
-      });
-    }
-    Object.entries(payload).forEach(([key, value]) => {
-      const keyedPrice = Number(key);
-      if (!Number.isFinite(keyedPrice) || keyedPrice <= 0) {
-        return;
-      }
-      if (value && typeof value === 'object') {
-        const keyedCount = Number(value.count);
-        entries.push({
-          cost: Math.round(keyedPrice * 10000) / 10000,
-          count: Number.isFinite(keyedCount) ? keyedCount : 0,
-        });
-        return;
-      }
-      const numericCount = Number(value);
-      entries.push({
-        cost: Math.round(keyedPrice * 10000) / 10000,
-        count: Number.isFinite(numericCount) ? numericCount : 0,
-      });
-    });
-    Object.values(payload).forEach((entry) => collectPriceEntries(entry, entries));
-    return entries;
-  };
 
   const previews = [];
   for (const countryCode of countryCodes) {
@@ -8186,45 +8186,6 @@ async function buildFiveSimPricePreviewLines(options = {}) {
   if (priceRange.invalid) {
     return [`${providerLabel}: ${buildPhoneSmsPriceRangePreviewMessage(priceRange)}`];
   }
-
-  const collectPriceEntries = (payload, entries = []) => {
-    if (Array.isArray(payload)) {
-      payload.forEach((entry) => collectPriceEntries(entry, entries));
-      return entries;
-    }
-    if (!payload || typeof payload !== 'object') {
-      return entries;
-    }
-    const cost = Number(payload.cost);
-    const count = Number(payload.count);
-    if (Number.isFinite(cost) && cost > 0) {
-      entries.push({
-        cost: Math.round(cost * 10000) / 10000,
-        count: Number.isFinite(count) ? count : 0,
-      });
-    }
-    Object.entries(payload).forEach(([key, value]) => {
-      const keyedPrice = Number(key);
-      if (!Number.isFinite(keyedPrice) || keyedPrice <= 0) {
-        return;
-      }
-      if (value && typeof value === 'object') {
-        const keyedCount = Number(value.count);
-        entries.push({
-          cost: Math.round(keyedPrice * 10000) / 10000,
-          count: Number.isFinite(keyedCount) ? keyedCount : 0,
-        });
-        return;
-      }
-      const numericCount = Number(value);
-      entries.push({
-        cost: Math.round(keyedPrice * 10000) / 10000,
-        count: Number.isFinite(numericCount) ? numericCount : 0,
-      });
-    });
-    Object.values(payload).forEach((entry) => collectPriceEntries(entry, entries));
-    return entries;
-  };
 
   const previews = [];
   for (const countryCode of countryCodes) {
