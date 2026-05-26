@@ -14176,6 +14176,7 @@ const signupFlowHelpers = self.MultiPageSignupFlowHelpers?.createSignupFlowHelpe
   ensureMail2925AccountForFlow,
   ensureLuckmailPurchaseForFlow,
   fetchGeneratedEmail,
+  fetchIcloudHideMyEmail,
   getTabId,
   isGeneratedAliasProvider,
   isReusableGeneratedAliasEmail,
@@ -14734,6 +14735,7 @@ const messageRouter = self.MultiPageBackgroundMessageRouter?.createMessageRouter
   fetchHostedCheckoutVerificationCodeManually: (...args) => plusCheckoutCreateExecutor.fetchHostedCheckoutVerificationCodeManually(...args),
   testCheckoutConversionProxy: (...args) => plusCheckoutCreateExecutor.testCheckoutConversionProxy(...args),
   fetchGeneratedEmail,
+  fetchIcloudHideMyEmail,
   refreshGpcCardBalance,
   finalizePhoneActivationAfterSuccessfulFlow,
   finalizeStep3Completion: async () => {

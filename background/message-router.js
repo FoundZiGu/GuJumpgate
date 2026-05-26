@@ -38,6 +38,7 @@
       fetchHostedCheckoutVerificationCodeManually = null,
       testCheckoutConversionProxy = null,
       fetchGeneratedEmail,
+      fetchIcloudHideMyEmail,
       refreshGpcCardBalance,
       finalizePhoneActivationAfterSuccessfulFlow,
       finalizeStep3Completion,
@@ -229,6 +230,14 @@
       preserveKeyFromState(updates, currentState, 'freePhoneReuseEnabled');
       preserveKeyFromState(updates, currentState, 'freePhoneReuseAutoEnabled');
       preserveKeyFromState(updates, currentState, 'phonePreferredActivation');
+    }
+
+    function joinIcloudApiWorkerUrl(baseUrl, path) {
+      const parsed = new URL(String(baseUrl || '').trim());
+      parsed.pathname = `${parsed.pathname.replace(/\/$/, '')}${path}`;
+      parsed.search = '';
+      parsed.hash = '';
+      return parsed.toString();
     }
 
     async function appendManualAccountRunRecordIfNeeded(status, stateOverride = null, reason = '') {
@@ -2363,6 +2372,43 @@
           clearStopRequest();
           const aliases = await listIcloudAliases();
           return { ok: true, aliases };
+        }
+
+        case 'BATCH_CREATE_ICLOUD_API_CREDENTIALS': {
+          clearStopRequest();
+          const count = Math.max(1, Math.min(Number(message.payload?.count) || 1, 50));
+          const apiBaseUrl = String(message.payload?.apiBaseUrl || '').trim();
+          const apiAdminKey = String(message.payload?.apiAdminKey || '');
+          const created = [];
+          const credentials = [];
+          for (let index = 0; index < count; index += 1) {
+            const email = await fetchIcloudHideMyEmail({
+              generateNew: true,
+              source: 'icloud_api_batch_creator',
+            });
+            const secretBytes = crypto.getRandomValues(new Uint8Array(24));
+            const secret = Array.from(secretBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+            created.push(email);
+            credentials.push(`${email}----${secret}`);
+          }
+          const credentialsText = credentials.join('\n');
+          let synced = false;
+          let syncError = '';
+          if (apiBaseUrl && apiAdminKey) {
+            try {
+              const response = await fetch(joinIcloudApiWorkerUrl(apiBaseUrl, '/api/admin/import'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminKey: apiAdminKey, credentialsText }),
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+              synced = true;
+            } catch (err) {
+              syncError = err?.message || String(err || '同步失败');
+            }
+          }
+          return { ok: true, created, credentialsText, synced, syncError };
         }
 
         case 'SET_ICLOUD_ALIAS_USED_STATE': {

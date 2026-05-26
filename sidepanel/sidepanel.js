@@ -350,8 +350,10 @@ const icloudLoginHelp = document.getElementById('icloud-login-help');
 const icloudLoginHelpTitle = document.getElementById('icloud-login-help-title');
 const icloudLoginHelpText = document.getElementById('icloud-login-help-text');
 const btnIcloudLoginDone = document.getElementById('btn-icloud-login-done');
+const btnIcloudApiBatchCreate = document.getElementById('btn-icloud-api-batch-create');
 const btnIcloudRefresh = document.getElementById('btn-icloud-refresh');
 const btnIcloudDeleteUsed = document.getElementById('btn-icloud-delete-used');
+const inputIcloudApiCreateCount = document.getElementById('input-icloud-api-create-count');
 const selectIcloudHostPreference = document.getElementById('select-icloud-host-preference');
 const rowIcloudTargetMailboxType = document.getElementById('row-icloud-target-mailbox-type');
 const selectIcloudTargetMailboxType = document.getElementById('select-icloud-target-mailbox-type');
@@ -13847,6 +13849,7 @@ const icloudManager = window.SidepanelIcloudManager?.createIcloudManager({
     btnIcloudBulkUnpreserve,
     btnIcloudBulkUnused,
     btnIcloudBulkUsed,
+    btnIcloudApiBatchCreate,
     btnIcloudDeleteUsed,
     btnIcloudLoginDone,
     btnIcloudRefresh,
@@ -13858,6 +13861,9 @@ const icloudManager = window.SidepanelIcloudManager?.createIcloudManager({
     icloudSection,
     icloudSelectionSummary,
     icloudSummary,
+    inputIcloudApiAdminKey,
+    inputIcloudApiBaseUrl,
+    inputIcloudApiCreateCount,
     inputIcloudSearch,
     selectIcloudFilter,
   },

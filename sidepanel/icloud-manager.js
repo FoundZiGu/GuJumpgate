@@ -74,6 +74,7 @@
 
     function setIcloudLoadingState(loading, summary = '') {
       if (dom.btnIcloudRefresh) dom.btnIcloudRefresh.disabled = loading;
+      if (dom.btnIcloudApiBatchCreate) dom.btnIcloudApiBatchCreate.disabled = loading;
       if (dom.btnIcloudDeleteUsed) dom.btnIcloudDeleteUsed.disabled = loading;
       if (dom.btnIcloudLoginDone) dom.btnIcloudLoginDone.disabled = loading;
       if (dom.inputIcloudSearch) dom.inputIcloudSearch.disabled = loading;
@@ -388,6 +389,42 @@
       }
     }
 
+    async function batchCreateIcloudApiCredentials() {
+      const count = Math.max(1, Math.min(Number(dom.inputIcloudApiCreateCount?.value) || 1, 50));
+      setIcloudLoadingState(true, `正在创建 ${count} 个 iCloud API 凭据...`);
+      try {
+        const response = await runtime.sendMessage({
+          type: 'BATCH_CREATE_ICLOUD_API_CREDENTIALS',
+          source: 'sidepanel',
+          payload: {
+            count,
+            apiBaseUrl: dom.inputIcloudApiBaseUrl?.value || '',
+            apiAdminKey: dom.inputIcloudApiAdminKey?.value || '',
+          },
+        });
+        if (response?.error) throw new Error(response.error);
+        const credentialsText = String(response?.credentialsText || '').trim();
+        if (!credentialsText) throw new Error('未生成凭据。');
+        await helpers.copyTextToClipboard(credentialsText);
+        if (dom.icloudSummary) {
+          dom.icloudSummary.textContent = response.synced
+            ? `已创建并同步 ${response.created?.length || count} 个凭据，同时已复制到剪贴板。`
+            : `已创建 ${response.created?.length || count} 个凭据，并复制到剪贴板。${response.syncError ? `同步失败：${response.syncError}` : ''}`;
+        }
+        helpers.showToast(
+          response.synced ? 'iCloud API 凭据已同步到 qq-hidden-mail-viewer。' : 'iCloud API 凭据已复制，可手动导入 qq-hidden-mail-viewer。',
+          response.synced ? 'success' : 'warn',
+          3600
+        );
+        await refreshIcloudAliases({ silent: true });
+      } catch (err) {
+        if (dom.icloudSummary) dom.icloudSummary.textContent = err.message;
+        helpers.showToast(`创建 iCloud API 凭据失败：${err.message}`, 'error');
+      } finally {
+        setIcloudLoadingState(false);
+      }
+    }
+
     function isLikelyIcloudLoginRequiredMessage(message = '') {
       const lower = String(message || '').toLowerCase();
       return lower.includes('请先在新打开的 icloud 页面中完成登录')
@@ -458,6 +495,10 @@
 
       dom.btnIcloudDeleteUsed?.addEventListener('click', async () => {
         await deleteUsedIcloudAliases();
+      });
+
+      dom.btnIcloudApiBatchCreate?.addEventListener('click', async () => {
+        await batchCreateIcloudApiCredentials();
       });
 
       dom.inputIcloudSearch?.addEventListener('input', () => {
