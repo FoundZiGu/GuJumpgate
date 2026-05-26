@@ -13805,6 +13805,9 @@ const bindMail2925Events = mail2925Manager?.bindMail2925Events
 bindMail2925Events();
 
 const icloudManager = window.SidepanelIcloudManager?.createIcloudManager({
+  state: {
+    getLatestState: () => latestState,
+  },
   dom: {
     btnIcloudBulkDelete,
     btnIcloudBulkPreserve,

@@ -4,6 +4,7 @@
       dom,
       helpers,
       runtime,
+      state,
     } = context;
 
     let refreshQueued = false;
@@ -18,7 +19,9 @@
 
     function getFilteredIcloudAliases(aliases = renderedAliases) {
       const normalizedSearchTerm = normalizeIcloudSearchText(searchTerm);
+      const currentEmail = normalizeIcloudSearchText(state?.getLatestState?.()?.email || '');
       return (Array.isArray(aliases) ? aliases : []).filter((alias) => {
+        const isCurrent = currentEmail && normalizeIcloudSearchText(alias.email) === currentEmail;
         const matchesFilter = (() => {
           switch (filterMode) {
             case 'active': return Boolean(alias.active);
@@ -39,6 +42,7 @@
           alias.used ? '已用 used' : '未用 unused',
           alias.active ? '可用 active' : '不可用 inactive',
           alias.preserved ? '保留 preserved' : '',
+          isCurrent ? '当前 current' : '',
         ].join(' ').toLowerCase();
 
         return haystack.includes(normalizedSearchTerm);
@@ -141,6 +145,8 @@
       }
 
       for (const alias of visibleAliases) {
+        const currentEmail = normalizeIcloudSearchText(state?.getLatestState?.()?.email || '');
+        const isCurrent = currentEmail && normalizeIcloudSearchText(alias.email) === currentEmail;
         const item = document.createElement('div');
         item.className = 'icloud-item';
         item.innerHTML = `
@@ -148,6 +154,7 @@
           <div class="icloud-item-main">
             <div class="icloud-item-email">${helpers.escapeHtml(alias.email)}</div>
             <div class="icloud-item-meta">
+              ${isCurrent ? '<span class="icloud-tag active">当前</span>' : ''}
               ${alias.used ? '<span class="icloud-tag used">已用</span>' : ''}
               ${!alias.used && alias.active ? '<span class="icloud-tag active">可用</span>' : ''}
               ${alias.preserved ? '<span class="icloud-tag">保留</span>' : ''}
