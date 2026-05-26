@@ -6229,6 +6229,7 @@ async function pollIcloudApiVerificationCode(step, state, pollPayload = {}) {
         body: JSON.stringify({
           adminKey,
           credential,
+          hiddenEmail: targetEmail,
           codePatterns: pollPayload.codePatterns || [],
         }),
       });
