@@ -121,3 +121,31 @@ test('ChatGPT API provider disables entry after repeated polling failures', asyn
   assert.equal(usage.enabled, false);
   assert.match(usage.disabledReason, /等待手机验证码超时|暂未返回有效验证码|waiting/i);
 });
+
+test('ChatGPT API provider skips entries that reached the 3-use success limit', async () => {
+  const initialState = createState({
+    chatGptApiSmsPoolUsage: {
+      '628111111111----https://example.test/api/sms/1': {
+        useCount: 3,
+        usedAt: 10,
+        enabled: true,
+      },
+      '628222222222----https://example.test/api/sms/2': {
+        useCount: 2,
+        usedAt: 20,
+        enabled: true,
+      },
+    },
+  });
+  const { provider, getState } = createProviderWithState(initialState);
+
+  const activation = await provider.requestActivation(getState());
+
+  assert.equal(activation.phoneNumber, '628222222222');
+  assert.equal(getState().chatGptApiSmsPoolUsage[activation.activationId].useCount, 3);
+
+  await assert.rejects(
+    () => provider.requestActivation(getState()),
+    /达到成功使用上限 3 次/
+  );
+});

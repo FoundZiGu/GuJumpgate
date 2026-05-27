@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GuJumpgate  V0.1.5</title>
+  <title>GuJumpgate  V0.1.6</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -25,7 +25,7 @@
       <div class="header-version-block">
         <div class="header-version-main">
           <button id="extension-update-status" class="header-version-title header-version-link" type="button"
-          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate  V0.1.5</button>
+          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate  V0.1.6</button>
           <button id="btn-release-log" class="header-link-btn" type="button" hidden>更新日志</button>
         </div>
         <span id="extension-version-meta" class="header-version-meta" hidden></span>
@@ -273,9 +273,12 @@
       </div>
       <div class="data-row module-divider-start" id="row-export-current-session-json">
         <span class="data-label">导出当前SESSION JSON</span>
-        <div class="data-inline">
-          <button id="btn-export-current-session-cpa-json" class="btn btn-ghost btn-xs" type="button">导出为CPA JSON</button>
-          <button id="btn-export-current-session-sub2-json" class="btn btn-ghost btn-xs" type="button">导出为SUB2 JSON</button>
+        <div class="data-inline current-session-export-inline">
+          <div class="current-session-export-actions">
+            <button id="btn-export-current-session-cpa-json" class="btn btn-outline btn-sm data-inline-btn" type="button">导出为CPA JSON</button>
+            <button id="btn-export-current-session-sub2-json" class="btn btn-outline btn-sm data-inline-btn" type="button">导出为SUB2 JSON</button>
+          </div>
+          <span class="current-session-export-warning">目前SESSION导出的JSON无法直接使用</span>
         </div>
       </div>
       <div class="data-row" id="row-custom-password">
@@ -303,10 +306,8 @@
       <div class="data-row" id="row-plus-payment-method" style="display:none;">
         <span class="data-label">Plus 支付</span>
         <div class="data-inline">
-          <select id="select-plus-payment-method" class="data-select">
+          <select id="select-plus-payment-method" class="data-select" disabled>
             <option value="paypal">PayPal</option>
-            <option value="gopay">GoPay</option>
-            <option value="gpc-helper">GPC</option>
           </select>
           <button id="btn-gpc-card-key-purchase" class="btn btn-outline btn-sm data-inline-btn" type="button" style="display:none;">服务说明</button>
           <span class="setting-caption" id="plus-payment-method-caption">PayPal 订阅链路</span>
@@ -444,12 +445,12 @@
           <label class="hosted-checkout-setting-field">
             <span class="setting-caption">首次等码秒</span>
             <input type="number" id="input-hosted-checkout-first-resend-wait-seconds" class="data-input auto-delay-input"
-              value="20" min="0" max="300" step="1" title="第一次检测到验证码弹窗后，最多等码多少秒；窗口内按轮询设置请求接口" />
+              value="20" min="0" max="300" step="1" title="第一次检测到验证码弹窗后，先固定等待多少秒，再按轮询设置请求接口" />
           </label>
           <label class="hosted-checkout-setting-field">
             <span class="setting-caption">后续等码秒</span>
             <input type="number" id="input-hosted-checkout-subsequent-resend-wait-seconds" class="data-input auto-delay-input"
-              value="25" min="0" max="300" step="1" title="每次 Resend 后，最多等码多少秒；窗口内按轮询设置请求接口" />
+              value="25" min="0" max="300" step="1" title="每次 Resend 后，先固定等待多少秒，再按轮询设置请求接口" />
           </label>
           <label class="hosted-checkout-setting-field">
             <span class="setting-caption">轮询次数</span>
@@ -599,6 +600,8 @@
             <option value="icloud-api">iCloud API（QQ 转发）</option>
             <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
             <option value="cloudmail">Cloud Mail</option>
+            <option value="freemail">freemail</option>
+            <option value="outlook-email-plus">Outlook Email Plus</option>
           </select>
           <button id="btn-mail-login" class="btn btn-outline btn-sm data-inline-btn" type="button" disabled>登录</button>
         </div>
@@ -625,6 +628,8 @@
           <option value="icloud">iCloud 隐私邮箱</option>
           <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
           <option value="cloudmail">Cloud Mail</option>
+          <option value="freemail">freemail</option>
+          <option value="outlook-email-plus">Outlook Email Plus</option>
         </select>
       </div>
       <div class="data-row data-check-row" id="row-custom-email-pool" style="display:none;">
@@ -943,6 +948,85 @@
         <input type="text" id="input-cloud-mail-domain" class="data-input" placeholder="例如 mail.example.com" />
       </div>
     </div>
+    <div id="freemail-section" class="data-card hotmail-card" style="display:none;">
+      <div class="section-mini-header">
+        <div class="section-mini-copy">
+          <span class="section-label">freemail</span>
+          <span class="data-value">用于生成邮箱并自动接收验证码</span>
+        </div>
+        <div class="section-mini-actions">
+          <button id="btn-freemail-github" class="btn btn-ghost btn-xs" type="button">部署</button>
+        </div>
+      </div>
+      <div class="data-row" id="row-freemail-base-url" style="display:none;">
+        <span class="data-label">API 地址</span>
+        <input type="text" id="input-freemail-base-url" class="data-input" placeholder="https://your-worker-domain" />
+      </div>
+      <div class="data-row" id="row-freemail-admin-username" style="display:none;">
+        <span class="data-label">Admin</span>
+        <input type="text" id="input-freemail-admin-username" class="data-input" placeholder="管理员用户名" />
+      </div>
+      <div class="data-row" id="row-freemail-admin-password" style="display:none;">
+        <span class="data-label">密码</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-freemail-admin-password" class="data-input data-input-with-icon"
+            placeholder="管理员密码" />
+          <button id="btn-toggle-freemail-admin-password" class="input-icon-btn" type="button"
+            data-password-toggle="input-freemail-admin-password" data-show-label="显示 freemail 密码"
+            data-hide-label="隐藏 freemail 密码" aria-label="显示 freemail 密码" title="显示 freemail 密码"></button>
+        </div>
+      </div>
+      <div class="data-row" id="row-freemail-domain" style="display:none;">
+        <span class="data-label">主域名</span>
+        <input type="text" id="input-freemail-domain" class="data-input"
+          placeholder="可留空，生成时自动取 freemail 返回的第一个域名" />
+      </div>
+    </div>
+    <div id="outlook-email-plus-section" class="data-card hotmail-card" style="display:none;">
+      <div class="section-mini-header">
+        <div class="section-mini-copy">
+          <span class="section-label">Outlook Email Plus</span>
+          <span class="data-value">通过外部 API 认领 Outlook 邮箱池账号并收码</span>
+        </div>
+        <div class="section-mini-actions">
+          <button id="btn-outlook-email-plus-github" class="btn btn-ghost btn-xs" type="button">部署</button>
+        </div>
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-base-url" style="display:none;">
+        <span class="data-label">API 地址</span>
+        <input type="text" id="input-outlook-email-plus-base-url" class="data-input" placeholder="http://127.0.0.1:5000" />
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-api-key" style="display:none;">
+        <span class="data-label">API Key</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-outlook-email-plus-api-key" class="data-input data-input-with-icon"
+            placeholder="Outlook Email Plus API Key" />
+          <button id="btn-toggle-outlook-email-plus-api-key" class="input-icon-btn" type="button"
+            data-password-toggle="input-outlook-email-plus-api-key" data-show-label="显示 API Key"
+            data-hide-label="隐藏 API Key" aria-label="显示 API Key" title="显示 API Key"></button>
+        </div>
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-provider" style="display:none;">
+        <span class="data-label">Provider</span>
+        <input type="text" id="input-outlook-email-plus-provider" class="data-input" placeholder="outlook" />
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-project-key" style="display:none;">
+        <span class="data-label">项目</span>
+        <input type="text" id="input-outlook-email-plus-project-key" class="data-input" placeholder="openai" />
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-caller-id-prefix" style="display:none;">
+        <span class="data-label">调用方</span>
+        <input type="text" id="input-outlook-email-plus-caller-id-prefix" class="data-input" placeholder="gujumpgate" />
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-alias-max" style="display:none;">
+        <span class="data-label">别名上限</span>
+        <div class="data-inline">
+          <input type="number" id="input-outlook-email-plus-alias-max-per-mailbox" class="data-input auto-delay-input"
+            value="5" min="1" max="50" step="1" title="每个 Outlook Email Plus 认领邮箱最多使用多少个 +PayPalN 别名" />
+          <span class="setting-caption">用完后自动结束当前邮箱并认领下一个</span>
+        </div>
+      </div>
+    </div>
     <div id="hotmail-section" class="data-card hotmail-card" style="display:none;">
       <div class="section-mini-header">
         <div class="section-mini-copy">
@@ -1233,6 +1317,20 @@
           <option value="126">126 邮箱</option>
           <option value="gmail">Gmail 邮箱</option>
         </select>
+      </div>
+      <div class="data-row" id="row-icloud-api-base-url" style="display:none;">
+        <span class="data-label">API 地址</span>
+        <input type="text" id="input-icloud-api-base-url" class="data-input" placeholder="https://你的-worker地址" />
+      </div>
+      <div class="data-row" id="row-icloud-api-admin-key" style="display:none;">
+        <span class="data-label">API 密码</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-icloud-api-admin-key" class="data-input data-input-with-icon"
+            placeholder="qq-hidden-mail-viewer 管理员密码" autocomplete="off" />
+          <button id="btn-toggle-icloud-api-admin-key" class="input-icon-btn" type="button"
+            data-password-toggle="input-icloud-api-admin-key" data-show-label="显示 API 密码"
+            data-hide-label="隐藏 API 密码" aria-label="显示 API 密码" title="显示 API 密码"></button>
+        </div>
       </div>
       <div class="data-row">
         <span class="data-label">获取策略</span>
@@ -1577,12 +1675,12 @@
                 <div class="hero-sms-country-mainline">
                   <div id="hero-sms-country-menu-shell" class="hero-sms-country-menu">
                     <button id="btn-hero-sms-country-menu" class="btn btn-outline btn-sm hero-sms-country-menu-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-                      Colombia (1/3)
+                      Colombia (1/10)
                     </button>
                     <div id="hero-sms-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">多选最多 3 个，按点击顺序生效。</span>
+                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
               </div>
             </div>
             <div class="data-row" id="row-hero-sms-country-fallback" style="display:none;">
@@ -1629,12 +1727,12 @@
                 <div class="hero-sms-country-mainline">
                   <div id="five-sim-country-menu-shell" class="hero-sms-country-menu">
                     <button id="btn-five-sim-country-menu" class="btn btn-outline btn-sm hero-sms-country-menu-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-                      未选择 (0/3)
+                      未选择 (0/10)
                     </button>
                     <div id="five-sim-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">多选最多 3 个，按点击顺序生效。</span>
+                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
               </div>
             </div>
             <div class="data-row" id="row-five-sim-country-fallback" style="display:none;">
@@ -1673,12 +1771,12 @@
                 <div class="hero-sms-country-mainline">
                   <div id="nex-sms-country-menu-shell" class="hero-sms-country-menu">
                     <button id="btn-nex-sms-country-menu" class="btn btn-outline btn-sm hero-sms-country-menu-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-                      Country #1 (1/3)
+                      Country #1 (1/10)
                     </button>
                     <div id="nex-sms-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">多选最多 3 个，按点击顺序生效。</span>
+                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
               </div>
             </div>
             <div class="data-row" id="row-nex-sms-country-fallback" style="display:none;">
@@ -1751,7 +1849,25 @@
                 <div id="row-phone-replacement-limit" class="hero-sms-settings-cell" style="display:none;">
                   <span class="hero-sms-settings-caption">换号上限</span>
                   <div class="setting-controls">
-                    <input type="number" id="input-phone-replacement-limit" class="data-input auto-delay-input" value="3" min="1" max="20" step="1" title="步骤 9 内部允许更换号码的最大次数" />
+                    <input type="number" id="input-phone-replacement-limit" class="data-input auto-delay-input" value="3" min="1" max="100" step="1" title="步骤 9 内部允许更换号码的最大次数" />
+                    <span class="data-unit">次</span>
+                  </div>
+                </div>
+                <div id="row-whatsapp-page-restart-enabled" class="hero-sms-settings-cell" style="display:none;">
+                  <span class="hero-sms-settings-caption">WA 重开</span>
+                  <div class="setting-controls hero-sms-toggle-controls">
+                    <label class="toggle-switch" for="input-whatsapp-page-restart-enabled" title="开启后，步骤 9 的手机验证码页正文命中 WhatsApp 时自动释放号码并回到 open-chatgpt 重开 OAuth">
+                      <input type="checkbox" id="input-whatsapp-page-restart-enabled" checked />
+                      <span class="toggle-switch-track" aria-hidden="true">
+                        <span class="toggle-switch-thumb"></span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div id="row-whatsapp-page-restart-max-attempts" class="hero-sms-settings-cell" style="display:none;">
+                  <span class="hero-sms-settings-caption">WA 重开次数</span>
+                  <div class="setting-controls">
+                    <input type="number" id="input-whatsapp-page-restart-max-attempts" class="data-input auto-delay-input" value="3" min="1" max="20" step="1" title="手机验证码页正文命中 WhatsApp 后，最多整链路重开多少次" />
                     <span class="data-unit">次</span>
                   </div>
                 </div>
@@ -1781,6 +1897,24 @@
                   <div class="setting-controls">
                     <input type="number" id="input-phone-code-poll-max-rounds" class="data-input auto-delay-input" value="4" min="1" max="120" step="1" title="每个验证码等待窗口的基础轮询次数；如果低于等待时长和轮询间隔所需次数，会自动补足，避免提前结束" />
                     <span class="data-unit">次</span>
+                  </div>
+                </div>
+                <div id="row-phone-activation-retry-rounds" class="hero-sms-settings-cell" style="display:none;">
+                  <span class="hero-sms-settings-caption">取号轮数</span>
+                  <div class="setting-controls">
+                    <input type="number" id="input-phone-activation-retry-rounds" class="data-input auto-delay-input" value="3" min="1" max="10" step="1" title="接码平台返回暂无可用号码时，最多重新尝试获取手机号的轮数" />
+                    <span class="data-unit">轮</span>
+                  </div>
+                </div>
+                <div id="row-phone-auto-release-on-stop-enabled" class="hero-sms-settings-cell" style="display:none;">
+                  <span class="hero-sms-settings-caption">停止释放</span>
+                  <div class="setting-controls hero-sms-toggle-controls">
+                    <label class="toggle-switch" for="input-phone-auto-release-on-stop-enabled" title="开启后停止流程会自动释放当前接码手机号；关闭后停止时保留当前手机号订单">
+                      <input type="checkbox" id="input-phone-auto-release-on-stop-enabled" />
+                      <span class="toggle-switch-track" aria-hidden="true">
+                        <span class="toggle-switch-thumb"></span>
+                      </span>
+                    </label>
                   </div>
                 </div>
                 <div id="row-free-phone-reuse-enabled" class="hero-sms-settings-cell hero-sms-reuse-cell" style="display:none;">

@@ -1,6 +1,9 @@
 (function attachBackgroundAutoRunController(root, factory) {
   root.MultiPageBackgroundAutoRunController = factory();
 })(typeof self !== 'undefined' ? self : globalThis, function createBackgroundAutoRunControllerModule() {
+  const AUTO_RUN_MAX_KEEP_SAME_EMAIL_RETRIES_PER_ROUND = 10;
+  const KEEP_SAME_EMAIL_RETRY_LIMIT_EXCEEDED_ERROR_PREFIX = 'KEEP_SAME_EMAIL_RETRY_LIMIT_EXCEEDED::';
+
   function createAutoRunController(deps = {}) {
     const {
       addLog,
@@ -519,8 +522,9 @@
         let reuseExistingProgress = resumingCurrentRound;
         const currentRoundState = await getState();
         const keepSameEmailUntilAddPhone = autoRunSkipFailures && shouldKeepCustomMailProviderPoolEmail(currentRoundState);
+        const maxKeepSameEmailAttemptsForRound = AUTO_RUN_MAX_KEEP_SAME_EMAIL_RETRIES_PER_ROUND + 1;
         const maxAttemptsForRound = autoRunSkipFailures || autoRunRetryNonFreeTrial || autoRunRetryPaypalCallback
-          ? (keepSameEmailUntilAddPhone ? Number.MAX_SAFE_INTEGER : AUTO_RUN_MAX_RETRIES_PER_ROUND + 1)
+          ? (keepSameEmailUntilAddPhone ? maxKeepSameEmailAttemptsForRound : AUTO_RUN_MAX_RETRIES_PER_ROUND + 1)
           : Math.max(AUTO_RUN_MAX_RETRIES_PER_ROUND + 1, attemptRun);
 
         while (attemptRun <= maxAttemptsForRound) {
@@ -740,6 +744,19 @@
               && !blockedBySignupUserAlreadyExists
               && autoRunSkipFailures
               && attemptRun < maxAttemptsForRound;
+            const reachedKeepSameEmailRetryLimit = keepSameEmailUntilAddPhone
+              && !blockedByAddPhone
+              && !blockedByPhoneNoSupply
+              && !blockedByPlusNonFreeTrial
+              && !blockedByGpcTaskEnded
+              && !blockedByHostedCheckoutGenericError
+              && !blockedByHostedCheckoutCardFallback
+              && !blockedByHostedCheckoutVerificationResendLimit
+              && !blockedByCloudCheckoutAlreadyPaid
+              && !blockedBySignupUserAlreadyExists
+              && !blockedByStep4Route405
+              && autoRunSkipFailures
+              && attemptRun >= maxAttemptsForRound;
 
             await setState({
               autoRunRoundSummaries: serializeAutoRunRoundSummaries(totalRuns, roundSummaries),
@@ -1307,6 +1324,46 @@
               continue;
             }
 
+            if (reachedKeepSameEmailRetryLimit) {
+              const limitReason = `${KEEP_SAME_EMAIL_RETRY_LIMIT_EXCEEDED_ERROR_PREFIX}第 ${targetRun}/${totalRuns} 轮继续使用当前邮箱已重试 ${AUTO_RUN_MAX_KEEP_SAME_EMAIL_RETRIES_PER_ROUND} 次，停止当前轮次。最后原因：${reason}`;
+              roundSummary.status = 'failed';
+              roundSummary.finalFailureReason = limitReason;
+              roundSummary.failureReasons.push(limitReason);
+              await setState({
+                autoRunRoundSummaries: serializeAutoRunRoundSummaries(totalRuns, roundSummaries),
+              });
+              await appendRoundRecordIfNeeded('failed', limitReason, err);
+              cancelPendingCommands('当前轮继续使用同一邮箱重试已达到上限。');
+              await broadcastStopToContentScripts();
+              if (!autoRunSkipFailures) {
+                await addLog(
+                  `第 ${targetRun}/${totalRuns} 轮继续使用当前邮箱重试已达到 ${AUTO_RUN_MAX_KEEP_SAME_EMAIL_RETRIES_PER_ROUND} 次上限，当前自动运行将停止。`,
+                  'warn'
+                );
+                stoppedEarly = true;
+                await broadcastAutoRunStatus('stopped', {
+                  currentRun: targetRun,
+                  totalRuns,
+                  attemptRun,
+                  sessionId: 0,
+                });
+                break;
+              }
+
+              await addLog(
+                `第 ${targetRun}/${totalRuns} 轮继续使用当前邮箱重试已达到 ${AUTO_RUN_MAX_KEEP_SAME_EMAIL_RETRIES_PER_ROUND} 次上限，本轮将直接失败并跳过剩余重试。`,
+                'warn'
+              );
+              await addLog(
+                targetRun < totalRuns
+                  ? `第 ${targetRun}/${totalRuns} 轮因同邮箱重试达到上限提前结束，自动流程将继续下一轮。`
+                  : `第 ${targetRun}/${totalRuns} 轮因同邮箱重试达到上限提前结束，已无后续轮次，本次自动运行结束。`,
+                'warn'
+              );
+              forceFreshTabsNextRun = true;
+              break;
+            }
+
             roundSummary.status = 'failed';
             roundSummary.finalFailureReason = reason;
             await setState({
@@ -1437,6 +1494,10 @@
       startAutoRunLoop,
       waitBetweenAutoRunRounds,
       waitBeforeAutoRunRetry,
+      __test: {
+        AUTO_RUN_MAX_KEEP_SAME_EMAIL_RETRIES_PER_ROUND,
+        KEEP_SAME_EMAIL_RETRY_LIMIT_EXCEEDED_ERROR_PREFIX,
+      },
     };
   }
 

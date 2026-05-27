@@ -3,10 +3,17 @@ const test = require('node:test');
 
 require('../background/steps/create-plus-checkout.js');
 
-function createExecutorWithPayload(payload) {
+function createExecutorWithPayload(payload, deps = {}) {
+  const { onFetch, ...executorDeps } = deps;
   return globalThis.MultiPageBackgroundPlusCheckoutCreate.createPlusCheckoutCreateExecutor({
+    ...executorDeps,
     fetch: async () => ({
-      text: async () => (typeof payload === 'string' ? payload : JSON.stringify(payload)),
+      text: async () => {
+        if (typeof onFetch === 'function') {
+          onFetch();
+        }
+        return typeof payload === 'string' ? payload : JSON.stringify(payload);
+      },
     }),
   });
 }
@@ -95,5 +102,80 @@ test('manual hosted checkout code fetch ignores PayPal confirmation text with ex
       verificationUrl: 'http://example.test/api/get_sms?key=test',
     }),
     /(?:暂未返回有效验证码|非验证码内容)/
+  );
+});
+
+test('hosted checkout wait seconds are applied before polling verification endpoint', async () => {
+  const events = [];
+  const executor = createExecutorWithPayload(
+    "yes|PayPal: 201412 is your security code. Don't share it.|(PayPal)|到期时间：2026-07-29 00:00:00",
+    {
+      addLog: async (message) => events.push(['log', message]),
+      getState: async () => ({
+        hostedCheckoutVerificationUrl: 'http://example.test/api/get_sms?key=test',
+      }),
+      onFetch: () => events.push(['fetch']),
+      sleepWithStop: async (ms) => events.push(['sleep', ms]),
+    }
+  );
+
+  const code = await executor.__test.waitForHostedCheckoutVerificationCodeWindow(2, {
+    label: 'PayPal 首次验证码',
+    pollAttempts: 1,
+    pollIntervalSeconds: 1,
+  });
+
+  assert.equal(code, '201412');
+  assert.deepEqual(events.find((event) => event[0] === 'sleep'), ['sleep', 2000]);
+  assert.ok(
+    events.findIndex((event) => event[0] === 'sleep') < events.findIndex((event) => event[0] === 'fetch'),
+    'expected configured wait to happen before fetching the verification code'
+  );
+});
+
+test('hosted checkout success refreshes OAuth localhost callback window', async () => {
+  const calls = [];
+  const executor = createExecutorWithPayload({}, {
+    addLog: async (message) => calls.push(['log', message]),
+    getState: async () => ({
+      oauthUrl: 'https://auth.openai.com/oauth/authorize?client_id=test',
+    }),
+    getStepIdByKeyForState: (stepKey) => (stepKey === 'confirm-oauth' ? 10 : null),
+    startOAuthFlowTimeoutWindow: async (options) => {
+      calls.push(['timeout', options]);
+      return 12345;
+    },
+  });
+
+  await executor.__test.refreshOAuthTimeoutWindowAfterHostedCheckoutSuccess();
+
+  const timeoutCall = calls.find((entry) => entry[0] === 'timeout')?.[1];
+  assert.equal(timeoutCall.step, 10);
+  assert.equal(timeoutCall.oauthUrl, 'https://auth.openai.com/oauth/authorize?client_id=test');
+  assert.match(timeoutCall.logMessage, /hosted checkout 支付链路已完成/);
+});
+
+test('hosted checkout pending return detects unexpected ChatGPT non-success URLs', () => {
+  const executor = createExecutorWithPayload({});
+
+  assert.equal(
+    executor.__test.isHostedCheckoutPendingReturnUrl('https://pay.openai.com/c/pay/cs_test?redirect_status=pending'),
+    true
+  );
+  assert.equal(
+    executor.__test.isHostedCheckoutPendingUnexpectedChatGptReturnUrl('https://chatgpt.com/'),
+    true
+  );
+  assert.equal(
+    executor.__test.isHostedCheckoutPendingUnexpectedChatGptReturnUrl('https://chatgpt.com/?model=gpt-4o'),
+    true
+  );
+  assert.equal(
+    executor.__test.isHostedCheckoutPendingUnexpectedChatGptReturnUrl('https://chatgpt.com/checkout/openai_llc/cs_test'),
+    true
+  );
+  assert.equal(
+    executor.__test.isHostedCheckoutPendingUnexpectedChatGptReturnUrl('https://chatgpt.com/backend-api/payments/success?session_id=cs_test'),
+    false
   );
 });

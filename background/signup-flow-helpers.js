@@ -340,7 +340,8 @@
     }
 
     async function resolveSignupEmailForFlow(state, options = {}) {
-      let resolvedEmail = state.email;
+      const ignoreCurrentEmail = Boolean(options?.ignoreCurrentEmail);
+      let resolvedEmail = ignoreCurrentEmail ? '' : state.email;
       let generatedEmailAlreadyPersisted = false;
       if (isHotmailProvider(state)) {
         const preserveAccountIdentity = Boolean(options?.preserveAccountIdentity);

@@ -250,8 +250,8 @@
     async function executeStep7(state) {
       const initialState = typeof getState === 'function'
         ? {
-          ...(state || {}),
           ...(await getState().catch(() => ({}))),
+          ...(state || {}),
         }
         : (state || {});
       const visibleStep = Math.floor(Number(initialState?.visibleStep) || 0);

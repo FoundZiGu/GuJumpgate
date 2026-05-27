@@ -6,6 +6,7 @@
   const PAYPAL_INJECT_FILES = ['content/utils.js', 'content/operation-delay.js', 'content/paypal-flow.js'];
   const PAYPAL_LOGIN_TRANSITION_TIMEOUT_MS = 30000;
   const PAYPAL_LOGIN_TRANSITION_POLL_MS = 500;
+  const PAYPAL_APPROVE_WAIT_TIMEOUT_MS = 120000;
 
   function createPayPalApproveExecutor(deps = {}) {
     const {
@@ -235,7 +236,11 @@
       await setState({ plusCheckoutTabId: tabId });
 
       let loggedWaiting = false;
+      const startedAt = Date.now();
       while (true) {
+        if (Date.now() - startedAt >= PAYPAL_APPROVE_WAIT_TIMEOUT_MS) {
+          throw new Error(`步骤 8：PayPal 授权页停留超过 ${Math.round(PAYPAL_APPROVE_WAIT_TIMEOUT_MS / 1000)} 秒，未进入可处理的下一步状态，已停止等待。`);
+        }
         const currentUrl = (await chrome.tabs.get(tabId).catch(() => null))?.url || '';
         if (currentUrl && !isPayPalUrl(currentUrl)) {
           await addLog('步骤 8：PayPal 已跳转离开授权页，准备进入回跳确认。', 'ok');
@@ -301,6 +306,9 @@
 
     return {
       executePayPalApprove,
+      __test: {
+        PAYPAL_APPROVE_WAIT_TIMEOUT_MS,
+      },
     };
   }
 

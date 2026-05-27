@@ -18,6 +18,7 @@
       isTabAlive,
       prepareStep8DebuggerClick,
       recoverOAuthLocalhostTimeout,
+      recoverStep9AuthFallback,
       reloadStep8ConsentPage,
       reuseOrCreateTab,
       sleepWithStop,
@@ -38,6 +39,7 @@
 
     const LOCALHOST_CALLBACK_LOCAL_TIMEOUT_MS = 240000;
     const CALLBACK_TIMEOUT_CHECK_INTERVAL_MS = 1000;
+    const STEP9_AUTH_FALLBACK_MAX_RECOVERY_ATTEMPTS = 1;
 
     function getVisibleStep(state, fallback = 9) {
       const visibleStep = Math.floor(Number(state?.visibleStep) || 0);
@@ -59,7 +61,33 @@
       return addLog(message, level, { step, stepKey: 'confirm-oauth' });
     }
 
-    async function executeStep9(state) {
+    function getStep9AuthFallbackKind(pageState = {}) {
+      if (!pageState || typeof pageState !== 'object') {
+        return '';
+      }
+      if (pageState.verificationPage) return 'verification';
+      if (pageState.addEmailPage) return 'add_email';
+      if (pageState.retryPage) return 'retry';
+      return '';
+    }
+
+    function getStep9AuthFallbackLabel(pageState = {}) {
+      const fallbackKind = getStep9AuthFallbackKind(pageState);
+      switch (fallbackKind) {
+        case 'verification':
+          return pageState?.displayedEmail
+            ? `邮箱验证码页（${pageState.displayedEmail}）`
+            : '邮箱验证码页';
+        case 'add_email':
+          return '添加邮箱页';
+        case 'retry':
+          return '认证重试页';
+        default:
+          return '认证异常页';
+      }
+    }
+
+    async function runStep9(state, authFallbackRecoveryCount = 0) {
       const visibleStep = getVisibleStep(state, 9);
       let activeState = state;
 
@@ -102,7 +130,7 @@
       return new Promise((resolve, reject) => {
         let resolved = false;
         let signupTabId = null;
-        const callbackWaitStartedAt = Date.now();
+        let callbackWaitStartedAt = Date.now();
         let timeoutCheckTimer = null;
         let timeoutDeferredLogged = false;
 
@@ -135,6 +163,50 @@
           }).catch((err) => {
             reject(err);
           });
+        };
+
+        const resolveWithRecoveredStep9 = async (pageState, reasonLabel) => {
+          const fallbackKind = getStep9AuthFallbackKind(pageState);
+          if (!fallbackKind) {
+            return false;
+          }
+          if (authFallbackRecoveryCount >= STEP9_AUTH_FALLBACK_MAX_RECOVERY_ATTEMPTS) {
+            const authLoginStep = getAuthLoginStepForVisibleStep(visibleStep);
+            throw new Error(
+              `步骤 ${visibleStep}：${reasonLabel}时认证页再次回流到${getStep9AuthFallbackLabel(pageState)}，已自动恢复 ${STEP9_AUTH_FALLBACK_MAX_RECOVERY_ATTEMPTS} 次仍未成功，请回到步骤 ${authLoginStep} 重新开始。`
+            );
+          }
+          if (typeof recoverStep9AuthFallback !== 'function') {
+            const authLoginStep = getAuthLoginStepForVisibleStep(visibleStep);
+            throw new Error(
+              `步骤 ${visibleStep}：${reasonLabel}时认证页回流到${getStep9AuthFallbackLabel(pageState)}，但当前未接入自动恢复能力，请回到步骤 ${authLoginStep} 重新开始。`
+            );
+          }
+
+          await addStepLog(
+            visibleStep,
+            `检测到${reasonLabel}时认证页回流到${getStep9AuthFallbackLabel(pageState)}，正在自动补登后重试当前 OAuth 确认...`,
+            'warn'
+          );
+          const recoveredState = await recoverStep9AuthFallback({
+            state: activeState,
+            pageState,
+            visibleStep,
+            recoveryAttempt: authFallbackRecoveryCount + 1,
+            maxRecoveryAttempts: STEP9_AUTH_FALLBACK_MAX_RECOVERY_ATTEMPTS,
+            reason: reasonLabel,
+          });
+          const nextState = recoveredState && typeof recoveredState === 'object'
+            ? recoveredState
+            : activeState;
+          if (!String(nextState?.oauthUrl || '').trim()) {
+            throw new Error(`步骤 ${visibleStep}：自动恢复后缺少可用的 OAuth 链接，无法继续确认 OAuth。`);
+          }
+
+          resolved = true;
+          cleanupListener();
+          resolve(runStep9(nextState, authFallbackRecoveryCount + 1));
+          return true;
         };
 
         const isCallbackTimeoutDeferred = async (elapsedMs) => {
@@ -267,6 +339,9 @@
                   : STEP8_READY_WAIT_TIMEOUT_MS,
                 { visibleStep }
               );
+              if (await resolveWithRecoveredStep9(pageState, '等待 OAuth 同意页')) {
+                return;
+              }
               if (!pageState?.consentReady) {
                 await sleepWithStop(STEP8_CLICK_RETRY_DELAY_MS);
                 continue;
@@ -288,6 +363,9 @@
                   responseTimeoutMs: clickActionTimeoutMs,
                   visibleStep,
                 });
+                if (clickTarget?.pageState && await resolveWithRecoveredStep9(clickTarget.pageState, '准备定位 OAuth 同意页继续按钮')) {
+                  return;
+                }
                 throwIfStep8SettledOrStopped(resolved);
                 await clickWithDebugger(signupTabId, clickTarget?.rect, { visibleStep });
               } else {
@@ -297,11 +375,14 @@
                     actionLabel: '点击 OAuth 同意页继续按钮',
                   })
                   : 15000;
-                await triggerStep8ContentStrategy(signupTabId, strategy.strategy, {
+                const triggerResult = await triggerStep8ContentStrategy(signupTabId, strategy.strategy, {
                   timeoutMs: clickActionTimeoutMs,
                   responseTimeoutMs: clickActionTimeoutMs,
                   visibleStep,
                 });
+                if (triggerResult?.pageState && await resolveWithRecoveredStep9(triggerResult.pageState, '触发 OAuth 同意页继续按钮')) {
+                  return;
+                }
               }
 
               if (resolved) {
@@ -320,6 +401,9 @@
                 { visibleStep }
               );
               if (resolved) {
+                return;
+              }
+              if (effect?.pageState && await resolveWithRecoveredStep9(effect.pageState, '点击 OAuth 同意页继续按钮')) {
                 return;
               }
 
@@ -350,6 +434,10 @@
           }
         })();
       });
+    }
+
+    async function executeStep9(state) {
+      return runStep9(state, 0);
     }
 
     return { executeStep9 };

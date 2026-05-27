@@ -10,6 +10,7 @@
     'https://checkout.stripe.com/c/pay/*',
   ];
   const PLUS_CHECKOUT_FRAME_READY_DELAY_MS = 500;
+  const PLUS_CHECKOUT_FRAME_WAIT_TIMEOUT_MS = 30000;
   const PLUS_CHECKOUT_SUBMIT_MAX_ATTEMPTS = 3;
   const PLUS_CHECKOUT_PAYPAL_REDIRECT_TIMEOUT_MS = 20000;
   const PLUS_PAYMENT_METHOD_PAYPAL = 'paypal';
@@ -1776,35 +1777,56 @@
       };
     }
 
-    async function waitForBillingFrame(tabId) {
+    async function waitForFrameMatch(resolveInspections, pickFrame, options = {}) {
+      const label = String(options.label || 'checkout frame').trim() || 'checkout frame';
+      const timeoutMs = Math.max(0, Math.floor(Number(options.timeoutMs) || PLUS_CHECKOUT_FRAME_WAIT_TIMEOUT_MS));
+      const startedAt = Date.now();
+      let lastInspections = [];
+
       while (true) {
-        const frames = await getReadyCheckoutFrames(tabId);
-        const inspections = await inspectCheckoutFrames(tabId, frames);
-        const picked = pickBillingFrame(inspections);
+        const inspections = await resolveInspections();
+        lastInspections = Array.isArray(inspections) ? inspections : [];
+        const picked = pickFrame(lastInspections);
         if (picked) {
           return {
-            frameId: picked.frame.frameId,
-            frameUrl: picked.frame.url || '',
-            countryText: picked.result?.countryText || '',
-            ready: picked.frame.ready !== false,
-            inspections,
+            picked,
+            inspections: lastInspections,
           };
+        }
+        if (timeoutMs > 0 && Date.now() - startedAt >= timeoutMs) {
+          const frameSummary = buildFrameSummary(lastInspections) || 'none';
+          throw new Error(`步骤 7：等待${label}超时（${Math.round(timeoutMs / 1000)} 秒）。frame 摘要：${frameSummary}`);
         }
         await sleepWithStop(250);
       }
     }
 
+    async function waitForBillingFrame(tabId) {
+      const result = await waitForFrameMatch(async () => {
+        const frames = await getReadyCheckoutFrames(tabId);
+        return inspectCheckoutFrames(tabId, frames);
+      }, pickBillingFrame, {
+        label: '账单地址 iframe',
+      });
+      const picked = result.picked;
+      return {
+        frameId: picked.frame.frameId,
+        frameUrl: picked.frame.url || '',
+        countryText: picked.result?.countryText || '',
+        ready: picked.frame.ready !== false,
+        inspections: result.inspections,
+      };
+    }
+
     async function waitForSubscribeFrame(tabId, candidateFrames) {
       const frames = candidateFrames.length ? candidateFrames : [{ frameId: 0, url: '' }];
-      while (true) {
+      const result = await waitForFrameMatch(async () => {
         const readyFrames = await ensurePlusCheckoutFramesReady(tabId, frames);
-        const inspections = await inspectCheckoutFrames(tabId, readyFrames);
-        const picked = pickSubscribeFrame(inspections);
-        if (picked) {
-          return picked.frame;
-        }
-        await sleepWithStop(250);
-      }
+        return inspectCheckoutFrames(tabId, readyFrames);
+      }, pickSubscribeFrame, {
+        label: '订阅按钮 iframe',
+      });
+      return result.picked.frame;
     }
 
     async function getCheckoutTabId(state = {}) {
@@ -2106,6 +2128,11 @@
 
     return {
       executePlusCheckoutBilling,
+      __test: {
+        PLUS_CHECKOUT_FRAME_WAIT_TIMEOUT_MS,
+        buildFrameSummary,
+        waitForFrameMatch,
+      },
     };
   }
 

@@ -716,28 +716,34 @@
       }
     }
 
+    async function initializeCreatedTab(tabId, options = {}) {
+      if (!options.inject) {
+        return;
+      }
+
+      await waitForTabUpdateComplete(tabId);
+      if (options.injectSource) {
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: (injectedSource) => {
+            window.__MULTIPAGE_SOURCE = injectedSource;
+          },
+          args: [options.injectSource],
+        });
+      }
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: options.inject,
+      });
+    }
+
     async function reuseOrCreateTab(source, url, options = {}) {
       if (options.forceNew) {
-        await closeConflictingTabsForSource(source, url);
         const tab = await createAutomationTab({ url, active: true }, options);
-
-        if (options.inject) {
-          await waitForTabUpdateComplete(tab.id);
-          if (options.injectSource) {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: (injectedSource) => {
-                window.__MULTIPAGE_SOURCE = injectedSource;
-              },
-              args: [options.injectSource],
-            });
-          }
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: options.inject,
-          });
-        }
-
+        await initializeCreatedTab(tab.id, options);
+        // Keep the locked automation window alive by opening the replacement
+        // tab before removing the previous ChatGPT/OpenAI tab family.
+        await closeConflictingTabsForSource(source, url, { excludeTabIds: [tab.id] });
         await rememberSourceLastUrl(source, url);
         return tab.id;
       }
@@ -826,26 +832,11 @@
         return tabId;
       }
 
-      await closeConflictingTabsForSource(source, url);
       const tab = await createAutomationTab({ url, active: true }, options);
-
-      if (options.inject) {
-        await waitForTabUpdateComplete(tab.id);
-        if (options.injectSource) {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: (injectedSource) => {
-              window.__MULTIPAGE_SOURCE = injectedSource;
-            },
-            args: [options.injectSource],
-          });
-        }
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: options.inject,
-        });
-      }
-
+      await initializeCreatedTab(tab.id, options);
+      // When the locked automation window only has one matching tab left,
+      // creating first avoids closing the window before replacement exists.
+      await closeConflictingTabsForSource(source, url, { excludeTabIds: [tab.id] });
       await rememberSourceLastUrl(source, url);
       return tab.id;
     }

@@ -26,41 +26,57 @@
       id: PROVIDER_HERO_SMS,
       label: 'HeroSMS',
       moduleKey: 'PhoneSmsHeroSmsProvider',
+      supportsActivationReuse: true,
+      supportsFreePhoneReuse: true,
     }),
     [PROVIDER_FIVE_SIM]: Object.freeze({
       id: PROVIDER_FIVE_SIM,
       label: '5sim',
       moduleKey: 'PhoneSmsFiveSimProvider',
+      supportsActivationReuse: true,
+      supportsFreePhoneReuse: true,
     }),
     [PROVIDER_NEXSMS]: Object.freeze({
       id: PROVIDER_NEXSMS,
       label: 'NexSMS',
       moduleKey: 'PhoneSmsNexSmsProvider',
+      supportsActivationReuse: false,
+      supportsFreePhoneReuse: false,
     }),
     [PROVIDER_SMSBOWER]: Object.freeze({
       id: PROVIDER_SMSBOWER,
       label: 'SMSBower',
       moduleKey: 'PhoneSmsBowerProvider',
+      supportsActivationReuse: false,
+      supportsFreePhoneReuse: true,
     }),
     [PROVIDER_SMS_VERIFICATION_NUMBER]: Object.freeze({
       id: PROVIDER_SMS_VERIFICATION_NUMBER,
       label: 'SMS Verification Number',
       moduleKey: 'PhoneSmsVerificationNumberProvider',
+      supportsActivationReuse: false,
+      supportsFreePhoneReuse: false,
     }),
     [PROVIDER_GRIZZLYSMS]: Object.freeze({
       id: PROVIDER_GRIZZLYSMS,
       label: 'GrizzlySMS',
       moduleKey: 'PhoneSmsGrizzlySmsProvider',
+      supportsActivationReuse: false,
+      supportsFreePhoneReuse: false,
     }),
     [PROVIDER_SMSPOOL]: Object.freeze({
       id: PROVIDER_SMSPOOL,
       label: 'SMSPool',
       moduleKey: 'PhoneSmsPoolProvider',
+      supportsActivationReuse: true,
+      supportsFreePhoneReuse: true,
     }),
     [PROVIDER_CHATGPT_API]: Object.freeze({
       id: PROVIDER_CHATGPT_API,
       label: 'ChatGPT API 接码',
       moduleKey: 'PhoneSmsChatGptApiProvider',
+      supportsActivationReuse: false,
+      supportsFreePhoneReuse: false,
     }),
   });
 
@@ -156,6 +172,14 @@
     return getProviderDefinition(providerId)?.label || 'HeroSMS';
   }
 
+  function supportsActivationReuse(providerId = DEFAULT_PROVIDER) {
+    return Boolean(getProviderDefinition(providerId)?.supportsActivationReuse);
+  }
+
+  function supportsFreePhoneReuse(providerId = DEFAULT_PROVIDER) {
+    return Boolean(getProviderDefinition(providerId)?.supportsFreePhoneReuse);
+  }
+
   return {
     PROVIDER_HERO_SMS,
     PROVIDER_FIVE_SIM,
@@ -175,5 +199,7 @@
     getProviderModule,
     createProvider,
     getProviderLabel,
+    supportsActivationReuse,
+    supportsFreePhoneReuse,
   };
 });

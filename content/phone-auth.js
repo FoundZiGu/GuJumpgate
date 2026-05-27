@@ -22,6 +22,7 @@
     const PHONE_RESEND_THROTTLED_ERROR_PREFIX = 'PHONE_RESEND_THROTTLED::';
     const PHONE_RESEND_BANNED_NUMBER_ERROR_PREFIX = 'PHONE_RESEND_BANNED_NUMBER::';
     const PHONE_RESEND_SERVER_ERROR_PREFIX = 'PHONE_RESEND_SERVER_ERROR::';
+    const STEP9_WHATSAPP_PAGE_RESTART_ERROR_PREFIX = 'STEP9_WHATSAPP_PAGE_RESTART::';
     const PHONE_MAX_USAGE_EXCEEDED_PATTERN = /phone_max_usage_exceeded/i;
     const PHONE_ROUTE_405_RECOVERY_FAILED_ERROR_PREFIX = 'PHONE_ROUTE_405_RECOVERY_FAILED::';
     const PHONE_ROUTE_405_RECOVERY_COOLDOWN_MS = 6000;
@@ -375,6 +376,181 @@
       return Boolean(getSelectedCountryOption());
     }
 
+    function normalizeInlineText(value) {
+      return String(value || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function isSmsChannelText(value) {
+      const text = normalizeInlineText(value);
+      if (!text) {
+        return false;
+      }
+      return /(?:^|\b)(?:sms|text\s*message)(?:\b|$)|短信/i.test(text);
+    }
+
+    function isWhatsAppChannelText(value) {
+      return /whats\s*app/i.test(normalizeInlineText(value));
+    }
+
+    function getAddPhoneChannelInput() {
+      const form = getAddPhoneForm();
+      if (!form) {
+        return null;
+      }
+      return form.querySelector('input[name="channel"]');
+    }
+
+    function getChannelOptionText(option) {
+      if (!option) {
+        return '';
+      }
+      const input = option.matches?.('input') ? option : option.querySelector?.('input[type="radio"]');
+      const label = option.matches?.('label') ? option : option.closest?.('label');
+      return normalizeInlineText([
+        option.getAttribute?.('aria-label'),
+        option.getAttribute?.('title'),
+        input?.value,
+        label?.textContent,
+        option.textContent,
+      ].filter(Boolean).join(' '));
+    }
+
+    function getAddPhoneChannelOptions() {
+      const form = getAddPhoneForm();
+      if (!form) {
+        return [];
+      }
+      const radioInputs = Array.from(form.querySelectorAll('input[type="radio"]'));
+      return radioInputs.map((input) => {
+        const label = input.closest?.('label') || null;
+        const optionRoot = label || input.closest?.('[role="radio"], [data-state], [class*="option"]') || input;
+        const text = getChannelOptionText(optionRoot);
+        const normalizedValue = String(input.value || '').trim().toLowerCase();
+        const hiddenChannelInput = getAddPhoneChannelInput();
+        const hiddenValue = String(hiddenChannelInput?.value || '').trim().toLowerCase();
+        const dataState = String(label?.getAttribute?.('data-state') || optionRoot?.getAttribute?.('data-state') || '').trim().toLowerCase();
+        const channel = normalizedValue === 'sms' || isSmsChannelText(text)
+          ? 'sms'
+          : (normalizedValue === 'whatsapp' || isWhatsAppChannelText(text) ? 'whatsapp' : '');
+        const checked = Boolean(
+          input.checked
+          || dataState === 'on'
+          || (hiddenValue && channel && hiddenValue === channel)
+        );
+        return {
+          input,
+          label,
+          optionRoot,
+          channel,
+          text,
+          checked,
+        };
+      }).filter((entry) => entry.channel || entry.text);
+    }
+
+    async function clickSmsChannelOption(option) {
+      if (!option) {
+        return false;
+      }
+      const target = option.label || option.optionRoot || option.input;
+      if (!target || !isVisibleElement(target)) {
+        return false;
+      }
+      await performOperationWithDelay({ stepKey: 'phone-auth', kind: 'click', label: 'phone-channel-sms' }, async () => {
+        simulateClick(target);
+      });
+      return true;
+    }
+
+    async function forceSmsChannelState(option) {
+      if (!option?.input) {
+        return false;
+      }
+      const hiddenChannelInput = getAddPhoneChannelInput();
+      await performOperationWithDelay({ stepKey: 'phone-auth', kind: 'hidden-sync', label: 'phone-channel-hidden-sync' }, async () => {
+        getAddPhoneChannelOptions().forEach((entry) => {
+          if (!entry?.input) {
+            return;
+          }
+          entry.input.checked = entry.input === option.input;
+          if (entry.label?.setAttribute) {
+            entry.label.setAttribute('data-state', entry.input.checked ? 'on' : 'off');
+          }
+          if (entry.optionRoot?.setAttribute && entry.optionRoot !== entry.label) {
+            entry.optionRoot.setAttribute('data-state', entry.input.checked ? 'on' : 'off');
+          }
+        });
+        option.input.checked = true;
+        option.input.setAttribute?.('checked', '');
+        option.input.dispatchEvent?.(new Event('input', { bubbles: true }));
+        option.input.dispatchEvent?.(new Event('change', { bubbles: true }));
+        if (hiddenChannelInput) {
+          hiddenChannelInput.value = 'sms';
+          dispatchInputEvents(hiddenChannelInput);
+        }
+      });
+      return true;
+    }
+
+    function getCurrentAddPhoneChannel() {
+      const hiddenValue = String(getAddPhoneChannelInput()?.value || '').trim().toLowerCase();
+      if (hiddenValue === 'sms' || hiddenValue === 'whatsapp') {
+        return hiddenValue;
+      }
+      const options = getAddPhoneChannelOptions();
+      const checkedOption = options.find((entry) => entry.checked);
+      return checkedOption?.channel || '';
+    }
+
+    async function ensureSmsChannelSelected() {
+      const options = getAddPhoneChannelOptions();
+      if (!options.length) {
+        return {
+          present: false,
+          changed: false,
+          channel: getCurrentAddPhoneChannel(),
+        };
+      }
+
+      const smsOption = options.find((entry) => entry.channel === 'sms');
+      if (!smsOption) {
+        throw new Error('Add-phone page shows "Send code via" but no Text Message / SMS option is available.');
+      }
+
+      const currentChannel = getCurrentAddPhoneChannel();
+      if (currentChannel === 'sms' && smsOption.checked) {
+        return {
+          present: true,
+          changed: false,
+          channel: 'sms',
+        };
+      }
+
+      let changed = false;
+      if (await clickSmsChannelOption(smsOption)) {
+        changed = true;
+      }
+      await sleep(150);
+
+      if (getCurrentAddPhoneChannel() !== 'sms' || !smsOption.input.checked) {
+        await forceSmsChannelState(smsOption);
+        changed = true;
+        await sleep(50);
+      }
+
+      const finalChannel = getCurrentAddPhoneChannel();
+      const refreshedSmsOption = getAddPhoneChannelOptions().find((entry) => entry.channel === 'sms');
+      if (finalChannel !== 'sms' || !refreshedSmsOption?.input?.checked) {
+        throw new Error('Failed to force Text Message / SMS on the add-phone page.');
+      }
+
+      return {
+        present: true,
+        changed,
+        channel: 'sms',
+      };
+    }
+
     function getAddPhoneSubmitButton() {
       const form = getAddPhoneForm();
       if (!form) return null;
@@ -382,6 +558,106 @@
       return buttons.find((button) => isVisibleElement(button) && isActionEnabled(button))
         || buttons.find((button) => isVisibleElement(button))
         || null;
+    }
+
+    function collectAddPhoneDeliveryTextCandidates() {
+      const form = getAddPhoneForm();
+      if (!form) {
+        return [];
+      }
+      const candidates = [];
+      const seen = new Set();
+      const pushCandidate = (value) => {
+        const text = normalizeInlineText(value);
+        if (!text) {
+          return;
+        }
+        const key = text.toLowerCase();
+        if (seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        candidates.push(text);
+      };
+      const pushKeywordSegments = (value) => {
+        String(value || '')
+          .split(/[。！？!?\n\r]+/)
+          .map((segment) => normalizeInlineText(segment))
+          .filter(Boolean)
+          .forEach((segment) => {
+            if (segment.length > 160) {
+              return;
+            }
+            if (!/(?:whats\s*app|sms|text\s*message|一次性验证码|验证码|verification\s+code|one[-\s]*time\s+code)/i.test(segment)) {
+              return;
+            }
+            pushCandidate(segment);
+          });
+      };
+
+      const formLabelIds = String(form.getAttribute?.('aria-labelledby') || '').trim();
+      if (formLabelIds) {
+        formLabelIds.split(/\s+/).filter(Boolean).forEach((id) => {
+          const element = document.getElementById(id);
+          pushCandidate(element?.innerText || element?.textContent || '');
+        });
+      }
+
+      const container = form.parentElement?.parentElement || form.parentElement || form;
+      if (container?.querySelectorAll) {
+        Array.from(container.querySelectorAll('span, p, div'))
+          .forEach((element) => {
+            const text = normalizeInlineText(element?.innerText || element?.textContent || '');
+            if (!text) {
+              return;
+            }
+            if (text.length > 160) {
+              return;
+            }
+            if (!/(?:whats\s*app|sms|text\s*message|一次性验证码|验证码|verification\s+code|one[-\s]*time\s+code)/i.test(text)) {
+              return;
+            }
+            pushCandidate(text);
+          });
+      }
+      pushKeywordSegments(container?.innerText || container?.textContent || '');
+      return candidates;
+    }
+
+    function getAddPhoneDeliveryInfo() {
+      const candidates = collectAddPhoneDeliveryTextCandidates();
+      const combinedText = normalizeInlineText(candidates.join(' '));
+      const pageLevelWhatsAppText = candidates.find((text) => (
+        /whats\s*app/i.test(text)
+        && /(?:verification\s+code|one[-\s]*time\s+code|验证码|一次性验证码)/i.test(text)
+      )) || '';
+      const smsDeliveryText = candidates.find((text) => (
+        /(?:sms|text\s*message|短信)/i.test(text)
+        && /(?:verification\s+code|one[-\s]*time\s+code|验证码|一次性验证码)/i.test(text)
+      )) || '';
+      const conciseText = pageLevelWhatsAppText
+        || smsDeliveryText
+        || candidates.find((text) => /(verification\s+code|one[-\s]*time\s+code|验证码|一次性验证码)/i.test(text))
+        || combinedText;
+      if (pageLevelWhatsAppText) {
+        return {
+          channel: 'whatsapp',
+          text: conciseText,
+          candidates,
+        };
+      }
+      if (smsDeliveryText) {
+        return {
+          channel: 'sms',
+          text: conciseText,
+          candidates,
+        };
+      }
+      return {
+        channel: '',
+        text: conciseText,
+        candidates,
+      };
     }
 
     function getPhoneVerificationCodeInput() {
@@ -450,6 +726,91 @@
       const text = getPageTextSnapshot();
       const matches = text.match(/\+\d[\d\s-]{6,}\d/g);
       return matches?.[0] ? matches[0].replace(/\s+/g, ' ').trim() : '';
+    }
+
+    function collectPhoneVerificationDeliveryTextCandidates() {
+      const form = getPhoneVerificationForm();
+      if (!form) {
+        return [];
+      }
+      const candidates = [];
+      const seen = new Set();
+      const pushCandidate = (value) => {
+        const text = normalizeInlineText(value);
+        if (!text) {
+          return;
+        }
+        const key = text.toLowerCase();
+        if (seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        candidates.push(text);
+      };
+      const pushElementText = (element, options = {}) => {
+        const { skipVisibilityCheck = false } = options;
+        if (!element) {
+          return;
+        }
+        if (!skipVisibilityCheck && !isVisibleElement(element)) {
+          return;
+        }
+        pushCandidate(element.innerText || element.textContent || '');
+      };
+      const pushElementsByIds = (rawIds = '', options = {}) => {
+        String(rawIds || '')
+          .split(/\s+/)
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .forEach((id) => {
+            pushElementText(document.getElementById(id), options);
+          });
+      };
+
+      const codeInput = getPhoneVerificationCodeInput();
+      pushElementsByIds(codeInput?.getAttribute?.('aria-describedby'), { skipVisibilityCheck: true });
+      pushElementsByIds(form.getAttribute?.('aria-describedby'), { skipVisibilityCheck: true });
+      pushElementsByIds(form.getAttribute?.('aria-labelledby'), { skipVisibilityCheck: true });
+
+      const formContainer = form.parentElement?.parentElement || form.parentElement || form;
+      const labeledNodes = formContainer?.querySelectorAll?.('[id]');
+      if (labeledNodes?.length) {
+        Array.from(labeledNodes).forEach((element) => {
+          if (form.contains(element)) {
+            return;
+          }
+          if (element.matches?.('button, input, textarea, select, label')) {
+            return;
+          }
+          pushElementText(element, { skipVisibilityCheck: true });
+        });
+      }
+
+      return candidates;
+    }
+
+    function getPhoneVerificationDeliveryInfo() {
+      const candidates = collectPhoneVerificationDeliveryTextCandidates();
+      const combinedText = normalizeInlineText(candidates.join(' '));
+      if (/whats\s*app/i.test(combinedText)) {
+        return {
+          channel: 'whatsapp',
+          text: combinedText,
+          candidates,
+        };
+      }
+      if (/(?:^|\b)(?:sms|text\s*message)(?:\b|$)|短信/i.test(combinedText)) {
+        return {
+          channel: 'sms',
+          text: combinedText,
+          candidates,
+        };
+      }
+      return {
+        channel: '',
+        text: combinedText,
+        candidates,
+      };
     }
 
     function getAddPhoneErrorText() {
@@ -716,9 +1077,16 @@
           continue;
         }
         if (isPhoneVerificationPageReady()) {
+          const deliveryInfo = getPhoneVerificationDeliveryInfo();
           return {
             phoneVerificationPage: true,
             displayedPhone: getPhoneVerificationDisplayedPhone(),
+            phoneVerificationDeliveryChannel: deliveryInfo.channel || '',
+            phoneVerificationDeliveryText: deliveryInfo.text || '',
+            phoneVerificationWhatsApp: deliveryInfo.channel === 'whatsapp',
+            phoneVerificationDeliveryCandidates: Array.isArray(deliveryInfo.candidates)
+              ? deliveryInfo.candidates
+              : [],
             url: location.href,
           };
         }
@@ -751,9 +1119,17 @@
       const countryLabel = String(payload.countryLabel || '').trim();
       const isExplicitInternational = isExplicitInternationalPhoneInput(payload.phoneNumber);
       await waitForAddPhoneReady();
+      await ensureSmsChannelSelected();
       const countrySelected = await ensureCountrySelected(countryLabel, payload.phoneNumber);
       if (!countrySelected) {
         throw new Error(`Failed to select "${countryLabel || 'target country'}" on the add-phone page.`);
+      }
+
+      const addPhoneDeliveryInfo = getAddPhoneDeliveryInfo();
+      if (addPhoneDeliveryInfo.channel === 'whatsapp') {
+        throw new Error(
+          `${STEP9_WHATSAPP_PAGE_RESTART_ERROR_PREFIX}步骤 9：当前添加手机号页面显示将通过 WhatsApp 发送验证码，需释放当前号码并从 open-chatgpt 重开自动流程。页面文案：${addPhoneDeliveryInfo.text || 'WhatsApp'}；URL: ${location.href}`
+        );
       }
 
       const dialCode = getDisplayedDialCode();
@@ -791,6 +1167,7 @@
           dispatchInputEvents(hiddenPhoneNumberInput);
         });
       }
+      await ensureSmsChannelSelected();
       await sleep(250);
       await performOperationWithDelay({ stepKey: 'phone-auth', kind: 'submit', label: 'phone-number-submit' }, async () => {
         simulateClick(submitButton);
@@ -1028,6 +1405,8 @@
     }
 
     return {
+      getAddPhoneDeliveryInfo,
+      getPhoneVerificationDeliveryInfo,
       getPhoneVerificationDisplayedPhone,
       checkPhoneResendError,
       isPhoneVerificationPageReady,

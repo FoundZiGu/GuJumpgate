@@ -54,6 +54,10 @@
     const formatLocalPhoneValue = typeof normalizers.formatLocalPhone === 'function'
       ? normalizers.formatLocalPhone
       : normalizeUsHostedPhoneDigits;
+    const usageLimitRaw = Number(constants.usageLimit);
+    const usageLimit = Number.isFinite(usageLimitRaw) && usageLimitRaw > 0
+      ? Math.max(1, Math.floor(usageLimitRaw))
+      : 0;
     let renderedEntries = [];
     let searchTerm = '';
     let filterMode = 'all';
@@ -186,6 +190,7 @@
           current: Boolean(currentKey && entry.key === currentKey),
           useCount: Math.max(0, Math.floor(Number(itemUsage.useCount) || 0)),
           used: Math.max(0, Math.floor(Number(itemUsage.useCount) || 0)) > 0,
+          exhausted: usageLimit > 0 && Math.max(0, Math.floor(Number(itemUsage.useCount) || 0)) >= usageLimit,
           lastAttemptAt: Math.max(0, Number(itemUsage.lastAttemptAt) || 0),
           lastError: normalizeText(itemUsage.lastError),
           enabled: itemUsage.enabled !== false,
@@ -222,6 +227,7 @@
           entry.enabled ? 'enabled 启用' : 'disabled 禁用',
           entry.current ? 'current 当前' : '',
           entry.used ? 'used 已用' : 'unused 未用',
+          entry.exhausted ? 'exhausted 已达上限' : '',
           entry.disabledReason ? `disabledReason ${entry.disabledReason}` : '',
           entry.lastError ? `error 异常 ${entry.lastError}` : '',
         ].join(' ').toLowerCase().includes(normalizedSearch);
@@ -276,7 +282,12 @@
       const usedCount = entriesWithState.filter((entry) => entry.useCount > 0).length;
       const disabledCount = entriesWithState.filter((entry) => !entry.enabled).length;
       const totalUseCount = entriesWithState.reduce((sum, entry) => sum + Math.max(0, Number(entry.useCount) || 0), 0);
-      dom.hostedSmsPoolSummary.textContent = `已加载 ${entriesWithState.length} 个号码，${usedCount} 个有使用记录，${disabledCount} 个已禁用，累计使用 ${totalUseCount} 次。`;
+      const exhaustedCount = usageLimit > 0
+        ? entriesWithState.filter((entry) => entry.exhausted).length
+        : 0;
+      dom.hostedSmsPoolSummary.textContent = usageLimit > 0
+        ? `已加载 ${entriesWithState.length} 个号码，${usedCount} 个有使用记录，${exhaustedCount} 个已达上限，${disabledCount} 个已禁用，累计使用 ${totalUseCount} 次。`
+        : `已加载 ${entriesWithState.length} 个号码，${usedCount} 个有使用记录，${disabledCount} 个已禁用，累计使用 ${totalUseCount} 次。`;
 
       const visibleEntries = getFilteredEntries(renderedEntries);
       if (!visibleEntries.length) {
@@ -289,6 +300,10 @@
         const item = document.createElement('div');
         item.className = `luckmail-item${entry.current ? ' is-current' : ''}${entry.enabled ? '' : ' is-disabled'}`;
         const localPhone = formatLocalPhone(entry.phone);
+        const useCount = Math.max(0, Number(entry.useCount) || 0);
+        const usageText = usageLimit > 0
+          ? `当前使用次数：${Math.min(useCount, usageLimit)}/${usageLimit}`
+          : `使用 ${useCount} 次`;
         item.innerHTML = `
           <div class="luckmail-item-main">
             <div class="luckmail-item-email-row">
@@ -309,7 +324,8 @@
             <div class="luckmail-item-meta">
               ${entry.current ? '<span class="luckmail-tag current">当前</span>' : ''}
               ${entry.enabled ? '<span class="luckmail-tag active">启用中</span>' : '<span class="luckmail-tag disabled">已禁用</span>'}
-              <span class="luckmail-tag active">使用 ${Math.max(0, Number(entry.useCount) || 0)} 次</span>
+              <span class="luckmail-tag active">${helpers.escapeHtml?.(usageText) || usageText}</span>
+              ${entry.exhausted ? '<span class="luckmail-tag disabled">已达上限</span>' : ''}
               ${entry.failureCount > 0 ? `<span class="luckmail-tag used">失败 ${Math.max(0, Number(entry.failureCount) || 0)} 次</span>` : ''}
             </div>
             ${entry.disabledReason ? `<div class="hosted-sms-pool-disabled-reason">${helpers.escapeHtml?.(entry.disabledReason) || entry.disabledReason}</div>` : ''}
@@ -368,7 +384,9 @@
             const nextUsage = { ...usage };
             nextUsage[entry.key] = {
               ...(nextUsage[entry.key] || {}),
-              useCount: Math.max(0, Number(nextUsage[entry.key]?.useCount) || 0) + 1,
+              useCount: usageLimit > 0
+                ? Math.min(usageLimit, Math.max(0, Number(nextUsage[entry.key]?.useCount) || 0) + 1)
+                : Math.max(0, Number(nextUsage[entry.key]?.useCount) || 0) + 1,
               usedAt: Date.now(),
               lastAttemptAt: Math.max(0, Number(nextUsage[entry.key]?.lastAttemptAt) || 0),
               lastError: normalizeText(nextUsage[entry.key]?.lastError),
@@ -416,6 +434,14 @@
             };
           });
         });
+
+        if (usageLimit > 0 && useCount >= usageLimit) {
+          const incrementButton = item.querySelector('[data-action="increment-usage"]');
+          if (incrementButton) {
+            incrementButton.disabled = true;
+            incrementButton.title = `已达到上限 ${usageLimit} 次`;
+          }
+        }
 
         dom.hostedSmsPoolList.appendChild(item);
       }

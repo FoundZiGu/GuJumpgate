@@ -820,6 +820,27 @@ header {
   min-width: 0;
 }
 
+.current-session-export-inline {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.current-session-export-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.current-session-export-warning {
+  margin-left: auto;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .ip-proxy-fold-row {
   display: block;
 }

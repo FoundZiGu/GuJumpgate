@@ -6,6 +6,7 @@
   const DEFAULT_SERVICE_LABEL = 'OpenAI / ChatGPT';
   const DEFAULT_SERVICE_CODE = 'custom-api';
   const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
+  const MAX_SUCCESS_USES = 3;
   const POOL_SEPARATOR = '----';
   const AUTO_DISABLE_THRESHOLD = 2;
   const COUNTRY_BY_PHONE_PREFIX = Object.freeze([
@@ -251,7 +252,7 @@
           enabled: itemUsage.enabled !== false,
         };
       })
-      .filter((entry) => entry.enabled)
+      .filter((entry) => entry.enabled && entry.useCount < MAX_SUCCESS_USES)
       .sort((left, right) => {
         if (left.useCount !== right.useCount) {
           return left.useCount - right.useCount;
@@ -331,7 +332,7 @@
         ...usage,
         [entry.key]: {
           useCount: options.incrementUseCount
-            ? Math.max(0, Math.floor(Number(previous.useCount) || 0)) + 1
+            ? Math.min(MAX_SUCCESS_USES, Math.max(0, Math.floor(Number(previous.useCount) || 0)) + 1)
             : Math.max(0, Math.floor(Number(previous.useCount) || 0)),
           usedAt: options.incrementUseCount
             ? now
@@ -387,6 +388,13 @@
       const usage = normalizeUsage(state?.[POOL_USAGE_KEY] || {});
       const selectedEntry = chooseEntry(entries, usage);
       if (!selectedEntry) {
+        const enabledEntries = entries.filter((entry) => (usage?.[entry.key] || {}).enabled !== false);
+        const exhaustedEntries = enabledEntries.filter((entry) => (
+          Math.max(0, Math.floor(Number(usage?.[entry.key]?.useCount) || 0)) >= MAX_SUCCESS_USES
+        ));
+        if (enabledEntries.length > 0 && exhaustedEntries.length === enabledEntries.length) {
+          throw new Error(`${PROVIDER_LABEL}号池暂无可用号码，当前全部启用号码都已达到成功使用上限 ${MAX_SUCCESS_USES} 次。`);
+        }
         throw new Error(`${PROVIDER_LABEL}号池暂无可用号码，请先导入号码或启用可用号码。`);
       }
       await updateUsage(selectedEntry, {

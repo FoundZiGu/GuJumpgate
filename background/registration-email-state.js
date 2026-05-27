@@ -104,6 +104,17 @@
       };
     }
 
+    function buildClearedRegistrationEmailStateUpdates(state = {}, options = {}) {
+      const preservePrevious = options.preservePrevious !== false;
+      const preserveAccountIdentity = Boolean(options?.preserveAccountIdentity);
+      return buildFlowRegistrationEmailStateUpdates(state, {
+        currentEmail: '',
+        preservePrevious,
+        preserveAccountIdentity,
+        source: String(options?.source || '').trim(),
+      });
+    }
+
     function getRegistrationEmailBaseline(state = {}, options = {}) {
       const currentState = getRegistrationEmailState(state);
       const preferredEmail = normalizeEmailValue(options.preferredEmail);
@@ -112,6 +123,7 @@
     }
 
     return {
+      buildClearedRegistrationEmailStateUpdates,
       DEFAULT_REGISTRATION_EMAIL_STATE: cloneDefaultRegistrationEmailState(),
       buildFlowRegistrationEmailStateUpdates,
       buildRegistrationEmailStateUpdates,

@@ -14,6 +14,7 @@ const PLUS_CHECKOUT_PAYLOAD_BASE = {
   },
 };
 const PAYPAL_DIAGNOSTIC_LOG_INTERVAL_MS = 5000;
+const PLUS_CHECKOUT_DOCUMENT_COMPLETE_TIMEOUT_MS = 30000;
 const HOSTED_CHECKOUT_CARD_FALLBACK_ERROR_PREFIX = 'HOSTED_CHECKOUT_CARD_FALLBACK::';
 const HOSTED_CHECKOUT_CARD_DECLINED_ERROR_PREFIX = 'HOSTED_CHECKOUT_CARD_DECLINED::';
 const PLUS_PAYMENT_METHOD_PAYPAL = 'paypal';
@@ -135,6 +136,7 @@ async function waitForDocumentComplete() {
   await waitUntil(() => document.readyState === 'complete', {
     label: '页面加载完成',
     intervalMs: 200,
+    timeoutMs: PLUS_CHECKOUT_DOCUMENT_COMPLETE_TIMEOUT_MS,
   });
   await sleep(1000);
 }

@@ -10,6 +10,7 @@
   const DEFAULT_COUNTRY_LABEL = '越南 (Vietnam)';
   const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
   const DEFAULT_MAX_USES = 3;
+  const DEFAULT_REUSE_FRESHNESS_DELAY_MS = 8000;
   const FIVE_SIM_RATE_LIMIT_ERROR_PREFIX = 'FIVE_SIM_RATE_LIMIT::';
   const MAX_PRICE_CANDIDATES = 8;
   const SUPPORTED_COUNTRY_ITEMS = Object.freeze([
@@ -546,6 +547,18 @@
       countryLabel,
       successfulUses: Math.max(0, Math.floor(Number(record.successfulUses) || 0)),
       maxUses: Math.max(1, Math.floor(Number(record.maxUses) || DEFAULT_MAX_USES)),
+      ...(Number.isFinite(Number(record.fiveSimResendPreparedAt ?? fallback.fiveSimResendPreparedAt))
+        ? { fiveSimResendPreparedAt: Math.max(0, Number(record.fiveSimResendPreparedAt ?? fallback.fiveSimResendPreparedAt) || 0) }
+        : {}),
+      ...(Array.isArray(record.fiveSimIgnoredCodes) || Array.isArray(fallback.fiveSimIgnoredCodes)
+        ? {
+          fiveSimIgnoredCodes: Array.from(new Set(
+            (Array.isArray(record.fiveSimIgnoredCodes) ? record.fiveSimIgnoredCodes : fallback.fiveSimIgnoredCodes)
+              .map((entry) => extractVerificationCode(entry))
+              .filter(Boolean)
+          )),
+        }
+        : {}),
       operator: normalizeFiveSimOperator(record.operator || fallback.operator),
       ...(record.price !== undefined ? { price: Number(record.price) } : {}),
       ...(record.status ? { status: String(record.status) } : {}),
@@ -753,7 +766,13 @@
     const payload = await fetchJson(config, `/v1/user/reuse/${DEFAULT_PRODUCT}/${numberWithoutPlus || phoneDigits}`, {
       actionLabel: '5sim 复用手机号',
     });
-    return normalizeActivation(payload, normalizedActivation);
+    const existingCodes = await captureExistingCodesForActivation(state, normalizedActivation, deps);
+    const nextActivation = normalizeActivation(payload, normalizedActivation);
+    return nextActivation ? {
+      ...nextActivation,
+      fiveSimResendPreparedAt: Date.now(),
+      ...(existingCodes.length ? { fiveSimIgnoredCodes: existingCodes } : {}),
+    } : nextActivation;
   }
 
   async function finishActivation(state = {}, activation, deps = {}) {
@@ -807,6 +826,65 @@
     return '';
   }
 
+  function collectCodesFromOrder(payload, codes = new Set()) {
+    const smsList = Array.isArray(payload?.sms) ? payload.sms : [];
+    for (let index = 0; index < smsList.length; index += 1) {
+      const message = smsList[index] || {};
+      const code = extractVerificationCode(message.code) || extractVerificationCode(message.text);
+      if (code) {
+        codes.add(code);
+      }
+    }
+    const directCode = extractVerificationCode(payload?.code) || extractVerificationCode(payload?.sms_code);
+    if (directCode) {
+      codes.add(directCode);
+    }
+    return codes;
+  }
+
+  function resolveIgnoredCodeSet(activation = null) {
+    const ignoredCodes = Array.isArray(activation?.fiveSimIgnoredCodes)
+      ? activation.fiveSimIgnoredCodes
+      : [];
+    return new Set(ignoredCodes.map((entry) => extractVerificationCode(entry)).filter(Boolean));
+  }
+
+  function extractFreshCodeFromOrder(payload, ignoredCodes = null) {
+    const smsList = Array.isArray(payload?.sms) ? payload.sms : [];
+    for (let index = smsList.length - 1; index >= 0; index -= 1) {
+      const message = smsList[index] || {};
+      const code = extractVerificationCode(message.code) || extractVerificationCode(message.text);
+      if (!code) {
+        continue;
+      }
+      if (ignoredCodes && ignoredCodes.has(code)) {
+        continue;
+      }
+      return code;
+    }
+    const directCode = extractVerificationCode(payload?.code) || extractVerificationCode(payload?.sms_code);
+    if (directCode && (!ignoredCodes || !ignoredCodes.has(directCode))) {
+      return directCode;
+    }
+    return '';
+  }
+
+  async function captureExistingCodesForActivation(state = {}, activation, deps = {}) {
+    const normalizedActivation = normalizeActivation(activation, activation);
+    if (!normalizedActivation) {
+      return [];
+    }
+    try {
+      const config = resolveConfig(state, deps);
+      const payload = await fetchJson(config, `/v1/user/check/${encodeURIComponent(normalizedActivation.activationId)}`, {
+        actionLabel: '5sim capture existing sms',
+      });
+      return Array.from(collectCodesFromOrder(payload, new Set()));
+    } catch {
+      return [];
+    }
+  }
+
   async function pollActivationCode(state = {}, activation, options = {}, deps = {}) {
     const normalizedActivation = normalizeActivation(activation);
     if (!normalizedActivation) {
@@ -820,12 +898,39 @@
     const start = Date.now();
     let pollCount = 0;
     let lastResponse = '';
+    const ignoredCodes = resolveIgnoredCodeSet(normalizedActivation);
+    const resendPreparedAt = Math.max(0, Number(normalizedActivation.fiveSimResendPreparedAt) || 0);
+    const freshnessDelayMs = Math.max(3000, Number(options.fiveSimFreshnessDelayMs) || DEFAULT_REUSE_FRESHNESS_DELAY_MS);
+    let ignoredHistoricalCodeLogged = false;
 
     while (Date.now() - start < timeoutMs) {
       if (maxRounds > 0 && pollCount >= maxRounds) {
         break;
       }
       deps.throwIfStopped?.();
+      if (resendPreparedAt > 0 && (Date.now() - resendPreparedAt) < freshnessDelayMs) {
+        pollCount += 1;
+        if (typeof options.onStatus === 'function') {
+          await options.onStatus({
+            activation: normalizedActivation,
+            elapsedMs: Date.now() - start,
+            pollCount,
+            statusText: 'WAIT_FRESH_SMS',
+            timeoutMs,
+          });
+        }
+        if (typeof options.onWaitingForCode === 'function') {
+          await options.onWaitingForCode({
+            activation: normalizedActivation,
+            elapsedMs: Date.now() - start,
+            pollCount,
+            statusText: 'WAIT_FRESH_SMS',
+            timeoutMs,
+          });
+        }
+        await deps.sleepWithStop(intervalMs);
+        continue;
+      }
       const payload = await fetchJson(config, `/v1/user/check/${encodeURIComponent(normalizedActivation.activationId)}`, {
         actionLabel: '5sim 查询验证码',
       });
@@ -840,9 +945,18 @@
           timeoutMs,
         });
       }
-      const code = extractCodeFromOrder(payload);
+      const code = extractFreshCodeFromOrder(payload, ignoredCodes);
       if (code) {
         return code;
+      }
+      if (!code && ignoredCodes.size > 0 && extractCodeFromOrder(payload)) {
+        if (!ignoredHistoricalCodeLogged) {
+          ignoredHistoricalCodeLogged = true;
+          await deps.addLog?.(
+            `步骤 8：5sim 复用订单 ${normalizedActivation.phoneNumber} 命中历史验证码，继续等待新短信。`,
+            'info'
+          );
+        }
       }
       const status = String(payload?.status || '').trim().toUpperCase();
       if (['CANCELED', 'BANNED', 'FINISHED', 'TIMEOUT'].includes(status)) {

@@ -251,10 +251,10 @@
     const prefixSteps = NORMAL_PREFIX_STEP_DEFINITIONS.slice(0, 5);
     return [
       ...prefixSteps,
-      { id: 6, order: 60, key: 'oauth-login', title: '刷新 OAuth 并登录', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'oauth-login' },
-      { id: 7, order: 70, key: 'fetch-login-code', title: '获取登录验证码', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'submit-verification-code', mailRuleId: 'openai-login-code' },
-      { id: 8, order: 80, key: 'post-login-phone-verification', title: '手机号验证', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'post-login-phone-verification' },
-      { id: 9, order: 90, key: 'plus-checkout-create', title: '创建 Plus Checkout', sourceId: 'plus-checkout', driverId: 'content/plus-checkout', command: 'plus-checkout-create' },
+      { id: 6, order: 60, key: 'plus-checkout-create', title: '创建 Plus Checkout', sourceId: 'plus-checkout', driverId: 'content/plus-checkout', command: 'plus-checkout-create' },
+      { id: 7, order: 70, key: 'oauth-login', title: '刷新 OAuth 并登录', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'oauth-login' },
+      { id: 8, order: 80, key: 'fetch-login-code', title: '获取登录验证码', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'submit-verification-code', mailRuleId: 'openai-login-code' },
+      { id: 9, order: 90, key: 'post-login-phone-verification', title: '手机号验证', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'post-login-phone-verification' },
       { id: 10, order: 100, key: 'confirm-oauth', title: '自动确认 OAuth', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'confirm-oauth' },
       { id: 11, order: 110, key: 'platform-verify', title: '平台回调验证', sourceId: 'platform-panel', driverId: 'content/platform-panel', command: 'platform-verify' },
     ];
@@ -264,11 +264,11 @@
     const prefixSteps = NORMAL_PREFIX_STEP_DEFINITIONS.slice(0, 5);
     return [
       ...prefixSteps,
-      { id: 6, order: 60, key: 'oauth-login', title: '刷新 OAuth 并登录', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'oauth-login' },
-      { id: 7, order: 70, key: 'fetch-login-code', title: '获取登录验证码', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'submit-verification-code', mailRuleId: 'openai-login-code' },
-      { id: 8, order: 80, key: 'bind-email', title: '绑定邮箱', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'bind-email' },
-      { id: 9, order: 90, key: 'fetch-bind-email-code', title: '获取绑定邮箱验证码', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'fetch-bind-email-code', mailRuleId: 'openai-login-code' },
-      { id: 10, order: 100, key: 'plus-checkout-create', title: '创建 Plus Checkout', sourceId: 'plus-checkout', driverId: 'content/plus-checkout', command: 'plus-checkout-create' },
+      { id: 6, order: 60, key: 'plus-checkout-create', title: '创建 Plus Checkout', sourceId: 'plus-checkout', driverId: 'content/plus-checkout', command: 'plus-checkout-create' },
+      { id: 7, order: 70, key: 'oauth-login', title: '刷新 OAuth 并登录', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'oauth-login' },
+      { id: 8, order: 80, key: 'fetch-login-code', title: '获取登录验证码', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'submit-verification-code', mailRuleId: 'openai-login-code' },
+      { id: 9, order: 90, key: 'bind-email', title: '绑定邮箱', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'bind-email' },
+      { id: 10, order: 100, key: 'fetch-bind-email-code', title: '获取绑定邮箱验证码', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'fetch-bind-email-code', mailRuleId: 'openai-login-code' },
       { id: 11, order: 110, key: 'confirm-oauth', title: '自动确认 OAuth', sourceId: 'openai-auth', driverId: 'content/signup-page', command: 'confirm-oauth' },
       { id: 12, order: 120, key: 'platform-verify', title: '平台回调验证', sourceId: 'platform-panel', driverId: 'content/platform-panel', command: 'platform-verify' },
     ];
@@ -369,11 +369,7 @@
   }
 
   function normalizePlusPaymentMethod(value = '') {
-    const normalized = String(value || '').trim().toLowerCase();
-    if (normalized === PLUS_PAYMENT_METHOD_GPC_HELPER) {
-      return PLUS_PAYMENT_METHOD_GPC_HELPER;
-    }
-    return normalized === PLUS_PAYMENT_METHOD_GOPAY ? PLUS_PAYMENT_METHOD_GOPAY : PLUS_PAYMENT_METHOD_PAYPAL;
+    return PLUS_PAYMENT_METHOD_PAYPAL;
   }
 
   function normalizeSignupMethod(value = '') {
@@ -503,9 +499,32 @@
     return paymentStep?.title || '';
   }
 
+  function getPlatformVerifyStepTitle(options = {}) {
+    const panelMode = String(options?.panelMode || '').trim().toLowerCase();
+    if (panelMode === LOCAL_CPA_JSON_NO_RT_PANEL_MODE) {
+      return '本地CPA JSON 无RT 导出';
+    }
+    if (panelMode === 'local-cpa-json') {
+      return '本地CPA JSON 有RT 导出';
+    }
+    if (panelMode === 'sub2api') {
+      return 'SUB2API 回调验证';
+    }
+    if (panelMode === 'codex2api') {
+      return 'Codex2API 回调验证';
+    }
+    if (panelMode === 'cpa') {
+      return 'CPA 回调验证';
+    }
+    return '平台回调验证';
+  }
+
   function getOpenAiResolvedStepTitle(step = {}, options = {}) {
     if (isPlusModeEnabled(options) && step.key === PLUS_PAYMENT_STEP_KEY) {
       return getOpenAiPlusPaymentStepTitle(options) || step.title;
+    }
+    if (step.key === 'platform-verify' || step.key === 'local-cpa-json-export') {
+      return getPlatformVerifyStepTitle(options) || step.title;
     }
     const signupMethod = shouldUsePhoneBindOauthFlow(options)
       ? SIGNUP_METHOD_EMAIL

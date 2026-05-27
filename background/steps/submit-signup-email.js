@@ -40,6 +40,15 @@
       return /Content script on signup-page did not respond in \d+s|内容脚本\s+\d+(?:\.\d+)?\s*秒内未响应|Receiving end does not exist|message channel closed|A listener indicated an asynchronous response|port closed before a response was received|did not respond in \d+s/i.test(message);
     }
 
+    function shouldPreserveSignupPhoneActivationOnStop(state = {}, errorLike = null) {
+      const message = getErrorMessage(errorLike);
+      return state?.phoneAutoReleaseOnStopEnabled === false
+        && (
+          message === '流程已被用户停止。'
+          || /已被用户停止|flow\s+was\s+stopped|stopped\s+by\s+user/i.test(message)
+        );
+    }
+
     function isLikelyLoggedInChatgptHomeUrl(rawUrl) {
       const url = String(rawUrl || '').trim();
       if (!url) {
@@ -382,7 +391,11 @@
         ) {
           return;
         }
-        if (activation && typeof phoneVerificationHelpers?.cancelSignupPhoneActivation === 'function') {
+        if (
+          activation
+          && typeof phoneVerificationHelpers?.cancelSignupPhoneActivation === 'function'
+          && !shouldPreserveSignupPhoneActivationOnStop(state, finalErrorMessage)
+        ) {
           await phoneVerificationHelpers.cancelSignupPhoneActivation(state, activation).catch(() => {});
         }
         throw new Error(finalErrorMessage);
@@ -405,7 +418,11 @@
     }
 
     async function executeSignupEmailEntry(state) {
-      const resolvedEmail = await resolveSignupEmailForFlow(state);
+      const shouldIgnoreCurrentEmail = !String(state?.registrationEmailState?.current || '').trim()
+        && Boolean(String(state?.registrationEmailState?.previous || '').trim());
+      const resolvedEmail = await resolveSignupEmailForFlow(state, {
+        ignoreCurrentEmail: shouldIgnoreCurrentEmail,
+      });
 
       let signupTabId = await ensureSignupTabForStep2();
 

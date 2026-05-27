@@ -9,6 +9,9 @@
       chrome,
       CLOUDFLARE_TEMP_EMAIL_PROVIDER,
       CLOUD_MAIL_PROVIDER = 'cloudmail',
+      FREEMAIL_PROVIDER = 'freemail',
+      ICLOUD_API_PROVIDER = 'icloud-api',
+      OUTLOOK_EMAIL_PLUS_PROVIDER = 'outlook-email-plus',
       completeNodeFromBackground,
       confirmCustomVerificationStepBypass,
       ensureMail2925MailboxSession,
@@ -128,7 +131,8 @@
 
     function resolveBoundEmailLoginTarget(state = {}, visibleStep = 0) {
       const email = String(
-        state?.step8VerificationTargetEmail
+        state?.boundEmail
+        || state?.step8VerificationTargetEmail
         || state?.email
         || state?.registrationEmailState?.current
         || ''
@@ -150,6 +154,7 @@
         accountIdentifierType: 'email',
         accountIdentifier: email,
         email,
+        boundEmail: normalizeStep8VerificationTargetEmail(email),
         step8VerificationTargetEmail: normalizeStep8VerificationTargetEmail(email),
       };
     }
@@ -231,6 +236,7 @@
       }
 
       const displayedEmail = normalizeStep8VerificationTargetEmail(result?.displayedEmail || resolvedEmail);
+      const boundEmail = displayedEmail || normalizeStep8VerificationTargetEmail(resolvedEmail);
       let persistedState = latestState;
       if (typeof persistRegistrationEmailState === 'function') {
         await persistRegistrationEmailState(latestState, resolvedEmail, {
@@ -241,11 +247,13 @@
       } else {
         await setState({
           email: resolvedEmail,
+          boundEmail,
           step8VerificationTargetEmail: displayedEmail,
         });
         persistedState = {
           ...latestState,
           email: resolvedEmail,
+          boundEmail,
           step8VerificationTargetEmail: displayedEmail,
         };
       }
@@ -254,6 +262,7 @@
         state: {
           ...persistedState,
           email: resolvedEmail,
+          boundEmail,
           step8VerificationTargetEmail: displayedEmail,
         },
         pageState: {
@@ -544,6 +553,7 @@
         await completeNodeFromBackground(state?.nodeId || 'bind-email', {
           bindEmailSubmitted: true,
           email: preparedState?.email || '',
+          boundEmail: preparedState?.boundEmail || preparedState?.step8VerificationTargetEmail || nextPageState?.displayedEmail || '',
           step8VerificationTargetEmail: preparedState?.step8VerificationTargetEmail || nextPageState?.displayedEmail || '',
         });
       }
@@ -606,6 +616,8 @@
         || mail.provider === LUCKMAIL_PROVIDER
         || mail.provider === CLOUDFLARE_TEMP_EMAIL_PROVIDER
         || mail.provider === CLOUD_MAIL_PROVIDER
+        || mail.provider === FREEMAIL_PROVIDER
+        || mail.provider === OUTLOOK_EMAIL_PLUS_PROVIDER
       ) {
         await addLog(`步骤 ${visibleStep}：正在通过 ${mail.label} 轮询验证码...`);
       } else {
