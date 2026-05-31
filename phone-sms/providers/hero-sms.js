@@ -105,6 +105,40 @@
     return String(raw || '').trim();
   }
 
+  function isJsonStatusPayload(payload) {
+    return Boolean(
+      payload
+      && typeof payload === 'object'
+      && !Array.isArray(payload)
+      && Object.prototype.hasOwnProperty.call(payload, 'code')
+      && (
+        Object.prototype.hasOwnProperty.call(payload, 'msg')
+        || Object.prototype.hasOwnProperty.call(payload, 'data')
+      )
+    );
+  }
+
+  function extractPayPalVerificationCodeFromSmsContent(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return '';
+    }
+    if (Number(payload.code) !== 0) {
+      return '';
+    }
+    const smsList = Array.isArray(payload?.data?.sms_content) ? payload.data.sms_content : [];
+    for (const smsItem of smsList) {
+      const content = String(smsItem?.content || '').trim();
+      if (!content) {
+        continue;
+      }
+      const match = content.match(/PayPal:\s*(\d{6})\b/i);
+      if (match?.[1]) {
+        return match[1];
+      }
+    }
+    return '';
+  }
+
   function extractVerificationCode(rawCodeOrText) {
     const trimmed = String(rawCodeOrText || '').trim();
     if (!trimmed) {
@@ -405,6 +439,11 @@
         return v2Code;
       }
 
+      const jsonSmsCode = extractPayPalVerificationCodeFromSmsContent(payload);
+      if (jsonSmsCode) {
+        return jsonSmsCode;
+      }
+
       const okMatch = text.match(/^STATUS_OK:(.+)$/i);
       if (okMatch) {
         const extractedCode = extractVerificationCode(okMatch[1] || '');
@@ -423,6 +462,12 @@
       }
 
       if (statusAction === 'getStatusV2' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        await emitWaitingForCode(text || 'PENDING');
+        await deps.sleepWithStop?.(intervalMs);
+        continue;
+      }
+
+      if (isJsonStatusPayload(payload)) {
         await emitWaitingForCode(text || 'PENDING');
         await deps.sleepWithStop?.(intervalMs);
         continue;
