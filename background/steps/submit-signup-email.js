@@ -40,6 +40,8 @@
       return /Content script on signup-page did not respond in \d+s|内容脚本\s+\d+(?:\.\d+)?\s*秒内未响应|Receiving end does not exist|message channel closed|A listener indicated an asynchronous response|port closed before a response was received|did not respond in \d+s/i.test(message);
     }
 
+    const STEP2_EMAIL_ENTRY_REFRESH_MAX_ATTEMPTS = 2;
+
     function shouldPreserveSignupPhoneActivationOnStop(state = {}, errorLike = null) {
       const message = getErrorMessage(errorLike);
       return state?.phoneAutoReleaseOnStopEnabled === false
@@ -264,6 +266,29 @@
       return signupTabId;
     }
 
+    async function refreshSignupTabForEmailEntryRetry(tabId, attempt, maxAttempts) {
+      if (!Number.isInteger(tabId) || typeof chrome?.tabs?.reload !== 'function') {
+        throw new Error('步骤 2：当前注册页标签不可刷新。');
+      }
+      await addLog(
+        `步骤 2：未找到可用的邮箱输入入口，正在刷新页面后重试（${attempt}/${maxAttempts}）...`,
+        'warn',
+        { step: 2, stepKey: 'signup-entry' }
+      );
+      await chrome.tabs.reload(tabId, { bypassCache: false });
+      await waitForStep2SignupTabToSettle(
+        tabId,
+        `步骤 2：刷新后正在等待注册页重新加载并额外稳定 3 秒（${attempt}/${maxAttempts}）...`
+      );
+      await ensureContentScriptReadyOnTab('signup-page', tabId, {
+        inject: SIGNUP_PAGE_INJECT_FILES,
+        injectSource: 'signup-page',
+        timeoutMs: 45000,
+        retryDelayMs: 900,
+        logMessage: `步骤 2：刷新后的注册入口页内容脚本未就绪，正在等待页面恢复（${attempt}/${maxAttempts}）...`,
+      });
+    }
+
     function normalizeSignupPhoneActivationForStep2(activation) {
       if (typeof phoneVerificationHelpers?.normalizeActivation === 'function') {
         return phoneVerificationHelpers.normalizeActivation(activation);
@@ -379,6 +404,44 @@
             retryDelayMs: 700,
             logMessage: '步骤 2：手机号注册入口已就绪，正在重新提交手机号...',
           });
+        }
+      }
+
+      if (step2Result?.error) {
+        const finalErrorMessage = getErrorMessage(step2Result.error);
+        if (isSignupEntryUnavailableErrorMessage(finalErrorMessage)) {
+          let recovered = false;
+          for (let refreshAttempt = 1; refreshAttempt <= STEP2_EMAIL_ENTRY_REFRESH_MAX_ATTEMPTS; refreshAttempt += 1) {
+            await refreshSignupTabForEmailEntryRetry(
+              signupTabId,
+              refreshAttempt,
+              STEP2_EMAIL_ENTRY_REFRESH_MAX_ATTEMPTS
+            );
+            step2Result = await submitSignupEmail(resolvedEmail, {
+              timeoutMs: 35000,
+              retryDelayMs: 700,
+              logMessage: `步骤 2：刷新后正在重新提交邮箱（${refreshAttempt}/${STEP2_EMAIL_ENTRY_REFRESH_MAX_ATTEMPTS}）...`,
+            });
+            if (!step2Result?.error) {
+              recovered = true;
+              break;
+            }
+            const refreshedErrorMessage = getErrorMessage(step2Result.error);
+            if (!isSignupEntryUnavailableErrorMessage(refreshedErrorMessage)) {
+              break;
+            }
+          }
+          if (!recovered) {
+            const latestErrorMessage = getErrorMessage(step2Result?.error || finalErrorMessage);
+            if (
+              (isSignupEntryUnavailableErrorMessage(latestErrorMessage)
+                || isRetryableStep2TransportErrorMessage(latestErrorMessage))
+              && await failStep2OnLoggedInSession(signupTabId, latestErrorMessage)
+            ) {
+              return;
+            }
+            throw new Error(latestErrorMessage);
+          }
         }
       }
 

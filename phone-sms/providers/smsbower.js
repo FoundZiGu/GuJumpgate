@@ -125,6 +125,40 @@
     return String(raw || '').trim();
   }
 
+  function isJsonStatusPayload(payload) {
+    return Boolean(
+      payload
+      && typeof payload === 'object'
+      && !Array.isArray(payload)
+      && Object.prototype.hasOwnProperty.call(payload, 'code')
+      && (
+        Object.prototype.hasOwnProperty.call(payload, 'msg')
+        || Object.prototype.hasOwnProperty.call(payload, 'data')
+      )
+    );
+  }
+
+  function extractPayPalVerificationCodeFromSmsContent(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return '';
+    }
+    if (Number(payload.code) !== 0) {
+      return '';
+    }
+    const smsList = Array.isArray(payload?.data?.sms_content) ? payload.data.sms_content : [];
+    for (const smsItem of smsList) {
+      const content = String(smsItem?.content || '').trim();
+      if (!content) {
+        continue;
+      }
+      const match = content.match(/PayPal:\s*(\d{6})\b/i);
+      if (match?.[1]) {
+        return match[1];
+      }
+    }
+    return '';
+  }
+
   function resolveConfig(state = {}, deps = {}) {
     return {
       apiKey: String(state.smsBowerApiKey || '').trim(),
@@ -348,6 +382,10 @@
     return okMatch ? extractVerificationCode(okMatch[1]) : '';
   }
 
+  function extractCodeFromPayload(payload) {
+    return extractPayPalVerificationCodeFromSmsContent(payload);
+  }
+
   async function captureExistingCodesForActivation(state = {}, activation, deps = {}) {
     const normalizedActivation = normalizeActivation(activation, activation);
     if (!normalizedActivation) {
@@ -458,6 +496,31 @@
         continue;
       }
 
+      const jsonCode = extractCodeFromPayload(payload);
+      if (jsonCode) {
+        if (!ignoredCodes.has(jsonCode)) {
+          return jsonCode;
+        }
+        if (!ignoredHistoricalCodeLogged) {
+          ignoredHistoricalCodeLogged = true;
+          await deps.addLog?.(
+            `步骤 8：SMSBower 复用订单 ${normalizedActivation.phoneNumber} 命中历史验证码，继续等待新短信。`,
+            'info'
+          );
+        }
+        if (typeof options.onWaitingForCode === 'function') {
+          await options.onWaitingForCode({
+            activation: normalizedActivation,
+            elapsedMs: Date.now() - start,
+            pollCount,
+            statusText: lastResponse,
+            timeoutMs,
+          });
+        }
+        await deps.sleepWithStop(intervalMs);
+        continue;
+      }
+
       if (/^STATUS_(WAIT_CODE|WAIT_RETRY|WAIT_RESEND)(?::.+)?$/i.test(lastResponse)) {
         if (typeof options.onWaitingForCode === 'function') {
           await options.onWaitingForCode({
@@ -465,6 +528,20 @@
             elapsedMs: Date.now() - start,
             pollCount,
             statusText: lastResponse,
+            timeoutMs,
+          });
+        }
+        await deps.sleepWithStop(intervalMs);
+        continue;
+      }
+
+      if (isJsonStatusPayload(payload)) {
+        if (typeof options.onWaitingForCode === 'function') {
+          await options.onWaitingForCode({
+            activation: normalizedActivation,
+            elapsedMs: Date.now() - start,
+            pollCount,
+            statusText: lastResponse || 'PENDING',
             timeoutMs,
           });
         }

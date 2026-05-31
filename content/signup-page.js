@@ -4290,7 +4290,7 @@ function findChooseAccountExistingSessionButton({ allowDisabled = false } = {}) 
     return (
       ddActionName === 'select existing session'
       || (name === 'session_id' && Boolean(value))
-      || (/选择帐户|选择账户|select\s+account|欢迎回来|welcome\s+back/i.test(text) && Boolean(value))
+      || (/选择帐户|选择账户|select\s+account|欢迎回来|welcome\s+back|アカウントを選択|アカウント選択|おかえりなさい/i.test(text) && Boolean(value))
     );
   }) || null;
 }
@@ -4301,7 +4301,7 @@ function isChooseAccountPageReady() {
   if (/\/choose-an-account(?:[/?#]|$)/i.test(path) && findChooseAccountExistingSessionButton({ allowDisabled: true })) {
     return true;
   }
-  return /欢迎回来|welcome\s+back|选择一个帐户以继续|选择一个账户以继续|choose\s+an?\s+account\s+to\s+continue/i.test(pageText)
+  return /欢迎回来|welcome\s+back|选择一个帐户以继续|选择一个账户以继续|choose\s+an?\s+account\s+to\s+continue|おかえりなさい|続行するアカウントを選択|アカウントを選択|アカウント選択/i.test(pageText)
     && Boolean(findChooseAccountExistingSessionButton({ allowDisabled: true }));
 }
 
@@ -5803,6 +5803,20 @@ async function waitForChooseAccountTransition(timeout = 12000) {
   return snapshot;
 }
 
+function triggerChooseAccountExistingSession(button) {
+  const form = button?.form || button?.closest?.('form') || null;
+  if (form && typeof form.requestSubmit === 'function') {
+    form.requestSubmit(button);
+    return 'requestSubmit';
+  }
+  if (button && typeof button.click === 'function') {
+    button.click();
+    return 'nativeClick';
+  }
+  simulateClick(button);
+  return 'dispatchClick';
+}
+
 async function step6ChooseExistingAccount(payload, snapshot) {
   const performOperationWithDelay = typeof getOperationDelayRunner === 'function'
     ? getOperationDelayRunner()
@@ -5822,40 +5836,67 @@ async function step6ChooseExistingAccount(payload, snapshot) {
 
   log('检测到已有账号选择页，优先点击已有账号继续登录。', 'info', { step: visibleStep, stepKey: 'oauth-login' });
   await humanPause(350, 900);
+  let triggerMethod = 'dispatchClick';
   await performOperationWithDelay({ stepKey: 'oauth-login', kind: 'click', label: 'select-existing-session' }, async () => {
-    simulateClick(existingSessionButton);
+    triggerMethod = triggerChooseAccountExistingSession(existingSessionButton);
   });
+  log(`已有账号按钮已触发：${triggerMethod}。`, 'info', { step: visibleStep, stepKey: 'oauth-login' });
 
   const nextSnapshot = normalizeStep6Snapshot(await waitForChooseAccountTransition(15000));
-  if (nextSnapshot.state === 'verification_page' || nextSnapshot.state === 'phone_verification_page') {
+  if (nextSnapshot.state === 'choose_account_page') {
+    const retryButton = nextSnapshot.existingSessionButton || findChooseAccountExistingSessionButton();
+    if (retryButton && isActionEnabled(retryButton)) {
+      await humanPause(300, 700);
+      await performOperationWithDelay({ stepKey: 'oauth-login', kind: 'submit', label: 'retry-select-existing-session' }, async () => {
+        if (retryButton !== existingSessionButton && retryButton?.form && typeof retryButton.form.requestSubmit === 'function') {
+          retryButton.form.requestSubmit(retryButton);
+          triggerMethod = 'retryRequestSubmit';
+          return;
+        }
+        if (retryButton && typeof retryButton.click === 'function') {
+          retryButton.click();
+          triggerMethod = 'retryNativeClick';
+          return;
+        }
+        simulateClick(retryButton);
+        triggerMethod = 'retryDispatchClick';
+      });
+      log(`已有账号按钮首次触发后页面未推进，已重试：${triggerMethod}。`, 'warn', { step: visibleStep, stepKey: 'oauth-login' });
+    }
+  }
+
+  const settledSnapshot = nextSnapshot.state === 'choose_account_page'
+    ? normalizeStep6Snapshot(await waitForChooseAccountTransition(12000))
+    : nextSnapshot;
+  if (settledSnapshot.state === 'verification_page' || settledSnapshot.state === 'phone_verification_page') {
     return finalizeStep6VerificationReady({
       visibleStep,
       loginVerificationRequestedAt: null,
-      via: nextSnapshot.state === 'phone_verification_page'
+      via: settledSnapshot.state === 'phone_verification_page'
         ? 'choose_account_phone_verification_page'
         : 'choose_account_verification_page',
-      allowPhoneVerificationPage: nextSnapshot.state === 'phone_verification_page',
+      allowPhoneVerificationPage: settledSnapshot.state === 'phone_verification_page',
     });
   }
-  if (nextSnapshot.state === 'oauth_consent_page') {
-    return createStep6OAuthConsentSuccessResult(nextSnapshot, {
+  if (settledSnapshot.state === 'oauth_consent_page') {
+    return createStep6OAuthConsentSuccessResult(settledSnapshot, {
       via: 'choose_account_oauth_consent_page',
     });
   }
-  if (nextSnapshot.state === 'add_email_page') {
-    return createStep6AddEmailSuccessResult(nextSnapshot, {
+  if (settledSnapshot.state === 'add_email_page') {
+    return createStep6AddEmailSuccessResult(settledSnapshot, {
       via: 'choose_account_add_email_page',
     });
   }
-  if (nextSnapshot.state === 'add_phone_page') {
-    return createStep6AddPhoneSuccessResult(nextSnapshot, {
+  if (settledSnapshot.state === 'add_phone_page') {
+    return createStep6AddPhoneSuccessResult(settledSnapshot, {
       via: 'choose_account_add_phone_page',
     });
   }
-  if (nextSnapshot.state === 'login_timeout_error_page') {
+  if (settledSnapshot.state === 'login_timeout_error_page') {
     const transition = await createStep6LoginTimeoutRecoveryTransition(
       'choose_account_login_timeout',
-      nextSnapshot,
+      settledSnapshot,
       '点击已有账号后进入登录超时报错页。',
       { visibleStep, loginVerificationRequestedAt: null }
     );
@@ -5865,19 +5906,19 @@ async function step6ChooseExistingAccount(payload, snapshot) {
     if (transition.action === 'password') return step6LoginFromPasswordPage(payload, transition.snapshot);
     return transition.result;
   }
-  if (nextSnapshot.state === 'email_page') {
-    return step6LoginFromEmailPage(payload, nextSnapshot);
+  if (settledSnapshot.state === 'email_page') {
+    return step6LoginFromEmailPage(payload, settledSnapshot);
   }
-  if (nextSnapshot.state === 'phone_entry_page') {
-    return step6LoginFromPhonePage(payload, nextSnapshot);
+  if (settledSnapshot.state === 'phone_entry_page') {
+    return step6LoginFromPhonePage(payload, settledSnapshot);
   }
-  if (nextSnapshot.state === 'password_page') {
-    return step6LoginFromPasswordPage(payload, nextSnapshot);
+  if (settledSnapshot.state === 'password_page') {
+    return step6LoginFromPasswordPage(payload, settledSnapshot);
   }
-  if (nextSnapshot.state === 'entry_page') {
-    return step6OpenLoginEntry(payload, nextSnapshot);
+  if (settledSnapshot.state === 'entry_page') {
+    return step6OpenLoginEntry(payload, settledSnapshot);
   }
-  return createStep6RecoverableResult('choose_account_stalled', nextSnapshot, {
+  return createStep6RecoverableResult('choose_account_stalled', settledSnapshot, {
     message: '点击已有账号后仍未进入验证码页、绑定邮箱页或 OAuth 授权页。',
   });
 }
