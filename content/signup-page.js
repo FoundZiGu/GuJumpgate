@@ -517,7 +517,7 @@ async function handle405ResendError(step, remainingTimeout = 30000) {
 // Signup Entry Helpers
 // ============================================================
 
-const SIGNUP_ENTRY_TRIGGER_PATTERN = /免费注册|立即注册|注册|创建(?:账号|帐号|账户|帐户)|sign\s*up|register|create\s*account|create\s+account|get\s*started/i;
+const SIGNUP_ENTRY_TRIGGER_PATTERN = /免费注册|立即注册|注册|註冊|创建(?:账号|帐号|账户|帐户|帳戶|帳號)|建立(?:帳戶|帳號)|sign\s*up|signup|register|create\s*account|create\s+account|get\s*started|無料でサインアップ|サインアップ|アカウント作成|登録|가입|계정\s*생성/i;
 const SIGNUP_EMAIL_INPUT_SELECTOR = [
   'input[type="email"]',
   'input[autocomplete="email"]',
@@ -548,9 +548,9 @@ const SIGNUP_SWITCH_TO_EMAIL_PATTERN = new RegExp([
   String.raw`use\s+(?:an?\s+)?email(?:\s+address)?(?:\s+instead)?`,
   String.raw`sign\s*(?:in|up)\s+with\s+email`,
 ].join('|'), 'i');
-const SIGNUP_SWITCH_ACTION_PATTERN = /\u7ee7\u7eed\u4f7f\u7528|\u6539\u7528|continue|use|sign\s*(?:in|up)/i;
-const SIGNUP_EMAIL_ACTION_PATTERN = /\u7535\u5b50\u90ae\u4ef6|\u90ae\u7bb1|email/i;
-const SIGNUP_PHONE_ACTION_PATTERN = /手机|手机号|电话号码|phone|telephone|mobile/i;
+const SIGNUP_SWITCH_ACTION_PATTERN = /\u7ee7\u7eed\u4f7f\u7528|\u6539\u7528|continue|use|sign\s*(?:in|up)|続ける|使用|계속/i;
+const SIGNUP_EMAIL_ACTION_PATTERN = /\u7535\u5b50\u90ae\u4ef6|\u90ae\u7bb1|電子郵件|邮箱|email|メール|이메일/i;
+const SIGNUP_PHONE_ACTION_PATTERN = /手机|手机号|电话号码|phone|telephone|mobile|電話|携帯|전화/i;
 const SIGNUP_SWITCH_TO_PHONE_PATTERN = new RegExp([
   String.raw`\u7ee7\u7eed\u4f7f\u7528(?:\u624b\u673a|\u624b\u673a\u53f7|\u7535\u8bdd\u53f7\u7801)(?:\u53f7\u7801)?\u767b\u5f55`,
   String.raw`\u6539\u7528(?:\u624b\u673a|\u624b\u673a\u53f7|\u7535\u8bdd\u53f7\u7801)(?:\u53f7\u7801)?\u767b\u5f55`,
@@ -561,7 +561,7 @@ const SIGNUP_SWITCH_TO_PHONE_PATTERN = new RegExp([
   String.raw`use\s+(?:a\s+)?phone(?:\s+number)?(?:\s+instead)?`,
   String.raw`sign\s*(?:in|up)\s+with\s+(?:a\s+)?phone`,
 ].join('|'), 'i');
-const SIGNUP_MORE_OPTIONS_PATTERN = /更多选项|其它方式|其他方式|more\s+options|show\s+more|other\s+(?:options|ways)/i;
+const SIGNUP_MORE_OPTIONS_PATTERN = /更多选项|其它方式|其他方式|其他選項|其他方式|more\s+options|show\s+more|other\s+(?:options|ways)|その他のオプション|다른\s*옵션/i;
 const SIGNUP_WORK_EMAIL_PATTERN = /\u5de5\u4f5c|business|work\s+email/i;
 
 function getSignupEmailInput() {
@@ -660,7 +660,7 @@ function getSignupEmailContinueButton({ allowDisabled = false } = {}) {
   );
   return Array.from(candidates).find((el) => {
     if (!isVisibleElement(el) || (!allowDisabled && !isActionEnabled(el))) return false;
-    return /continue|next|submit|继续|下一步/i.test(getActionText(el));
+    return /continue|next|submit|继续|下一步|繼續|次へ|続ける|送信|계속|다음/i.test(getActionText(el));
   }) || null;
 }
 
@@ -2780,12 +2780,12 @@ async function step3_fillEmailPassword(payload) {
 // ============================================================
 
 const INVALID_VERIFICATION_CODE_PATTERN = /代码不正确|验证码不正确|验证码错误|code\s+(?:is\s+)?incorrect|invalid\s+code|incorrect\s+code|try\s+again/i;
-const VERIFICATION_PAGE_PATTERN = /检查您的收件箱|输入我们刚刚向|重新发送电子邮件|重新发送验证码|代码不正确|email\s+verification|check\s+your\s+inbox|enter\s+the\s+code|we\s+just\s+sent|we\s+emailed|resend/i;
-const OAUTH_CONSENT_PAGE_PATTERN = /使用\s*ChatGPT\s*登录到\s*Codex|sign\s+in\s+to\s+codex(?:\s+with\s+chatgpt)?|login\s+to\s+codex|log\s+in\s+to\s+codex|authorize|授权/i;
+const VERIFICATION_PAGE_PATTERN = /检查您的收件箱|输入我们刚刚向|重新发送电子邮件|重新发送验证码|代码不正确|email\s+verification|check\s+your\s+inbox|enter\s+the\s+code|we\s+just\s+sent|we\s+emailed|resend|受信トレイを確認|コードを入力|받은\s*편지함\s*확인|코드\s*입력/i;
+const OAUTH_CONSENT_PAGE_PATTERN = /使用\s*ChatGPT\s*登录到\s*Codex|sign\s+in\s+to\s+codex(?:\s+with\s+chatgpt)?|login\s+to\s+codex|log\s+in\s+to\s+codex|authorize|授权|授權|承認|승인/i;
 const OAUTH_CONSENT_FORM_SELECTOR = 'form[action*="/sign-in-with-chatgpt/" i][action*="/consent" i]';
-const CONTINUE_ACTION_PATTERN = /继续|continue/i;
-const ADD_PHONE_PAGE_PATTERN = /add[\s-]*(?:a\s+)?phone|添加(?:手机|手机号|电话号码)|绑定(?:手机|手机号|电话号码)|验证(?:你的|您)?(?:手机|手机号|电话号码)|需要(?:手机|手机号|电话号码)|提供(?:手机|手机号|电话号码)|provide\s+(?:a\s+)?phone\s+number|phone\s+number\s+(?:required|verification)|verify\s+(?:your\s+)?phone|confirm\s+(?:your\s+)?phone/i;
-const ADD_EMAIL_PAGE_PATTERN = /add[\s-]*email|添加(?:电子邮件|邮箱)|要求提供(?:电子邮件|邮箱)地址|提供(?:电子邮件|邮箱)地址|provide\s+(?:an?\s+)?email\s+address|email\s+address\s+required/i;
+const CONTINUE_ACTION_PATTERN = /继续|繼續|continue|続ける|계속/i;
+const ADD_PHONE_PAGE_PATTERN = /add[\s-]*(?:a\s+)?phone|添加(?:手机|手机号|电话号码|手機|手機號|電話號碼)|绑定(?:手机|手机号|电话号码|綁定|手機|手機號|電話號碼)|验证(?:你的|您)?(?:手机|手机号|电话号码|驗證|手機|手機號|電話號碼)|需要(?:手机|手机号|电话号码|手機|手機號|電話號碼)|提供(?:手机|手机号|电话号码|手機|手機號|電話號碼)|provide\s+(?:a\s+)?phone\s+number|phone\s+number\s+(?:required|verification)|verify\s+(?:your\s+)?phone|confirm\s+(?:your\s+)?phone|電話番号|전화번호/i;
+const ADD_EMAIL_PAGE_PATTERN = /add[\s-]*email|添加(?:电子邮件|電子郵件|邮箱)|要求提供(?:电子邮件|電子郵件|邮箱)地址|提供(?:电子邮件|電子郵件|邮箱)地址|provide\s+(?:an?\s+)?email\s+address|email\s+address\s+required|メールアドレス|이메일\s*주소/i;
 const STEP5_SUBMIT_ERROR_PATTERN = /无法根据该信息创建帐户|请重试|unable\s+to\s+create\s+(?:your\s+)?account|couldn'?t\s+create\s+(?:your\s+)?account|something\s+went\s+wrong|invalid\s+(?:birthday|birth|date)|生日|出生日期/i;
 const AUTH_TIMEOUT_ERROR_TITLE_PATTERN = /糟糕，出错了|something\s+went\s+wrong|oops/i;
 const AUTH_TIMEOUT_ERROR_DETAIL_PATTERN = /operation\s+timed\s+out|timed\s+out|请求超时|操作超时|failed\s+to\s+fetch|network\s+error|fetch\s+failed/i;
@@ -2796,8 +2796,8 @@ const SIGNUP_USER_ALREADY_EXISTS_ERROR_PREFIX = 'SIGNUP_USER_ALREADY_EXISTS::';
 const SIGNUP_PHONE_PASSWORD_MISMATCH_ERROR_PREFIX = 'SIGNUP_PHONE_PASSWORD_MISMATCH::';
 const AUTH_MAX_CHECK_ATTEMPTS_ERROR_PREFIX = 'AUTH_MAX_CHECK_ATTEMPTS::';
 const STEP8_EMAIL_IN_USE_ERROR_PREFIX = 'STEP8_EMAIL_IN_USE::';
-const SIGNUP_EMAIL_EXISTS_PATTERN = /与此电子邮件地址相关联的帐户已存在|account\s+associated\s+with\s+this\s+email\s+address\s+already\s+exists|email\s+address.*already\s+exists/i;
-const SIGNUP_PHONE_PASSWORD_MISMATCH_PATTERN = /incorrect\s+phone\s+number\s+or\s+password|phone\s+number\s+or\s+password|与此(?:电话|手机)号码相关联的帐户已存在|account\s+associated\s+with\s+this\s+phone\s+number\s+already\s+exists/i;
+const SIGNUP_EMAIL_EXISTS_PATTERN = /与此电子邮件地址相关联的帐户已存在|與此電子郵件地址相關聯的帳戶已存在|account\s+associated\s+with\s+this\s+email\s+address\s+already\s+exists|email\s+address.*already\s+exists|既に存在|이미\s*존재하는/i;
+const SIGNUP_PHONE_PASSWORD_MISMATCH_PATTERN = /incorrect\s+phone\s+number\s+or\s+password|phone\s+number\s+or\s+password|与此(?:电话|手机)号码相关联的帐户已存在|與此(?:鐵路|手機|電話)號碼相關聯的帳戶已存在|account\s+associated\s+with\s+this\s+phone\s+number\s+already\s+exists/i;
 
 const authPageRecovery = self.MultiPageAuthPageRecovery?.createAuthPageRecovery?.({
   detailPattern: AUTH_TIMEOUT_ERROR_DETAIL_PATTERN,
@@ -3589,7 +3589,7 @@ function getSignupPasswordSubmitButton({ allowDisabled = false } = {}) {
   return Array.from(candidates).find((el) => {
     if (!isVisibleElement(el) || (!allowDisabled && !isActionEnabled(el))) return false;
     const text = getActionText(el);
-    return /继续|continue|submit|创建|create/i.test(text);
+    return /继续|繼續|continue|submit|创建|建立|create|続ける|次へ|送信|계속|다음/i.test(text);
   }) || null;
 }
 
@@ -4069,7 +4069,7 @@ function getLoginSubmitButton({ allowDisabled = false } = {}) {
     if (!isVisibleElement(el) || (!allowDisabled && !isActionEnabled(el))) return false;
     const text = getActionText(el);
     if (!text || ONE_TIME_CODE_LOGIN_PATTERN.test(text)) return false;
-    return /continue|next|submit|sign\s*in|log\s*in|继续|下一步|登录/i.test(text);
+    return /continue|next|submit|sign\s*in|log\s*in|继续|下一步|繼續|次へ|続ける|送信|ログイン|登录|登入/i.test(text);
   }) || null;
 }
 
@@ -4290,7 +4290,7 @@ function findChooseAccountExistingSessionButton({ allowDisabled = false } = {}) 
     return (
       ddActionName === 'select existing session'
       || (name === 'session_id' && Boolean(value))
-      || (/选择帐户|选择账户|select\s+account|欢迎回来|welcome\s+back/i.test(text) && Boolean(value))
+      || (/选择帐户|选择账户|選擇帳戶|select\s+account|欢迎回来|welcome\s+back|アカウントを選択|계정\s*선택/i.test(text) && Boolean(value))
     );
   }) || null;
 }
@@ -4301,7 +4301,7 @@ function isChooseAccountPageReady() {
   if (/\/choose-an-account(?:[/?#]|$)/i.test(path) && findChooseAccountExistingSessionButton({ allowDisabled: true })) {
     return true;
   }
-  return /欢迎回来|welcome\s+back|选择一个帐户以继续|选择一个账户以继续|choose\s+an?\s+account\s+to\s+continue/i.test(pageText)
+  return /欢迎回来|welcome\s+back|选择一个帐户以继续|选择一个账户以继续|選擇一個帳戶以繼續|choose\s+an?\s+account\s+to\s+continue|おかえりなさい|アカウントを選択して続ける|환영합니다|계정을\s*선택하여\s*계속/i.test(pageText)
     && Boolean(findChooseAccountExistingSessionButton({ allowDisabled: true }));
 }
 
