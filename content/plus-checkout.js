@@ -143,7 +143,8 @@ async function waitForDocumentComplete() {
 
 function isHostedOpenAiCheckoutPage() {
   const host = String(location?.host || '').toLowerCase();
-  return host.includes('pay.openai.com') || host.includes('checkout.stripe.com');
+  const path = String(location?.pathname || '').toLowerCase();
+  return host.includes('pay.openai.com') || host.includes('checkout.stripe.com') || (host.includes('chatgpt.com') && path.startsWith('/checkout/'));
 }
 
 let hostedOpenAiAutocompleteObserver = null;

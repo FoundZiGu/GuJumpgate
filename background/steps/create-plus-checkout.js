@@ -3297,7 +3297,7 @@ function FindProxyForURL(url, host) {
         tabId,
         (url) => {
           const u = String(url || '').toLowerCase();
-          return u.includes('pay.openai.com') || u.includes('checkout.stripe.com');
+          return u.includes('pay.openai.com') || u.includes('checkout.stripe.com') || (u.includes('chatgpt.com') && u.includes('/checkout/'));
         },
         15000,
         500

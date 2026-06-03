@@ -120,7 +120,8 @@
     {
       "matches": [
         "https://pay.openai.com/*",
-        "https://checkout.stripe.com/*"
+        "https://checkout.stripe.com/*",
+        "https://chatgpt.com/checkout/*"
       ],
       "js": [
         "content/activation-utils.js",
