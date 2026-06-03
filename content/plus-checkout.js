@@ -263,6 +263,93 @@ function fillHostedOpenAiSelectByIdText(id, text) {
   return true;
 }
 
+function findBillingNameInput() {
+  const direct = document.getElementById('billingName');
+  if (direct && isVisibleElement(direct)) {
+    return direct;
+  }
+  return getVisibleTextInputs().find((input) => {
+    const id = String(input?.id || '').toLowerCase();
+    const name = String(input?.name || '').toLowerCase();
+    const autoComplete = String(input?.getAttribute?.('autocomplete') || '').toLowerCase();
+    return id.includes('name') || name.includes('name') || autoComplete.includes('name');
+  }) || null;
+}
+
+async function fillBillingName(nameText) {
+  const input = await waitUntil(() => {
+    const candidate = findBillingNameInput();
+    return candidate && isVisibleElement(candidate) && !candidate.disabled ? candidate : null;
+  }, {
+    label: '账单姓名输入框',
+    intervalMs: 100,
+    timeoutMs: 3000,
+  }).catch(() => null);
+
+  if (input) {
+    fillInput(input, String(nameText || ''));
+    return true;
+  }
+  return false;
+}
+
+async function waitAndFillHostedInput(selector, value, label = '') {
+  const input = await waitUntil(() => {
+    const el = document.querySelector(selector);
+    return el && isVisibleElement(el) && !el.disabled ? el : null;
+  }, {
+    label: label || selector,
+    intervalMs: 100,
+    timeoutMs: 3000,
+  }).catch(() => null);
+
+  if (input) {
+    fillInput(input, String(value || ''));
+    return true;
+  }
+  return false;
+}
+
+async function waitAndFillHostedSelectByIdText(id, text, label = '') {
+  const select = await waitUntil(() => {
+    const el = document.getElementById(id);
+    return el && isVisibleElement(el) && !el.disabled ? el : null;
+  }, {
+    label: label || id,
+    intervalMs: 100,
+    timeoutMs: 3000,
+  }).catch(() => null);
+
+  if (!select) return false;
+
+  const expected = normalizeText(text);
+  if (!expected) return false;
+
+  if (String(select.tagName || '').toUpperCase() === 'SELECT') {
+    const match = Array.from(select.options || []).find((option) => {
+      const optionText = normalizeText(option?.textContent || option?.label || '');
+      const optionValue = normalizeText(option?.value || '');
+      if (String(id || '').trim() === 'billingAdministrativeArea') {
+        return matchesRegionOption(optionText, expected) || matchesRegionOption(optionValue, expected);
+      }
+      return optionText.toLowerCase().includes(expected.toLowerCase())
+        || optionValue.toLowerCase().includes(expected.toLowerCase());
+    });
+
+    if (match) {
+      select.value = match.value;
+      match.selected = true;
+      select.dispatchEvent(new Event('input', { bubbles: true }));
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+    return false;
+  } else {
+    fillInput(select, expected);
+    return true;
+  }
+}
+
 const HOSTED_OPENAI_JP_PREFECTURE_ALIASES = Object.freeze({
   hokkaido: '北海道',
   aomori: '青森県',
@@ -351,10 +438,10 @@ function getHostedOpenAiBillingAdministrativeAreaCandidates(address = {}) {
   })));
 }
 
-function fillHostedOpenAiBillingAdministrativeArea(address = {}) {
+async function fillHostedOpenAiBillingAdministrativeArea(address = {}) {
   const candidates = getHostedOpenAiBillingAdministrativeAreaCandidates(address);
   for (const candidate of candidates) {
-    if (fillHostedOpenAiSelectByIdText('billingAdministrativeArea', candidate)) {
+    if (await waitAndFillHostedSelectByIdText('billingAdministrativeArea', candidate, '账单省份/辖区')) {
       return true;
     }
   }
@@ -702,15 +789,25 @@ async function runHostedOpenAiCheckoutStep(payload = {}) {
 
   const contactEmail = String(payload.email || payload.registrationEmail || '').trim();
   const emailFillResult = await fillCheckoutContactEmail(contactEmail);
+
+  // 填写账单姓名（全名），默认兜底为 "James Smith"
+  const contactName = String(payload.name || payload.fullName || payload.address?.name || '').trim() || 'James Smith';
+  await fillBillingName(contactName);
+
   const address = payload.address && typeof payload.address === 'object' ? payload.address : {};
   const addressCountryCode = String(address.countryCode || payload.countryCode || 'US').trim().toUpperCase() === 'JP'
     ? 'JP'
     : 'US';
   await selectCountryDropdown(findCountryDropdown(), addressCountryCode);
-  fillHostedOpenAiInputBySelector('#billingAddressLine1', address.street || '');
-  fillHostedOpenAiInputBySelector('#billingLocality', address.city || '');
-  fillHostedOpenAiInputBySelector('#billingPostalCode', address.zip || '');
-  fillHostedOpenAiBillingAdministrativeArea(address);
+
+  // 增加等待时间让不同国家的账单输入框重渲染完成
+  await sleep(1000);
+
+  // 支持等待和填充地址字段，解决重渲染导致的空元素或元素失效问题
+  await waitAndFillHostedInput('#billingAddressLine1', address.street || address.addressLine1 || '', '账单地址第1行');
+  await waitAndFillHostedInput('#billingLocality', address.city || '', '账单城市');
+  await waitAndFillHostedInput('#billingPostalCode', address.zip || address.postalCode || '', '账单邮编');
+  await fillHostedOpenAiBillingAdministrativeArea(address);
 
   const checkbox = document.getElementById('termsOfServiceConsentCheckbox');
   if (checkbox && !checkbox.checked) {

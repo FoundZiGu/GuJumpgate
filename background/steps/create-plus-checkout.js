@@ -3321,6 +3321,7 @@ function FindProxyForURL(url, host) {
         source: 'background',
         payload: {
           email: registrationEmail,
+          name: guestProfile.fullName,
           address: guestProfile.address,
         },
       });
@@ -3396,6 +3397,7 @@ function FindProxyForURL(url, host) {
             source: 'background',
             payload: {
               email: registrationEmail,
+              name: guestProfile.fullName,
               address: guestProfile.address,
             },
           });
@@ -3428,6 +3430,7 @@ function FindProxyForURL(url, host) {
             source: 'background',
             payload: {
               email: registrationEmail,
+              name: guestProfile.fullName,
               address: guestProfile.address,
             },
           });
