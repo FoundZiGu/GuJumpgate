@@ -452,14 +452,11 @@ function findHostedOpenAiSubmitButton() {
     return direct;
   }
   const buttons = Array.from(document.querySelectorAll('button'));
+  // 支持多语言（英语、中文、日语、韩语等）的订阅/支付/提交/继续/同意按钮文本模式
+  const pattern = /subscribe|subscription|pay|purchase|trial|continue|agree|下一页|订阅|支付|付款|购买|试用|继续|同意|申し込む|購読|定期購読|サブスクリプション|支払|購入|トライアル|続行|続ける|同意|구독|결제|구매|체험|계속|동의/i;
   return buttons.find((button) => {
     const text = normalizeText(button.textContent || '');
-    return text === '下一页'
-      || text === 'Next'
-      || text === 'Pay'
-      || text === 'Continue'
-      || text === 'Agree'
-      || text.toLowerCase().includes('subscribe');
+    return pattern.test(text);
   }) || null;
 }
 
@@ -1784,7 +1781,8 @@ function findCountryDropdown() {
   return controls.find((control) => {
     if (!isEnabledControl(control) || isDocumentLevelContainer(control)) return false;
     const text = getFieldText(control);
-    return /country/i.test(text) || /\u56fd\u5bb6|\u56fd\u5bb6\u6216\u5730\u533a/.test(text);
+    // 支持多语言：country, 国家, 国家或地区, 国, 地域, 국가, 지역
+    return /country/i.test(text) || /\u56fd|\u5730\u57df|\uad6d\uac00|\uc9c0\uc5ed/.test(text);
   }) || null;
 }
 
@@ -1826,10 +1824,12 @@ function findRegionDropdown() {
   return controls.find((control) => {
     if (!isEnabledControl(control) || isDocumentLevelContainer(control)) return false;
     const text = getFieldText(control);
-    if (/country/i.test(text) || /\u56fd\u5bb6|\u5730\u533a/.test(text)) return false;
+    // 排除国家相关的字段名（支持多语言）
+    if (/country/i.test(text) || /\u56fd|\u5730\u57df|\uad6d\uac00|\uc9c0\uc5ed/.test(text)) return false;
+    // 支持各国的省/州/都道府县/行政区划字段名
     return /state|province|county|prefecture|administrative|administrative[_-]?area/i.test(text)
       || /(?:^|\s)region(?:\s|$)/i.test(text)
-      || /\u5dde|\u7701|\u8f96\u533a|\u90fd\u9053\u5e9c\u53bf/.test(text);
+      || /\u5dde|\u7701|\u8f96\u533a|\u90fd\u9053\u5e9c\u53bf|\uc2dc|\ub3c4/.test(text);
   }) || null;
 }
 
@@ -2203,14 +2203,14 @@ function findSubscribeButton() {
   const submitButtons = getVisibleControls('button[type="submit"], input[type="submit"]');
   const exactSubmit = submitButtons.find((button) => (
     isEnabledControl(button)
-    && /订阅|subscribe|购买\s*ChatGPT\s*Plus|start\s*subscription|place\s*order/i.test(getCombinedSearchText(button))
+    && /订阅|subscribe|购买\s*ChatGPT\s*Plus|start\s*subscription|place\s*order|申し込む|定期購読|サブスクリプション|구독/i.test(getCombinedSearchText(button))
   ));
   if (exactSubmit) {
     return exactSubmit;
   }
 
   return findClickableByText([
-    /订阅|继续|确认|支付/i,
+    /订阅|继续|确认|支付|申し込む|定期購読|支払う|次へ|続行|구독|결제|계속/i,
     /subscribe|continue|confirm|pay|start\s*subscription|place\s*order/i,
   ]);
 }
