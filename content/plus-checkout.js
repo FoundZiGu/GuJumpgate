@@ -657,8 +657,16 @@ async function fillHostedOpenAiVerificationCode(verificationCode = '') {
 
 async function runHostedOpenAiCheckoutStep(payload = {}) {
   await waitForDocumentComplete();
-  if (!isHostedOpenAiCheckoutPage()) {
-    throw new Error('当前页面不是 hosted checkout OpenAI/Stripe 页面。');
+  const startWait = Date.now();
+  const maxWaitMs = 10000;
+  while (!isHostedOpenAiCheckoutPage()) {
+    if (typeof throwIfStopped === 'function') {
+      throwIfStopped();
+    }
+    if (Date.now() - startWait > maxWaitMs) {
+      throw new Error('当前页面不是 hosted checkout OpenAI/Stripe 页面。');
+    }
+    await sleep(250);
   }
 
   startHostedOpenAiAutocompleteObserver();

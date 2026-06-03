@@ -3292,6 +3292,17 @@ function FindProxyForURL(url, host) {
     }
 
     async function runHostedCheckoutOpenAiFlow(tabId, guestProfile) {
+      await addLog('步骤 6：等待浏览器真正跳转到 Stripe 托管收银台页面...', 'info');
+      await waitForUrlMatch(
+        tabId,
+        (url) => {
+          const u = String(url || '').toLowerCase();
+          return u.includes('pay.openai.com') || u.includes('checkout.stripe.com');
+        },
+        15000,
+        500
+      );
+
       await ensureContentScriptReadyOnTabUntilStopped(PLUS_CHECKOUT_SOURCE, tabId, {
         inject: PLUS_CHECKOUT_INJECT_FILES,
         injectSource: PLUS_CHECKOUT_SOURCE,

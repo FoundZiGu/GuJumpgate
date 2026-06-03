@@ -11151,7 +11151,7 @@ function isPlusCheckoutRestartRequiredFailure(error) {
 }
 
 function shouldSchedulePayPalCookieCleanupBeforeCheckoutCreate(nodeId, state = {}, error = null) {
-  if (normalizePlusPaymentMethodForRun(state?.plusPaymentMethod) !== PLUS_PAYMENT_METHOD_PAYPAL) {
+  if (normalizePlusPaymentMethod(state?.plusPaymentMethod) !== PLUS_PAYMENT_METHOD_PAYPAL) {
     return false;
   }
   const normalizedNodeId = String(nodeId || '').trim();
