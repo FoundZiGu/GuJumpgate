@@ -165,37 +165,39 @@
 
 ![开始运行扩展流程](docs/images/github-readme-1779194981001.png)
 
-## Reverse-skill 越南语代理（给 contributor）
+## Reverse-skill tiếng Việt cho contributor
 
-如果你在这个仓库里同时处理 CTF / reverse / Web 安全类任务，可以启用可选的越南语 reverse-skill 代理层。这个集成**不会修改扩展运行逻辑**，只是在本地 workspace 里生成一个给 agent/Codex 读取的辅助 bundle。
+Nếu bạn xử lý các tác vụ như CTF / reverse / web security trong repo này, bạn có thể bật lớp reverse-skill tiếng Việt tùy chọn. Phần tích hợp này **không sửa luồng runtime của extension**; nó chỉ tạo thêm một bundle local để agent/Codex đọc và route task chính xác hơn.
 
-### 30 秒上手
+### Bật nhanh trong 30 giây
 
 ```bash
 python reverse_skill_proxy.py --bundle-dir .reverse-skill-proxy --workspace-root .
 ```
 
-运行后会生成：
+Sau khi chạy xong, repo sẽ có:
 
 - `.reverse-skill-proxy/ROUTER.vi.md`
 - `.reverse-skill-proxy/MANIFEST.json`
 - `AGENTS.md`
 
-### 什么时候用
+### Khi nào nên dùng
 
-- 在仓库里分析 CTF / reverse / pwn
-- 做 web / API security 排查
-- 做 prompt injection / LLM security / cloud drift 类任务
-- 希望 agent 先按越南语 router 再选更窄的 skill family
+- Phân tích CTF / reverse / pwn trong workspace này
+- Kiểm tra web / API security
+- Xử lý prompt injection / LLM security / cloud drift
+- Muốn agent đọc router tiếng Việt trước khi chọn skill family hẹp hơn
 
-### Fallback 行为
+### Cơ chế fallback
 
-- 如果本机没有 `~/.hermes-shop/skills/reverse-skill`
-- 或没有 `~/.hermes-shop/skills/ctf-sandbox-orchestrator`
+- Nếu máy chưa có `~/.hermes-shop/skills/reverse-skill`
+- Hoặc chưa có `~/.hermes-shop/skills/ctf-sandbox-orchestrator`
 
-脚本仍然会生成 router/manifest，只会把缺失来源记到 `MANIFEST.json`，不会阻断其他开发工作。
+Script vẫn tạo router và manifest; nó chỉ ghi lại các nguồn còn thiếu trong `MANIFEST.json`, không chặn phần việc còn lại.
 
-更多说明见：[`docs/reverse-skill-vi-integration.md`](docs/reverse-skill-vi-integration.md) 和 [`docs/reverse-skill-contributor-quickstart.md`](docs/reverse-skill-contributor-quickstart.md)
+Xem thêm:
+- [`docs/reverse-skill-vi-integration.md`](docs/reverse-skill-vi-integration.md)
+- [`docs/reverse-skill-contributor-quickstart.md`](docs/reverse-skill-contributor-quickstart.md)
 
 ## 版权与来源说明
 

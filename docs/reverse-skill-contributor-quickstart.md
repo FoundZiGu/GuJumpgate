@@ -1,68 +1,72 @@
-# Reverse-Skill Contributor Quickstart
+# Hướng dẫn nhanh cho contributor: Reverse-Skill tiếng Việt
 
-给第一次接手这个仓库的 contributor：如果你需要在当前 workspace 里临时启用越南语 reverse-skill 路由，按下面做就能直接开始。
+Dành cho contributor mới vào repo này: nếu bạn muốn bật nhanh lớp route `reverse-skill` tiếng Việt trong workspace hiện tại, chỉ cần làm theo các bước dưới đây.
 
-## 目的
+## Mục tiêu
 
-- 给 agent / Codex 一个本地可读的越南语 router
-- 优先把 CTF / reverse / web security 任务路由到更窄的 skill family
-- 保持集成为 **local-only**，不改扩展运行逻辑
+- Cung cấp cho agent / Codex một router tiếng Việt có thể đọc ngay tại local
+- Ưu tiên route các tác vụ CTF / reverse / web security vào đúng skill family hẹp nhất
+- Giữ tích hợp ở dạng **local-only**, không sửa luồng chạy chính của extension
 
-## 前置条件
+## Điều kiện đầu vào
 
-本机最好已有以下 skill 源：
+Tốt nhất máy của bạn đã có sẵn các nguồn skill local sau:
 
 - `~/.hermes-shop/skills/reverse-skill`
 - `~/.hermes-shop/skills/ctf-sandbox-orchestrator`
 
-即使缺少其中一个，脚本也不会报死，只会把缺失项记入 manifest。
+Nếu thiếu một hoặc cả hai thư mục trên, script vẫn chạy bình thường; nó chỉ ghi các nguồn còn thiếu vào `MANIFEST.json`.
 
-## 一条命令
+## Một lệnh để bật
 
 ```bash
 python reverse_skill_proxy.py --bundle-dir .reverse-skill-proxy --workspace-root .
 ```
 
-## 生成结果
+## Kết quả sẽ được tạo ra
 
-运行后会看到：
+Sau khi chạy xong, bạn sẽ thấy:
 
 - `.reverse-skill-proxy/ROUTER.vi.md`
 - `.reverse-skill-proxy/MANIFEST.json`
 - `AGENTS.md`
 
-## 你该怎么用
+## Cách sử dụng
 
-1. 打开 `AGENTS.md`
-2. 遇到 CTF / reverse / pwn / web API 安全 / LLM security / Windows AD 等任务时，先读 `.reverse-skill-proxy/ROUTER.vi.md`
-3. 按 router 选最窄的 skill family
-4. 如果 challenge 类型还不清楚，就先走 `ctf-sandbox-orchestrator`
+1. Mở `AGENTS.md`
+2. Khi gặp tác vụ như CTF / reverse / pwn / web API security / LLM security / Windows AD, đọc `.reverse-skill-proxy/ROUTER.vi.md` trước
+3. Chọn skill family hẹp nhất theo router
+4. Nếu chưa rõ challenge thuộc loại nào, bắt đầu bằng `ctf-sandbox-orchestrator`
 
-## 常见 fallback
+## Các trường hợp fallback thường gặp
 
-### `MANIFEST.json` 里出现 missing_source_roots
+### `MANIFEST.json` có `missing_source_roots`
 
-说明当前机器没有完整 local skill 源。这不是致命错误。
+Điều này có nghĩa là máy hiện tại chưa có đầy đủ local skill sources. Đây **không phải lỗi nghiêm trọng**.
 
-可以继续：
+Bạn vẫn có thể tiếp tục theo một trong hai cách:
 
-- 保留 router 作为最小引导
-- 或回退到默认 agent workflow
+- dùng router như lớp dẫn đường tối thiểu
+- hoặc fallback về workflow mặc định của agent
 
-### 不想把生成物提交到 Git
+### Không muốn commit file sinh ra vào Git
 
-已经默认忽略：
+Repo đã ignore sẵn:
 
 - `/.reverse-skill-proxy/`
 
-所以正常只提交：
+Vì vậy bình thường bạn chỉ cần commit:
 
 - `reverse_skill_proxy.py`
 - `AGENTS.md`
-- 文档更新
+- các file tài liệu được cập nhật
 
-## 建议
+## Khuyến nghị sử dụng
 
-- 先做被动检查，再决定 route
-- 只加载最相关的 skill family，不要一股脑全读
-- 记录结论时尽量短：结果 -> 证据 -> 验证 -> 下一步
+- Luôn bắt đầu bằng kiểm tra thụ động tối thiểu trước khi route
+- Chỉ nạp skill family liên quan nhất, đừng đọc dồn toàn bộ
+- Khi ghi nhận kết quả, ưu tiên format ngắn:
+  - kết quả
+  - bằng chứng
+  - xác minh
+  - bước tiếp theo
