@@ -16,5 +16,6 @@ __pycache__/
 .worktrees/
 /release-artifacts/
 /tests/
+/.reverse-skill-proxy/
 # Local exported runtime settings
 /config.json
