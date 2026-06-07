@@ -3,7 +3,7 @@
   "name": "GuJumpgate",
   "version": "0.1.9",
   "version_name": "GuJumpgate  V0.1.9",
-  "description": "用于自动执行多步骤 OAuth 注册流程",
+  "description": "Dùng để tự động thực hiện quy trình đăng ký OAuth nhiều bước",
   "permissions": [
     "sidePanel",
     "alarms",

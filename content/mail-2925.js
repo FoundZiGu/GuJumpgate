@@ -86,7 +86,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     ensureMail2925Session(message.payload).then((result) => {
       sendResponse(result);
     }).catch((err) => {
-      sendResponse({ error: err?.message || String(err || '2925 登录失败') });
+      sendResponse({ error: err?.message || String(err || 'Đăng nhập 2925 thất bại') });
     });
     return true;
   }
@@ -97,12 +97,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(result);
     }).catch((err) => {
       if (isStopError(err)) {
-        log(`步骤 ${message.step}：已被用户停止。`, 'warn');
+        log(`Bước ${message.step}: đã bị người dùng dừng.`, 'warn');
         sendResponse({ stopped: true, error: err.message });
         return;
       }
 
-      log(`步骤 ${message.step}：邮箱轮询失败：${err.message}`, 'warn');
+      log(`Bước ${message.step}: thăm dò email thất bại: ${err.message}`, 'warn');
       sendResponse({ error: err.message });
     });
     return true;
@@ -112,7 +112,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     Promise.resolve(deleteAllMailboxEmails(message.step)).then((deleted) => {
       sendResponse({ ok: true, deleted });
     }).catch((err) => {
-      sendResponse({ ok: false, error: err?.message || String(err || '删除邮件失败') });
+      sendResponse({ ok: false, error: err?.message || String(err || 'Xóa email thất bại') });
     });
     return true;
   }
@@ -205,7 +205,7 @@ function normalizeNodeText(value) {
 }
 
 function buildMail2925LimitError(message = '') {
-  const normalized = normalizeNodeText(message || '子邮箱已达上限邮箱') || '子邮箱已达上限邮箱';
+  const normalized = normalizeNodeText(message || 'Đã đạt giới hạn hộp thư phụ') || 'Đã đạt giới hạn hộp thư phụ';
   return new Error(`${MAIL2925_LIMIT_ERROR_PREFIX}${normalized}`);
 }
 

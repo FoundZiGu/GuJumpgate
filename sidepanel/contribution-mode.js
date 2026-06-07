@@ -1,7 +1,10 @@
   (function attachSidepanelContributionMode(globalScope) {
     const ACTIVE_STATUSES = new Set(['started', 'waiting', 'processing']);
     const FINAL_STATUSES = new Set(['auto_approved', 'auto_rejected', 'expired', 'error']);
-    const DEFAULT_COPY = '当前账号将用于支持项目维护。扩展会自动申请贡献登录地址并持续跟踪授权状态；如检测到回调地址，会自动提交，并继续等待服务端确认。';
+    const translate = globalScope.GuJumpgateI18n?.t
+      ? (key, params = {}, fallback = '') => globalScope.GuJumpgateI18n.t(key, params, fallback)
+      : (_key, _params = {}, fallback = '') => fallback || '';
+    const DEFAULT_COPY = translate('settings.contributionCopy', {}, 'Tài khoản hiện tại sẽ được dùng để hỗ trợ duy trì dự án. Extension sẽ tự xin địa chỉ đăng nhập đóng góp và theo dõi trạng thái ủy quyền; nếu phát hiện callback thì sẽ tự gửi và tiếp tục chờ xác nhận từ máy chủ.');
     const CONTRIBUTION_SOURCE_CPA = 'cpa';
     const CONTRIBUTION_SOURCE_SUB2API = 'sub2api';
     const CONTRIBUTION_SUB2API_DEFAULT_GROUP_NAME = 'codex号池';
@@ -116,7 +119,7 @@
       dom.btnContributionMode.classList.toggle('is-active', enabled);
       dom.btnContributionMode.setAttribute('aria-pressed', String(enabled));
       dom.btnContributionMode.disabled = false;
-      dom.btnContributionMode.title = '打开项目仓库说明页';
+      dom.btnContributionMode.title = translate('header.guide', {}, 'Hướng dẫn sử dụng');
     }
 
     function stopPolling() {
@@ -152,40 +155,40 @@
       const status = normalizeStatus(currentState.contributionStatus);
       const hasAuthUrl = Boolean(normalizeString(currentState.contributionAuthUrl));
       if (!normalizeString(currentState.contributionSessionId) || !hasAuthUrl) {
-        return '未生成登录地址';
+        return translate('settings.oauthPending', {}, 'Chưa tạo địa chỉ đăng nhập');
       }
       if (status === 'waiting') {
-        return '等待提交回调';
+        return 'Đang chờ gửi callback';
       }
       if (status === 'processing' || status === 'auto_approved' || status === 'auto_rejected') {
-        return status === 'processing' ? '已提交回调' : '授权已结束';
+        return status === 'processing' ? 'Đã gửi callback' : 'Đã kết thúc ủy quyền';
       }
       if (status === 'expired' || status === 'error') {
-        return '授权失败';
+        return 'Ủy quyền thất bại';
       }
       if (Number(currentState.contributionAuthOpenedAt) > 0) {
-        return '已打开授权页';
+        return 'Đã mở trang ủy quyền';
       }
-      return '登录地址已生成';
+      return 'Đã tạo địa chỉ đăng nhập';
     }
 
     function getCallbackStatusText(currentState = getLatestState()) {
       const status = normalizeCallbackStatus(currentState.contributionCallbackStatus);
       switch (status) {
         case 'captured':
-          return '已捕获回调地址';
+          return 'Đã bắt được địa chỉ callback';
         case 'submitting':
-          return '正在提交回调';
+          return 'Đang gửi callback';
         case 'submitted':
-          return '已提交回调';
+          return 'Đã gửi callback';
         case 'failed':
-          return '回调提交失败';
+          return 'Gửi callback thất bại';
         case 'waiting':
         case 'idle':
         default:
           return normalizeString(currentState.contributionCallbackUrl)
-            ? '已捕获回调地址'
-            : '等待回调';
+            ? 'Đã bắt được địa chỉ callback'
+            : translate('settings.callbackWaiting', {}, 'Đang chờ callback');
       }
     }
 
@@ -196,7 +199,7 @@
       }
       if (getContributionSource(currentState) === CONTRIBUTION_SOURCE_SUB2API) {
         const groupName = normalizeString(currentState.contributionTargetGroupName) || CONTRIBUTION_SUB2API_DEFAULT_GROUP_NAME;
-        return `当前账号将用于支持项目维护。贡献会通过 SUB2API 完成，并固定写入 ${groupName} 分组；如检测到回调地址，扩展会自动提交并等待服务端确认。`;
+        return `Tài khoản hiện tại sẽ được dùng để hỗ trợ duy trì dự án. Đóng góp sẽ được hoàn tất qua SUB2API và luôn ghi vào nhóm ${groupName}; nếu phát hiện callback, extension sẽ tự gửi và chờ xác nhận từ máy chủ.`;
       }
       return DEFAULT_COPY;
     }
@@ -254,7 +257,7 @@
         throw new Error(response.error);
       }
       if (!response?.state) {
-        throw new Error('贡献模式切换后未返回最新状态。');
+        throw new Error('Không nhận được trạng thái mới sau khi chuyển chế độ đóng góp.');
       }
 
       helpers.applySettingsState?.(response.state);
@@ -300,7 +303,7 @@
 
     async function startContributionFlow() {
       if (typeof helpers.startContributionAutoRun !== 'function') {
-        throw new Error('贡献模式尚未接入主自动流程启动能力。');
+        throw new Error('Chế độ đóng góp hiện chưa nối vào khả năng khởi động luồng tự động chính.');
       }
 
       const profile = helpers.getContributionProfile?.() || {};
@@ -315,19 +318,19 @@
         return;
       }
 
-      helpers.showToast?.('贡献自动流程已启动。', 'info', 1800);
+      helpers.showToast?.('Luồng tự động đóng góp đã khởi chạy.', 'info', 1800);
       render();
     }
 
     async function enterContributionMode() {
       await requestContributionMode(true);
-      helpers.showToast?.('已进入贡献模式。', 'success', 1800);
+      helpers.showToast?.('Đã vào chế độ đóng góp.', 'success', 1800);
     }
 
     async function exitContributionMode() {
       stopPolling();
       await requestContributionMode(false);
-      helpers.showToast?.('已退出贡献模式。', 'info', 1800);
+      helpers.showToast?.('Đã thoát chế độ đóng góp.', 'info', 1800);
     }
 
     function render() {
@@ -395,7 +398,7 @@
 
       if (dom.btnExitContributionMode) {
         dom.btnExitContributionMode.disabled = actionInFlight || blocked;
-        dom.btnExitContributionMode.title = blocked ? '当前流程运行中，暂时不能退出贡献模式' : '退出贡献模式';
+        dom.btnExitContributionMode.title = blocked ? 'Quy trình hiện tại đang chạy, tạm thời chưa thể thoát chế độ đóng góp' : 'Thoát chế độ đóng góp';
       }
 
       if (dom.btnOpenAccountRecords) {
@@ -418,7 +421,7 @@
         try {
           helpers.openExternalUrl?.(guideRepositoryUrl);
         } catch (error) {
-          helpers.showToast?.(`打开说明页失败：${error.message}`, 'error');
+          helpers.showToast?.(`Mở trang hướng dẫn thất bại: ${error.message}`, 'error');
         }
       });
 
@@ -468,7 +471,7 @@
         try {
           openContributionUploadPage();
         } catch (error) {
-          helpers.showToast?.(`打开上传页面失败：${error.message}`, 'error');
+          helpers.showToast?.(`Mở trang tải lên thất bại: ${error.message}`, 'error');
         }
       });
 

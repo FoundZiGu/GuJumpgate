@@ -54,11 +54,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(result);
     }).catch(err => {
       if (isStopError(err)) {
-        log(`步骤 ${message.step}：已被用户停止。`, 'warn');
+        log(`Bước ${message.step}: đã bị người dùng dừng.`, 'warn');
         sendResponse({ stopped: true, error: err.message });
         return;
       }
-      log(`步骤 ${message.step}：邮箱轮询失败：${err.message}`, 'warn');
+      log(`Bước ${message.step}: thăm dò email thất bại: ${err.message}`, 'warn');
       sendResponse({ error: err.message });
     });
     return true;

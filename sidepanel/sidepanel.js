@@ -10,6 +10,18 @@ const STATUS_ICONS = {
   skipped: '跳',
 };
 
+const i18n = window.GuJumpgateI18n || null;
+const t = (key, params = {}, fallback = '') => {
+  if (i18n?.t) {
+    return i18n.t(key, params, fallback);
+  }
+  return fallback || key;
+};
+
+function applyStaticTranslations(root = document) {
+  i18n?.applyTranslations?.(root);
+}
+
 const logArea = document.getElementById('log-area');
 const btnOpenAccountRecords = document.getElementById('btn-open-account-records');
 const accountRecordsOverlay = document.getElementById('account-records-overlay');
@@ -118,6 +130,8 @@ const rowSub2ApiDefaultProxy = document.getElementById('row-sub2api-default-prox
 const inputSub2ApiDefaultProxy = document.getElementById('input-sub2api-default-proxy');
 const rowIpProxyEnabled = document.getElementById('row-ip-proxy-enabled');
 const inputIpProxyEnabled = document.getElementById('input-ip-proxy-enabled');
+
+applyStaticTranslations();
 const btnToggleIpProxySection = document.getElementById('btn-toggle-ip-proxy-section');
 const ipProxyEnabledStatus = document.getElementById('ip-proxy-enabled-status');
 const ipProxyEnabledStatusDot = document.getElementById('ip-proxy-enabled-status-dot');
@@ -2344,14 +2358,14 @@ function getContributionPortalUrl() {
 
 function openNewUserGuidePrompt() {
   return openActionModal({
-    title: '新手引导',
-    message: '如果你是第一次使用，可以先阅读仓库里的使用说明。点击“查看说明”会打开项目说明页。',
+    title: t('modals.newUserGuideTitle', {}, 'Hướng dẫn cho người mới'),
+    message: t('modals.newUserGuideMessage', {}, 'Nếu đây là lần đầu bạn dùng, hãy đọc hướng dẫn trong kho trước. Bấm “Xem hướng dẫn” sẽ mở trang mô tả dự án.'),
     alert: {
-      text: '本提示仅出现一次。',
+      text: t('modals.newUserGuideAlert', {}, 'Thông báo này chỉ xuất hiện một lần.'),
     },
     actions: [
-      { id: null, label: '取消', variant: 'btn-ghost' },
-      { id: 'confirm', label: '查看说明', variant: 'btn-primary' },
+      { id: null, label: t('modals.cancel', {}, 'Hủy'), variant: 'btn-ghost' },
+      { id: 'confirm', label: t('modals.viewGuide', {}, 'Xem hướng dẫn'), variant: 'btn-primary' },
     ],
   });
 }
@@ -3994,7 +4008,7 @@ function syncScheduledCountdownTicker() {
 function setDefaultAutoRunButton() {
   btnAutoRun.disabled = false;
   inputRunCount.disabled = shouldLockRunCountToEmailPool();
-  btnAutoRun.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> 自动';
+  btnAutoRun.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> ${t('header.autoRun', {}, 'Tự động')}`;
 }
 
 function normalizeCloudflareDomainValue(value = '') {
@@ -11830,27 +11844,27 @@ function applyAutoRunStatus(payload = currentAutoRun) {
   switch (currentAutoRun.phase) {
     case 'scheduled':
       autoContinueBar.style.display = 'none';
-      btnAutoRun.innerHTML = `已计划${runLabel}`;
+      btnAutoRun.innerHTML = t('runtime.autoRunPlanned', { runLabel }, `Đã lên lịch${runLabel}`);
       break;
     case 'waiting_step':
       autoContinueBar.style.display = 'none';
-      btnAutoRun.innerHTML = `等待中${runLabel}`;
+      btnAutoRun.innerHTML = t('runtime.autoRunWaiting', { runLabel }, `Đang chờ${runLabel}`);
       break;
     case 'waiting_email':
       autoContinueBar.style.display = 'flex';
-      btnAutoRun.innerHTML = `已暂停${runLabel}`;
+      btnAutoRun.innerHTML = t('runtime.autoRunPaused', { runLabel }, `Đã tạm dừng${runLabel}`);
       break;
     case 'running':
       autoContinueBar.style.display = 'none';
-      btnAutoRun.innerHTML = `运行中${runLabel}`;
+      btnAutoRun.innerHTML = t('runtime.autoRunRunning', { runLabel }, `Đang chạy${runLabel}`);
       break;
     case 'retrying':
       autoContinueBar.style.display = 'none';
-      btnAutoRun.innerHTML = `重试中${runLabel}`;
+      btnAutoRun.innerHTML = t('runtime.autoRunRetrying', { runLabel }, `Đang thử lại${runLabel}`);
       break;
     case 'waiting_interval':
       autoContinueBar.style.display = 'none';
-      btnAutoRun.innerHTML = `等待中${runLabel}`;
+      btnAutoRun.innerHTML = t('runtime.autoRunWaiting', { runLabel }, `Đang chờ${runLabel}`);
       break;
     default:
       autoContinueBar.style.display = 'none';
@@ -11888,8 +11902,8 @@ function initializeManualStepActions() {
     manualBtn.className = 'step-manual-btn';
     manualBtn.dataset.step = String(step);
     manualBtn.dataset.nodeId = nodeId;
-    manualBtn.title = '跳过此节点';
-    manualBtn.setAttribute('aria-label', `跳过节点 ${nodeId || step}`);
+    manualBtn.title = t('runtime.skipNode', {}, 'Bỏ qua nút này');
+    manualBtn.setAttribute('aria-label', t('runtime.skipNodeAria', { nodeId: nodeId || step }, `Bỏ qua nút ${nodeId || step}`));
     manualBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>';
     manualBtn.addEventListener('click', async (event) => {
       event.stopPropagation();
@@ -13115,10 +13129,10 @@ function getContributionUpdatePromptLines(snapshot = currentContributionContentS
 
   const lines = [];
   if (hasAnnouncementOrTutorial) {
-    lines.push('公告 / 使用教程有更新了，可点上方“贡献/使用”查看。');
+    lines.push(t('runtime.contributionUpdateTutorial', {}, 'Thông báo / hướng dẫn sử dụng đã có cập nhật, bấm nút “Đóng góp / Hướng dẫn” phía trên để xem.'));
   }
   if (hasQuestionnaire) {
-    lines.push('有新的征求意见，请佬友共同参与选择。');
+    lines.push(t('runtime.contributionUpdateSurvey', {}, 'Có khảo sát mới, mời mọi người cùng tham gia lựa chọn.'));
   }
   return lines;
 }
@@ -16445,8 +16459,8 @@ async function startAutoRunFromCurrentSettings() {
     inputAutoDelayMinutes.value = String(delayMinutes);
   }
   btnAutoRun.innerHTML = delayEnabled
-    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 计划中...'
-    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 运行中...';
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${t('runtime.autoRunScheduling', {}, 'Đang lập lịch...')}`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${t('runtime.autoRunStarting', {}, 'Đang chạy...')}`;
   const response = await sendSidepanelMessage({
     type: delayEnabled ? 'SCHEDULE_AUTO_RUN' : 'AUTO_RUN',
     source: 'sidepanel',

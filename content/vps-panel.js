@@ -66,7 +66,7 @@ if (document.documentElement.getAttribute(VPS_PANEL_LISTENER_SENTINEL) !== '1') 
         });
         if (isStopError(err)) {
           if (message.payload?.visibleStep || message.step) {
-            log('已被用户停止。', 'warn', { step: message.payload?.visibleStep || message.step });
+            log('Đã bị người dùng dừng.', 'warn', { step: message.payload?.visibleStep || message.step });
           }
           sendResponse({ stopped: true, error: err.message });
           return;
@@ -80,7 +80,7 @@ if (document.documentElement.getAttribute(VPS_PANEL_LISTENER_SENTINEL) !== '1') 
     }
   });
 } else {
-  console.log('[MultiPage:vps-panel] 消息监听已存在，跳过重复注册');
+  console.log('[MultiPage:vps-panel] Trình nghe tin nhắn đã tồn tại, bỏ qua đăng ký lặp lại');
 }
 
 async function handleStep(step, payload) {
@@ -91,7 +91,7 @@ async function handleStep(step, payload) {
     case 13:
       return await step9_vpsVerify({ ...(payload || {}), visibleStep: step });
     default:
-      throw new Error(`vps-panel.js 不处理步骤 ${step}`);
+      throw new Error(`vps-panel.js không xử lý bước ${step}`);
   }
 }
 
@@ -101,7 +101,7 @@ async function handleNode(nodeId, payload = {}) {
     case 'platform-verify':
       return await step9_vpsVerify(payload);
     default:
-      throw new Error(`vps-panel.js 不处理节点 ${normalizedNodeId}`);
+      throw new Error(`vps-panel.js không xử lý node ${normalizedNodeId}`);
   }
 }
 
@@ -232,10 +232,10 @@ function getStatusBadgeEntries() {
 }
 
 function summarizeStatusBadgeEntries(entries) {
-  if (!entries.length) return '无可见状态徽标';
+  if (!entries.length) return 'Không có huy hiệu trạng thái hiển thị';
   return entries
     .map((entry, index) => {
-      const text = entry.text || '(空文本)';
+      const text = entry.text || '(không có văn bản)';
       const className = entry.className ? ` class=${getInlineTextSnippet(entry.className, 80)}` : '';
       const errorVisual = entry.errorVisualSummary ? ` error=${getInlineTextSnippet(entry.errorVisualSummary, 80)}` : '';
       return `#${index + 1}="${getInlineTextSnippet(text, 80)}"${className}${errorVisual}`;
@@ -447,7 +447,7 @@ function getStep9PageErrorEntries() {
   return entries;
 }
 
-function formatStep10StatusSummaryValue(text, emptyText = '无') {
+function formatStep10StatusSummaryValue(text, emptyText = 'không có') {
   return text ? `"${getInlineTextSnippet(text, 80)}"` : emptyText;
 }
 
@@ -459,8 +459,8 @@ function isStep10BrowserSwitchRequiredConflict(diagnostics = {}) {
 function getStep10BrowserSwitchRequiredMessage(diagnostics = {}) {
   const callbackFailureText = normalizeStep9StatusText(diagnostics?.callbackFailureText || '');
   return [
-    '检测到 CPA 页面同时显示“认证成功”和“回调 URL 提交失败: 请更新CLI Proxy API或检查连接”。',
-    '这通常不是浏览器问题，而是 CPA 项目会清理多线程 OAuth 会话。CPA 项目无法使用多线程，请修改 CPA 服务器或改为单线程注册。',
+    'Đã phát hiện trang CPA đồng thời hiển thị “Xác thực thành công” và “Gửi callback URL thất bại: vui lòng cập nhật CLI Proxy API hoặc kiểm tra kết nối”.',
+    'Thường đây không phải vấn đề của trình duyệt, mà là dự án CPA sẽ dọn dẹp các phiên OAuth đa luồng. Dự án CPA không thể dùng đa luồng, hãy sửa máy chủ CPA hoặc chuyển sang đăng ký đơn luồng.',
     callbackFailureText ? `面板原文：${callbackFailureText}` : '',
   ].filter(Boolean).join(' ');
 }

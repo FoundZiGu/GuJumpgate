@@ -43,7 +43,7 @@ if (document.documentElement.getAttribute(PAYPAL_FLOW_LISTENER_SENTINEL) !== '1'
     }
   });
 } else {
-  console.log('[MultiPage:paypal-flow] 消息监听已存在，跳过重复注册');
+  console.log('[MultiPage:paypal-flow] Trình nghe tin nhắn đã tồn tại, bỏ qua đăng ký lặp lại');
 }
 
 async function performPayPalOperationWithDelay(metadata, operation) {

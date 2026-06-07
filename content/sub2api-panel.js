@@ -24,7 +24,7 @@ if (document.documentElement.getAttribute(SUB2API_PANEL_LISTENER_SENTINEL) !== '
       }).catch((err) => {
         if (isStopError(err)) {
           if (message.payload?.visibleStep || message.step) {
-            log('已被用户停止。', 'warn', { step: message.payload?.visibleStep || message.step });
+            log('Đã bị người dùng dừng.', 'warn', { step: message.payload?.visibleStep || message.step });
           }
           sendResponse({ stopped: true, error: err.message });
           return;
@@ -38,7 +38,7 @@ if (document.documentElement.getAttribute(SUB2API_PANEL_LISTENER_SENTINEL) !== '
     }
   });
 } else {
-  console.log('[MultiPage:sub2api-panel] 消息监听已存在，跳过重复注册');
+  console.log('[MultiPage:sub2api-panel] Trình nghe tin nhắn đã tồn tại, bỏ qua đăng ký lặp lại');
 }
 
 function getSub2ApiOrigin(payload = {}) {
@@ -58,7 +58,7 @@ function normalizeRedirectUri() {
     parsed.pathname = '/auth/callback';
   }
   if (parsed.pathname !== '/auth/callback') {
-    throw new Error('SUB2API 回调地址必须是 /auth/callback，例如 http://localhost:1455/auth/callback');
+    throw new Error('Địa chỉ callback SUB2API phải là /auth/callback, ví dụ: http://localhost:1455/auth/callback');
   }
   return parsed.toString();
 }
@@ -72,7 +72,7 @@ async function handleStep(step, payload = {}) {
     case 13:
       return step9_submitOpenAiCallback({ ...(payload || {}), visibleStep: step });
     default:
-      throw new Error(`sub2api-panel.js 不处理步骤 ${step}`);
+      throw new Error(`sub2api-panel.js không xử lý bước ${step}`);
   }
 }
 
@@ -82,7 +82,7 @@ async function handleNode(nodeId, payload = {}) {
     case 'platform-verify':
       return step9_submitOpenAiCallback(payload);
     default:
-      throw new Error(`sub2api-panel.js 不处理节点 ${normalizedNodeId}`);
+      throw new Error(`sub2api-panel.js không xử lý node ${normalizedNodeId}`);
   }
 }
 
@@ -120,11 +120,11 @@ async function requestJson(origin, path, options = {}) {
     if (json.code === 0) {
       return json.data;
     }
-    throw new Error(json.message || json.detail || `请求失败（${path}）`);
+    throw new Error(json.message || json.detail || `Yêu cầu thất bại (${path})`);
   }
 
   if (!response.ok) {
-    throw new Error((json && (json.message || json.detail)) || `请求失败（HTTP ${response.status}）：${path}`);
+    throw new Error((json && (json.message || json.detail)) || `Yêu cầu thất bại (HTTP ${response.status}): ${path}`);
   }
 
   return json;
@@ -132,7 +132,7 @@ async function requestJson(origin, path, options = {}) {
 
 function storeAuthSession(loginData) {
   if (!loginData?.access_token) {
-    throw new Error('SUB2API 登录返回缺少 access_token。');
+    throw new Error('Đăng nhập SUB2API không trả về access_token.');
   }
 
   localStorage.setItem('auth_token', loginData.access_token);
@@ -156,13 +156,13 @@ async function loginSub2Api(payload = {}) {
   const origin = getSub2ApiOrigin(payload);
 
   if (!email) {
-    throw new Error('缺少 SUB2API 登录邮箱，请先在侧边栏填写。');
+    throw new Error('Thiếu email đăng nhập SUB2API, vui lòng điền trước trong thanh bên.');
   }
   if (!password) {
-    throw new Error('缺少 SUB2API 登录密码，请先在侧边栏填写。');
+    throw new Error('Thiếu mật khẩu đăng nhập SUB2API, vui lòng điền trước trong thanh bên.');
   }
 
-  log('步骤：正在登录 SUB2API 后台...');
+  log('Đang đăng nhập vào bảng quản trị SUB2API...');
   const loginData = await requestJson(origin, '/api/v1/auth/login', {
     method: 'POST',
     body: {
@@ -195,7 +195,7 @@ async function getGroupByName(origin, token, groupName) {
   });
 
   if (!group) {
-    throw new Error(`SUB2API 中未找到名为“${targetName}”的 openai 分组。`);
+    throw new Error(`Không tìm thấy nhóm openai tên “${targetName}” trong SUB2API.`);
   }
 
   return group;
@@ -242,7 +242,7 @@ async function getGroupsByNames(origin, token, groupNames) {
   }
 
   if (missing.length) {
-    throw new Error(`SUB2API 中未找到以下 openai 分组：${missing.join('、')}。`);
+    throw new Error(`Không tìm thấy các nhóm openai sau trong SUB2API: ${missing.join(', ')}.`);
   }
 
   return matched;
@@ -272,7 +272,7 @@ function resolveSub2ApiAccountPriority(payload = {}, backgroundState = {}) {
   }
   const numeric = Number(rawValue);
   if (!Number.isSafeInteger(numeric) || numeric < 1) {
-    throw new Error('SUB2API 账号优先级必须是大于等于 1 的整数。');
+    throw new Error('Độ ưu tiên tài khoản SUB2API phải là số nguyên lớn hơn hoặc bằng 1.');
   }
   return numeric;
 }
@@ -378,7 +378,7 @@ async function resolveSub2ApiProxy(origin, token, preference = '') {
     token,
   });
   if (!Array.isArray(proxies)) {
-    throw new Error('SUB2API 代理列表返回格式异常，无法自动选择代理。');
+    throw new Error('Danh sách proxy SUB2API trả về định dạng bất thường, không thể tự chọn proxy.');
   }
 
   const { proxy, reason, candidates } = findSub2ApiProxy(proxies, preference);
@@ -403,7 +403,7 @@ async function resolveSub2ApiProxy(origin, token, preference = '') {
   if (reason === 'no-preference') {
     throw new Error(`SUB2API 存在多个可用代理，请在侧边栏填写默认代理名称或 ID；留空则不使用代理。可用代理：${available}`);
   }
-  throw new Error('SUB2API 没有可用代理；请检查默认代理配置，或将其留空以禁用代理。');
+  throw new Error('SUB2API không có proxy khả dụng; hãy kiểm tra cấu hình proxy mặc định hoặc để trống để tắt proxy.');
 }
 
 function buildDraftAccountName(groupName) {
@@ -429,23 +429,23 @@ function parseLocalhostCallback(rawUrl, visibleStep = 10) {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error('提供的回调 URL 不是合法链接。');
+    throw new Error('URL callback được cung cấp không hợp lệ.');
   }
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new Error('回调 URL 协议不正确。');
+    throw new Error('Giao thức URL callback không đúng.');
   }
   if (!['localhost', '127.0.0.1'].includes(parsed.hostname)) {
     throw new Error(`步骤 ${visibleStep} 只接受 localhost / 127.0.0.1 回调地址。`);
   }
   if (parsed.pathname !== '/auth/callback') {
-    throw new Error('回调 URL 路径必须是 /auth/callback。');
+    throw new Error('Đường dẫn URL callback phải là /auth/callback.');
   }
 
   const code = (parsed.searchParams.get('code') || '').trim();
   const state = (parsed.searchParams.get('state') || '').trim();
   if (!code || !state) {
-    throw new Error('回调 URL 中缺少 code 或 state。');
+    throw new Error('URL callback thiếu code hoặc state.');
   }
 
   return {

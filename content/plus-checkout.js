@@ -83,7 +83,7 @@ if (document.documentElement.getAttribute(PLUS_CHECKOUT_LISTENER_SENTINEL) !== '
     }
   });
 } else {
-  console.log('[MultiPage:plus-checkout] 消息监听已存在，跳过重复注册');
+  console.log('[MultiPage:plus-checkout] Trình nghe tin nhắn đã tồn tại, bỏ qua đăng ký lặp lại');
 }
 
 async function handlePlusCheckoutCommand(message) {
@@ -113,13 +113,13 @@ async function handlePlusCheckoutCommand(message) {
     case 'PLUS_CHECKOUT_GET_STATE':
       return inspectPlusCheckoutState(message.payload || {});
     default:
-      throw new Error(`plus-checkout.js 不处理消息：${message.type}`);
+      throw new Error(`plus-checkout.js không xử lý tin nhắn: ${message.type}`);
   }
 }
 
 async function waitUntil(predicate, options = {}) {
   const intervalMs = Math.max(50, Math.floor(Number(options.intervalMs) || 250));
-  const label = String(options.label || '条件').trim() || '条件';
+  const label = String(options.label || 'điều kiện').trim() || 'điều kiện';
   const timeoutMs = Math.max(0, Math.floor(Number(options.timeoutMs) || 0));
   const startedAt = Date.now();
   while (true) {
@@ -129,7 +129,7 @@ async function waitUntil(predicate, options = {}) {
       return value;
     }
     if (timeoutMs > 0 && Date.now() - startedAt >= timeoutMs) {
-      throw new Error(`${label}等待超时`);
+      throw new Error(`${label} chờ quá thời gian`);
     }
     await sleep(intervalMs);
   }
@@ -137,7 +137,7 @@ async function waitUntil(predicate, options = {}) {
 
 async function waitForDocumentComplete() {
   await waitUntil(() => document.readyState === 'complete', {
-    label: '页面加载完成',
+    label: 'trang đã tải xong',
     intervalMs: 200,
     timeoutMs: PLUS_CHECKOUT_DOCUMENT_COMPLETE_TIMEOUT_MS,
   });
@@ -420,11 +420,11 @@ function getHostedOpenAiCardFallbackState() {
   const cardPreview = paymentTextPreview.find((text) => /银行卡|card|cardholder|cvc|expiry|有效期|security/i.test(text)) || '';
   const reasons = [];
 
-  if (!hasPayPalButton) reasons.push('未找到 PayPal 按钮');
-  if (!hasPayPalTarget) reasons.push('未识别到 PayPal 付款方式');
-  if (!hasGoPayTarget) reasons.push('未识别到 GoPay 付款方式');
-  if (cardFieldsVisible) reasons.push('银行卡字段可见');
-  if (cardAccordionSelected) reasons.push('银行卡卡片已选中');
+  if (!hasPayPalButton) reasons.push('Không tìm thấy nút PayPal');
+  if (!hasPayPalTarget) reasons.push('Không nhận diện được phương thức thanh toán PayPal');
+  if (!hasGoPayTarget) reasons.push('Không nhận diện được phương thức thanh toán GoPay');
+  if (cardFieldsVisible) reasons.push('Trường thẻ ngân hàng đang hiển thị');
+  if (cardAccordionSelected) reasons.push('Thẻ ngân hàng đã được chọn');
   if (paypalDisabledSignals) reasons.push('页面信号显示 paypal=never');
   if (cardPreview) reasons.push(`支付文案包含“${cardPreview.slice(0, 40)}”`);
 

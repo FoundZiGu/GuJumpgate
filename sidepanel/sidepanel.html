@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="vi-VN">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GuJumpgate  V0.1.9</title>
+  <title data-i18n="document.title">GuJumpgate V0.1.9</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -16,7 +16,7 @@
 <body>
   <header>
     <div class="header-left">
-      <button id="btn-repo-home" class="header-icon-link" type="button" aria-label="打开 GitHub 仓库" title="打开 GitHub 仓库">
+      <button id="btn-repo-home" class="header-icon-link" type="button" aria-label="Mở kho GitHub" title="Mở kho GitHub" data-i18n-aria-label="header.repoHome" data-i18n-title="header.repoHome">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -25,8 +25,8 @@
       <div class="header-version-block">
         <div class="header-version-main">
           <button id="extension-update-status" class="header-version-title header-version-link" type="button"
-          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate  V0.1.9</button>
-          <button id="btn-release-log" class="header-link-btn" type="button" hidden>更新日志</button>
+          aria-label="Mở trang GitHub Releases" title="Mở trang GitHub Releases" data-i18n-aria-label="header.releases" data-i18n-title="header.releases">GuJumpgate V0.1.9</button>
+          <button id="btn-release-log" class="header-link-btn" type="button" hidden data-i18n="header.releaseLog">Nhật ký cập nhật</button>
         </div>
         <span id="extension-version-meta" class="header-version-meta" hidden></span>
       </div>
@@ -34,24 +34,24 @@
     <div class="header-btns">
       <div class="run-group">
         <button id="btn-contribution-mode" class="btn btn-outline btn-sm btn-contribution-mode" type="button"
-          aria-pressed="false" title="打开项目仓库说明页">使用说明</button>
-        <input type="number" id="input-run-count" class="run-count-input" value="1" min="1" title="运行次数" />
-        <button id="btn-auto-run" class="btn btn-success" title="自动执行全部步骤">
+          aria-pressed="false" title="Mở trang hướng dẫn dự án" data-i18n="header.guide">Hướng dẫn sử dụng</button>
+        <input type="number" id="input-run-count" class="run-count-input" value="1" min="1" title="Số lần chạy" data-i18n-title="header.runCount" />
+        <button id="btn-auto-run" class="btn btn-success" title="Tự động thực thi toàn bộ bước">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
-          自动
+          <span data-i18n="header.autoRun">Tự động</span>
         </button>
-        <button id="btn-stop" class="btn btn-danger" title="停止当前流程" disabled>停止</button>
+        <button id="btn-stop" class="btn btn-danger" title="Dừng quy trình hiện tại" disabled data-i18n="header.stop">Dừng</button>
       </div>
-      <button id="btn-reset" class="btn btn-ghost" title="重置全部步骤">
+      <button id="btn-reset" class="btn btn-ghost" title="Đặt lại toàn bộ bước" data-i18n-title="header.reset">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <polyline points="1 4 1 10 7 10" />
           <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
         </svg>
       </button>
-      <button id="btn-theme" class="theme-toggle" title="切换主题">
+      <button id="btn-theme" class="theme-toggle" title="Chuyển giao diện" data-i18n-title="header.theme">
         <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -71,10 +71,10 @@
       </button>
       <div id="config-menu-shell" class="header-menu">
         <button id="btn-config-menu" class="btn btn-ghost btn-sm header-config-btn" type="button" aria-haspopup="menu"
-          aria-expanded="false">配置</button>
+          aria-expanded="false" data-i18n="header.config">Cấu hình</button>
         <div id="config-menu" class="header-dropdown" role="menu" aria-labelledby="btn-config-menu" hidden>
-          <button id="btn-export-settings" class="header-dropdown-item" type="button" role="menuitem">导出配置</button>
-          <button id="btn-import-settings" class="header-dropdown-item" type="button" role="menuitem">导入配置</button>
+          <button id="btn-export-settings" class="header-dropdown-item" type="button" role="menuitem" data-i18n="header.exportSettings">Xuất cấu hình</button>
+          <button id="btn-import-settings" class="header-dropdown-item" type="button" role="menuitem" data-i18n="header.importSettings">Nhập cấu hình</button>
         </div>
       </div>
     </div>
@@ -82,11 +82,9 @@
 
   <div id="contribution-update-layer" class="contribution-update-layer" hidden>
     <div id="contribution-update-hint" class="contribution-update-hint" aria-live="polite" hidden>
-      <p id="contribution-update-hint-text" class="contribution-update-hint-text">
-        使用说明有更新了，可点上方“使用说明”查看。
-      </p>
+      <p id="contribution-update-hint-text" class="contribution-update-hint-text" data-i18n="header.contributionHint">Hướng dẫn sử dụng đã có cập nhật, bấm nút phía trên để xem.</p>
       <button id="btn-dismiss-contribution-update-hint" class="contribution-update-hint-close" type="button"
-        aria-label="关闭更新提示" title="关闭更新提示">×</button>
+        aria-label="Đóng thông báo cập nhật" title="Đóng thông báo cập nhật" data-i18n-aria-label="header.dismissContributionHint" data-i18n-title="header.dismissContributionHint">×</button>
     </div>
   </div>
 
@@ -94,16 +92,16 @@
     <div class="update-card">
       <div class="update-card-header">
         <div class="update-card-copy">
-          <span class="section-label">更新内容</span>
+          <span class="section-label" data-i18n="updates.label">Nội dung cập nhật</span>
           <div id="update-card-version" class="update-card-version"></div>
           <p id="update-card-summary" class="update-card-summary"></p>
         </div>
         <div class="update-card-actions">
-          <button id="btn-ignore-release" class="btn btn-outline btn-sm" type="button" hidden>忽略本次更新</button>
-          <button id="btn-open-release" class="btn btn-primary btn-sm" type="button">前往更新</button>
+          <button id="btn-ignore-release" class="btn btn-outline btn-sm" type="button" hidden data-i18n="updates.ignore">Bỏ qua bản cập nhật này</button>
+          <button id="btn-open-release" class="btn btn-primary btn-sm" type="button" data-i18n="updates.open">Xem bản cập nhật</button>
         </div>
       </div>
-      <p class="update-card-reminder">一定请先导出配置，再执行更新</p>
+      <p class="update-card-reminder" data-i18n="updates.reminder">Hãy xuất cấu hình trước khi cập nhật</p>
       <div id="update-release-list" class="update-release-list"></div>
     </div>
   </section>
@@ -111,81 +109,80 @@
   <section id="data-section">
     <div id="settings-card" class="data-card">
       <div class="data-row">
-        <span class="data-label">注册</span>
+        <span class="data-label" data-i18n="settings.register">Đăng ký</span>
         <select id="select-flow" class="data-select" aria-label="Flow 选择">
           <option value="codex" selected>codex</option>
         </select>
       </div>
       <div class="data-row">
-        <span class="data-label">导出至</span>
+        <span class="data-label" data-i18n="settings.exportTo">Xuất tới</span>
         <select id="select-panel-mode" class="data-select">
-          <option value="local-cpa-json" selected>本地CPA JSON</option>
-          <option value="cpa">CPA 面板</option>
+          <option value="local-cpa-json" selected data-i18n="settings.localCpaJson">CPA JSON cục bộ</option>
+          <option value="cpa" data-i18n="settings.cpaPanel">Bảng CPA</option>
           <option value="sub2api">SUB2API</option>
           <option value="codex2api">Codex2API</option>
         </select>
       </div>
       <div class="data-row" id="row-account-access-strategy">
-        <span class="data-label">账号接入策略</span>
+        <span class="data-label" data-i18n="settings.accountAccessStrategy">Chiến lược truy cập tài khoản</span>
         <div class="data-inline">
           <select id="select-account-access-strategy" class="data-select">
             <option value="oauth" selected>Oauth</option>
-            <option value="sms_oauth">先手机号注册 Oauth</option>
-            <option value="phone_bind_oauth">后手机号绑定 Oauth</option>
-            <option value="session_json">SESSION JSON导入</option>
+            <option value="sms_oauth" data-i18n="settings.accessSmsOauth">Đăng ký bằng số điện thoại trước rồi OAuth</option>
+            <option value="phone_bind_oauth" data-i18n="settings.accessPhoneBindOauth">Liên kết số điện thoại sau rồi OAuth</option>
+            <option value="session_json" data-i18n="settings.accessSessionJson">Nhập SESSION JSON</option>
           </select>
           <span class="setting-caption" id="account-access-strategy-caption"></span>
         </div>
       </div>
       <div class="data-row" id="row-local-cpa-json-plugin-dir" style="display:none;">
-        <span class="data-label">插件目录</span>
+        <span class="data-label" data-i18n="settings.pluginDir">Thư mục tiện ích</span>
         <input type="text" id="input-local-cpa-json-plugin-dir" class="data-input"
-          placeholder="解压后浏览器插件所在的目录" />
+          placeholder="Thư mục chứa extension sau khi giải nén" data-i18n-placeholder="settings.pluginDirPlaceholder" />
       </div>
       <div class="data-row" id="row-local-cpa-json-advanced-toggle" style="display:none;">
-        <span class="data-label">高级</span>
+        <span class="data-label" data-i18n="settings.advanced">Nâng cao</span>
         <div class="data-inline">
-          <span class="hero-sms-country-note">默认会写入插件目录下的 .cli-proxy-api</span>
+          <span class="hero-sms-country-note" data-i18n="settings.pluginDirNote">Mặc định sẽ ghi vào .cli-proxy-api trong thư mục tiện ích</span>
           <button id="btn-toggle-local-cpa-json-auth-dir" class="btn btn-ghost btn-xs data-inline-btn" type="button"
-            aria-expanded="false">展开认证目录</button>
+            aria-expanded="false" data-i18n="settings.expandAuthDir">Mở rộng thư mục xác thực</button>
         </div>
       </div>
       <div class="data-row" id="row-local-cpa-json-relative-auth-dir" style="display:none;" hidden>
-        <span class="data-label">认证目录</span>
+        <span class="data-label" data-i18n="settings.authDir">Thư mục xác thực</span>
         <input type="text" id="input-local-cpa-json-relative-auth-dir" class="data-input"
-          placeholder=".cli-proxy-api" />
+          placeholder=".cli-proxy-api" data-i18n-placeholder="settings.authDirPlaceholder" />
       </div>
         <div id="contribution-mode-panel" class="contribution-mode-panel" hidden>
           <div class="contribution-mode-panel-header">
-            <span class="section-label">贡献模式</span>
+            <span class="section-label" data-i18n="settings.contributionMode">Chế độ đóng góp</span>
             <span id="contribution-mode-badge" class="contribution-mode-badge">CPA</span>
           </div>
-        <p id="contribution-mode-text" class="contribution-mode-text">
-          当前账号将用于支持项目维护。扩展会自动申请贡献登录地址并持续跟踪授权状态；如检测到回调地址，会自动提交，无需手动复制。</p>
+        <p id="contribution-mode-text" class="contribution-mode-text" data-i18n="settings.contributionCopy">Tài khoản hiện tại sẽ được dùng để hỗ trợ duy trì dự án. Extension sẽ tự xin địa chỉ đăng nhập đóng góp và theo dõi trạng thái ủy quyền; nếu phát hiện callback thì sẽ tự gửi, không cần sao chép thủ công.</p>
         <div class="data-row contribution-mode-field">
-          <span class="data-label">贡献昵称</span>
-          <input type="text" id="input-contribution-nickname" class="data-input" placeholder="可留空，将显示为匿名贡献者" />
+          <span class="data-label" data-i18n="settings.contributionNickname">Biệt danh đóng góp</span>
+          <input type="text" id="input-contribution-nickname" class="data-input" placeholder="Có thể để trống, sẽ hiển thị là người đóng góp ẩn danh" data-i18n-placeholder="settings.contributionNicknamePlaceholder" />
         </div>
         <div class="data-row contribution-mode-field">
           <span class="data-label">QQ</span>
           <input type="text" id="input-contribution-qq" class="data-input" inputmode="numeric"
-            placeholder="可留空，只能填写数字" />
+            placeholder="Có thể để trống, chỉ nhập số" data-i18n-placeholder="settings.qqPlaceholder" />
         </div>
         <div class="contribution-mode-status-grid">
           <div class="contribution-mode-status-card">
             <span class="contribution-mode-status-label">OAUTH</span>
-            <span id="contribution-oauth-status" class="contribution-mode-status-value">未生成登录地址</span>
+            <span id="contribution-oauth-status" class="contribution-mode-status-value" data-i18n="settings.oauthPending">Chưa tạo địa chỉ đăng nhập</span>
           </div>
           <div class="contribution-mode-status-card">
-            <span class="contribution-mode-status-label">回调</span>
-            <span id="contribution-callback-status" class="contribution-mode-status-value">等待回调</span>
+            <span class="contribution-mode-status-label" data-i18n="settings.callback">Callback</span>
+            <span id="contribution-callback-status" class="contribution-mode-status-value" data-i18n="settings.callbackWaiting">Đang chờ callback</span>
           </div>
         </div>
-        <div id="contribution-mode-summary" class="contribution-mode-summary">等待开始贡献</div>
+        <div id="contribution-mode-summary" class="contribution-mode-summary" data-i18n="settings.contributionWaiting">Đang chờ bắt đầu đóng góp</div>
         <div class="contribution-mode-actions">
-          <button id="btn-start-contribution" class="btn btn-primary btn-sm" type="button">开始贡献</button>
-          <button id="btn-open-contribution-upload" class="btn btn-outline btn-sm" type="button">已有认证文件？自行处理</button>
-          <button id="btn-exit-contribution-mode" class="btn btn-ghost btn-sm" type="button">退出贡献模式</button>
+          <button id="btn-start-contribution" class="btn btn-primary btn-sm" type="button" data-i18n="settings.startContribution">Bắt đầu đóng góp</button>
+          <button id="btn-open-contribution-upload" class="btn btn-outline btn-sm" type="button" data-i18n="settings.openContributionUpload">Đã có file xác thực? Tự xử lý</button>
+          <button id="btn-exit-contribution-mode" class="btn btn-ghost btn-sm" type="button" data-i18n="settings.exitContributionMode">Thoát chế độ đóng góp</button>
         </div>
       </div>
       <div class="data-row" id="row-vps-url">
@@ -193,24 +190,24 @@
         <div class="input-with-icon">
           <input type="password" id="input-vps-url" class="data-input data-input-with-icon"
             placeholder="http://ip:port/management.html#/oauth" />
-          <button id="btn-toggle-vps-url" class="input-icon-btn" type="button" aria-label="显示 CPA 地址"
-            title="显示 CPA 地址"></button>
+          <button id="btn-toggle-vps-url" class="input-icon-btn" type="button" aria-label="Hiện địa chỉ CPA"
+            title="Hiện địa chỉ CPA" data-i18n-aria-label="settings.cpaAddressShow" data-i18n-title="settings.cpaAddressShow"></button>
         </div>
       </div>
       <div class="data-row" id="row-vps-password">
-        <span class="data-label">管理密钥</span>
+        <span class="data-label" data-i18n="settings.adminKey">Khóa quản trị</span>
         <div class="input-with-icon">
           <input type="password" id="input-vps-password" class="data-input data-input-with-icon"
-            placeholder="请输入 CPA 管理密钥" />
-          <button id="btn-toggle-vps-password" class="input-icon-btn" type="button" aria-label="显示管理密钥"
-            title="显示管理密钥"></button>
+            placeholder="Nhập khóa quản trị CPA" data-i18n-placeholder="settings.adminKeyPlaceholder" />
+          <button id="btn-toggle-vps-password" class="input-icon-btn" type="button" aria-label="Hiện khóa quản trị"
+            title="Hiện khóa quản trị" data-i18n-aria-label="settings.showAdminKey" data-i18n-title="settings.showAdminKey"></button>
         </div>
       </div>
       <div class="data-row" id="row-local-cpa-step9-mode">
-        <span class="data-label">回调方式</span>
+        <span class="data-label" data-i18n="settings.callbackMode">Cách callback</span>
         <div id="local-cpa-step9-mode-group" class="choice-group" role="group" aria-label="回调方式">
-          <button type="button" class="choice-btn" data-local-cpa-step9-mode="submit">服务器部署</button>
-          <button type="button" class="choice-btn" data-local-cpa-step9-mode="bypass">本地部署</button>
+          <button type="button" class="choice-btn" data-local-cpa-step9-mode="submit" data-i18n="settings.callbackSubmit">Triển khai máy chủ</button>
+          <button type="button" class="choice-btn" data-local-cpa-step9-mode="bypass" data-i18n="settings.callbackBypass">Triển khai cục bộ</button>
         </div>
       </div>
       <div class="data-row" id="row-sub2api-url" style="display:none;">
@@ -219,11 +216,11 @@
           placeholder="https://your-sub2api-domain/admin/accounts" />
       </div>
       <div class="data-row" id="row-sub2api-email" style="display:none;">
-        <span class="data-label">账号</span>
+        <span class="data-label" data-i18n="settings.account">Tài khoản</span>
         <input type="text" id="input-sub2api-email" class="data-input" placeholder="请输入 SUB2API 登录邮箱" />
       </div>
       <div class="data-row" id="row-sub2api-password" style="display:none;">
-        <span class="data-label">密码</span>
+        <span class="data-label" data-i18n="settings.password">Mật khẩu</span>
         <div class="input-with-icon">
           <input type="password" id="input-sub2api-password" class="data-input data-input-with-icon"
             placeholder="请输入 SUB2API 登录密码" />
@@ -244,16 +241,16 @@
             </button>
             <div id="sub2api-group-menu" class="editable-list-menu" role="listbox" hidden></div>
           </div>
-          <button id="btn-add-sub2api-group" class="btn btn-outline btn-sm data-inline-btn" type="button">添加</button>
+          <button id="btn-add-sub2api-group" class="btn btn-outline btn-sm data-inline-btn" type="button" data-i18n="settings.add">Thêm</button>
         </div>
       </div>
       <div class="data-row" id="row-sub2api-account-priority" style="display:none;">
-        <span class="data-label">优先级</span>
+        <span class="data-label" data-i18n="settings.priority">Ưu tiên</span>
         <input type="number" id="input-sub2api-account-priority" class="data-input mono" value="1" min="1" step="1" />
       </div>
       <div class="data-row" id="row-sub2api-default-proxy" style="display:none;">
         <span class="data-label">默认代理</span>
-        <input type="text" id="input-sub2api-default-proxy" class="data-input" placeholder="留空则不使用代理；或填写代理名称 / ID" />
+        <input type="text" id="input-sub2api-default-proxy" class="data-input" placeholder="Để trống nếu không dùng proxy; hoặc nhập tên / ID proxy" data-i18n-placeholder="settings.defaultProxyPlaceholder" />
       </div>
       <div class="data-row" id="row-codex2api-url" style="display:none;">
         <span class="data-label">Codex2API</span>
@@ -2198,15 +2195,15 @@
   <div id="shared-form-modal" class="modal-overlay" hidden>
     <div class="modal-card modal-card-form">
       <div class="modal-header">
-        <span id="shared-form-modal-title" class="modal-title">添加账号</span>
-        <button id="btn-shared-form-modal-close" class="modal-close" type="button" aria-label="关闭">×</button>
+        <span id="shared-form-modal-title" class="modal-title" data-i18n="modals.sharedFormTitle">Thêm tài khoản</span>
+        <button id="btn-shared-form-modal-close" class="modal-close" type="button" aria-label="Đóng" data-i18n-aria-label="modals.close">×</button>
       </div>
       <p id="shared-form-modal-message" class="modal-message" hidden></p>
       <p id="shared-form-modal-alert" class="modal-alert" hidden></p>
       <div id="shared-form-modal-fields" class="modal-form-fields"></div>
       <div class="modal-actions">
-        <button id="btn-shared-form-modal-cancel" class="btn btn-ghost btn-sm" type="button">取消</button>
-        <button id="btn-shared-form-modal-confirm" class="btn btn-primary btn-sm" type="button">确认</button>
+        <button id="btn-shared-form-modal-cancel" class="btn btn-ghost btn-sm" type="button" data-i18n="modals.cancel">Hủy</button>
+        <button id="btn-shared-form-modal-confirm" class="btn btn-primary btn-sm" type="button" data-i18n="modals.confirm">Xác nhận</button>
       </div>
     </div>
   </div>
@@ -2214,21 +2211,21 @@
   <div id="auto-start-modal" class="modal-overlay" hidden>
     <div class="modal-card">
       <div class="modal-header">
-        <span class="modal-title">启动自动</span>
-        <button id="btn-auto-start-close" class="modal-close" type="button" aria-label="关闭">×</button>
+        <span class="modal-title" data-i18n="modals.autoStartTitle">Khởi động tự động</span>
+        <button id="btn-auto-start-close" class="modal-close" type="button" aria-label="Đóng" data-i18n-aria-label="modals.close">×</button>
       </div>
-      <p id="auto-start-message" class="modal-message">检测到已有流程进度，选择继续当前还是重新开始。</p>
+      <p id="auto-start-message" class="modal-message" data-i18n="modals.autoStartMessage">Đã phát hiện tiến độ quy trình hiện có, hãy chọn tiếp tục hay bắt đầu lại.</p>
       <p id="auto-start-alert" class="modal-alert" hidden></p>
       <div id="modal-option-row" class="modal-option-row" hidden>
         <label class="modal-option-label" for="modal-option-input">
           <input type="checkbox" id="modal-option-input" />
-          <span id="modal-option-text">不再提示</span>
+          <span id="modal-option-text" data-i18n="modals.dontAskAgain">Không hỏi lại</span>
         </label>
       </div>
       <div class="modal-actions">
-        <button id="btn-auto-start-cancel" class="btn btn-ghost btn-sm" type="button">取消</button>
-        <button id="btn-auto-start-restart" class="btn btn-outline btn-sm" type="button">重新开始</button>
-        <button id="btn-auto-start-continue" class="btn btn-primary btn-sm" type="button">继续当前</button>
+        <button id="btn-auto-start-cancel" class="btn btn-ghost btn-sm" type="button" data-i18n="modals.cancel">Hủy</button>
+        <button id="btn-auto-start-restart" class="btn btn-outline btn-sm" type="button" data-i18n="modals.restart">Bắt đầu lại</button>
+        <button id="btn-auto-start-continue" class="btn btn-primary btn-sm" type="button" data-i18n="modals.continueCurrent">Tiếp tục hiện tại</button>
       </div>
     </div>
   </div>
@@ -2251,6 +2248,9 @@
   <script src="../hotmail-utils.js"></script>
   <script src="../luckmail-utils.js"></script>
   <script src="../shared/flow-capabilities.js"></script>
+  <script src="../locales/zh-CN.js"></script>
+  <script src="../locales/vi-VN.js"></script>
+  <script src="../shared/i18n.js"></script>
   <script src="../data/step-definitions.js"></script>
   <script src="update-service.js"></script>
   <script src="contribution-content-update-service.js"></script>

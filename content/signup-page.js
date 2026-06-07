@@ -51,7 +51,7 @@ if (document.documentElement.getAttribute(SIGNUP_PAGE_LISTENER_SENTINEL) !== '1'
         const reportedNodeId = resolveCommandNodeId(message);
         if (isStopError(err)) {
           if (reportedStep) {
-            log(`步骤 ${reportedStep || 8}：已被用户停止。`, 'warn');
+            log(`Bước ${reportedStep || 8}: đã bị người dùng dừng.`, 'warn');
           }
           sendResponse({ stopped: true, error: err.message });
           return;
@@ -72,7 +72,7 @@ if (document.documentElement.getAttribute(SIGNUP_PAGE_LISTENER_SENTINEL) !== '1'
     }
   });
 } else {
-  console.log('[MultiPage:signup-page] 消息监听已存在，跳过重复注册');
+  console.log('[MultiPage:signup-page] Trình nghe tin nhắn đã tồn tại, bỏ qua đăng ký lặp lại');
 }
 
 const SIGNUP_PAGE_NODE_HANDLERS = Object.freeze({
@@ -108,7 +108,7 @@ async function handleCommand(message) {
       const nodeId = String(message.nodeId || message.payload?.nodeId || '').trim();
       const handler = SIGNUP_PAGE_NODE_HANDLERS[nodeId];
       if (!handler) {
-        throw new Error(`signup-page.js 不处理节点 ${nodeId}`);
+        throw new Error(`signup-page.js không xử lý node ${nodeId}`);
       }
       return await handler(message.payload || {});
     }
@@ -390,13 +390,13 @@ async function readChatGptSessionExportData() {
     credentials: 'include',
   });
   if (!sessionResponse.ok) {
-    throw new Error(`读取 ChatGPT 会话失败（HTTP ${sessionResponse.status}）。`);
+    throw new Error(`Đọc phiên ChatGPT thất bại (HTTP ${sessionResponse.status}).`);
   }
 
   const session = await sessionResponse.json().catch(() => ({}));
   const accessToken = String(session?.accessToken || '').trim();
   if (!accessToken) {
-    throw new Error('当前页面未返回可用 accessToken，无法导出本地CPA JSON 无RT。');
+    throw new Error('Trang hiện tại không trả về accessToken khả dụng, không thể xuất JSON CPA cục bộ không có RT.');
   }
 
   return {
@@ -1307,7 +1307,7 @@ async function fillSignupEmailAndContinue(email, step) {
         const gate = rootScope?.CodexOperationDelay?.performOperationWithDelay;
         return typeof gate === 'function' ? gate(metadata, operation) : operation();
       };
-  if (!email) throw new Error(`未提供邮箱地址，步骤 ${step} 无法继续。`);
+  if (!email) throw new Error(`Chưa cung cấp địa chỉ email, bước ${step} không thể tiếp tục.`);
   const normalizedEmail = String(email || '').trim().toLowerCase();
 
   const snapshot = await waitForSignupEntryState({
@@ -2665,7 +2665,7 @@ async function step3_fillEmailPassword(payload) {
         return typeof gate === 'function' ? gate(metadata, operation) : operation();
       };
   const { email, password } = payload;
-  if (!password) throw new Error('未提供密码，步骤 3 需要可用密码。');
+  if (!password) throw new Error('Chưa cung cấp mật khẩu, bước 3 cần có mật khẩu khả dụng.');
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const accountIdentifierType = String(payload?.accountIdentifierType || '').trim().toLowerCase() === 'phone'
     ? 'phone'
@@ -7312,7 +7312,7 @@ async function waitForStep5SubmitOutcome(options = {}) {
 
 async function step5_fillNameBirthday(payload) {
   const { firstName, lastName, age, year, month, day, prefillOnly = false } = payload;
-  if (!firstName || !lastName) throw new Error('未提供姓名数据。');
+  if (!firstName || !lastName) throw new Error('Chưa cung cấp họ tên.');
   const performOperationWithDelay = typeof getOperationDelayRunner === 'function'
     ? getOperationDelayRunner()
     : async (metadata, operation) => {
@@ -7324,7 +7324,7 @@ async function step5_fillNameBirthday(payload) {
   const resolvedAge = age ?? (year ? new Date().getFullYear() - Number(year) : null);
   const hasBirthdayData = [year, month, day].every(value => value != null && !Number.isNaN(Number(value)));
   if (!hasBirthdayData && (resolvedAge == null || Number.isNaN(Number(resolvedAge)))) {
-    throw new Error('未提供生日或年龄数据。');
+    throw new Error('Chưa cung cấp dữ liệu ngày sinh hoặc tuổi.');
   }
 
   const fullName = `${firstName} ${lastName}`;
@@ -7549,7 +7549,7 @@ async function step5_fillNameBirthday(payload) {
   const completeBtn = await waitForStep5SubmitButton(5000)
     || await waitForElementByText('button', /完成|create|continue|finish|done|agree/i, 5000).catch(() => null);
   if (!completeBtn) {
-    throw new Error('未找到“完成帐户创建”按钮。URL: ' + location.href);
+    throw new Error('Không tìm thấy nút “Hoàn tất tạo tài khoản”. URL: ' + location.href);
   }
 
   const isAgeMode = !birthdayMode && Boolean(ageInput);
