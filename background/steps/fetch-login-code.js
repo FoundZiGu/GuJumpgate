@@ -121,7 +121,7 @@
 
       return async (details = {}) => getOAuthFlowRemainingMs({
         step: visibleStep,
-        actionLabel: details.actionLabel || '登录验证码流程',
+        actionLabel: details.actionLabel || 'luồng mã xác minh đăng nhập',
         oauthUrl: expectedOauthUrl,
       });
     }

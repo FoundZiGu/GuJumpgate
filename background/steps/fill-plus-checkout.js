@@ -24,20 +24,20 @@
   const GPC_TASK_STALE_STATUS_TIMEOUT_MS = 60000;
   const RANDOMUSER_ADDRESS_ENDPOINT = 'https://randomuser.me/api/?nat=us&inc=location&noinfo';
   const GPC_REMOTE_STAGE_LABELS = {
-    auto_otp_wait: '等待自动 OTP',
-    checkout_order_start: '创建订单',
-    checkout_start: '创建订单',
-    completed: '充值完成',
-    gopay_validate_pin: '校验 PIN',
-    otp_ready: '等待 PIN',
-    otp_submitted_local: 'OTP 已提交',
-    payment_processing: '支付处理中',
-    pin_submitted_local: 'PIN 已提交',
-    sms_otp_wait: '等待短信 OTP',
-    whatsapp_otp_wait: '等待 WhatsApp OTP',
+    auto_otp_wait: 'Chờ OTP tự động',
+    checkout_order_start: 'Tạo đơn hàng',
+    checkout_start: 'Tạo đơn hàng',
+    completed: 'Nạp tiền hoàn tất',
+    gopay_validate_pin: 'Xác minh PIN',
+    otp_ready: 'Chờ PIN',
+    otp_submitted_local: 'Đã gửi OTP',
+    payment_processing: 'Đang xử lý thanh toán',
+    pin_submitted_local: 'Đã gửi PIN',
+    sms_otp_wait: 'Chờ OTP SMS',
+    whatsapp_otp_wait: 'Chờ OTP WhatsApp',
   };
   const GPC_WAITING_FOR_LABELS = {
-    auto_otp: '自动 OTP',
+    auto_otp: 'OTP tự động',
     otp: 'OTP',
     pin: 'PIN',
   };

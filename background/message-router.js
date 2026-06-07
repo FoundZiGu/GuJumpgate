@@ -274,7 +274,7 @@
         : Boolean(signupTabId);
 
       if (!signupTabId || !signupTabAlive) {
-        throw new Error('手动执行步骤 4 前，请先执行步骤 1 或步骤 2，确保认证页仍然打开并停留在验证码页。');
+        throw new Error('Trước khi chạy thủ công bước 4, hãy chạy bước 1 hoặc bước 2 trước để đảm bảo trang xác thực vẫn đang mở và đang dừng ở trang mã xác minh.');
       }
     }
 

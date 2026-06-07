@@ -13,40 +13,40 @@
 
     const FILTER_CONFIG = {
       all: {
-        label: '总',
+        label: 'Tổng',
         className: '',
         matches: () => true,
-        metaLabel: '全部',
+        metaLabel: 'Tất cả',
       },
       success: {
-        label: '成',
+        label: 'Thành công',
         className: 'is-success',
         matches: (record) => getRecordDisplayStatus(record) === 'success',
-        metaLabel: '成功',
+        metaLabel: 'Thành công',
       },
       running: {
-        label: '运行',
+        label: 'Chạy',
         className: 'is-running',
         matches: (record) => getRecordDisplayStatus(record) === 'running',
-        metaLabel: '运行中',
+        metaLabel: 'Chạy中',
       },
       failed: {
-        label: '失',
+        label: 'Thất bại',
         className: 'is-failed',
         matches: (record) => getRecordDisplayStatus(record) === 'failed',
-        metaLabel: '失败',
+        metaLabel: 'Thất bại',
       },
       stopped: {
-        label: '停',
+        label: 'Dừng',
         className: 'is-stopped',
         matches: (record) => getRecordDisplayStatus(record) === 'stopped',
-        metaLabel: '停止',
+        metaLabel: 'Dừng',
       },
       retry: {
-        label: '重试',
+        label: 'Thử lại',
         className: 'is-retry',
         matches: (record) => normalizeRetryCount(record.retryCount) > 0,
-        metaLabel: '重试',
+        metaLabel: 'Thử lại',
       },
     };
 
@@ -150,7 +150,7 @@
       return {
         ...record,
         displayStatus: 'running',
-        displaySummary: '正在运行',
+        displaySummary: 'Đang chạy',
       };
     }
 
@@ -214,7 +214,7 @@
     }
 
     function getRecordTitle(record = {}) {
-      const primaryIdentifier = getRecordPrimaryIdentifier(record) || '(空账号)';
+      const primaryIdentifier = getRecordPrimaryIdentifier(record) || '(Tài khoản trống)';
       const secondaryIdentifier = getRecordSecondaryIdentifier(record);
       return secondaryIdentifier
         ? `${primaryIdentifier} / ${secondaryIdentifier}`
@@ -292,15 +292,15 @@
     function getStatusMeta(record = {}) {
       const status = getRecordDisplayStatus(record);
       if (status === 'success') {
-        return { kind: 'success', label: '成功' };
+        return { kind: 'success', label: 'Thành công' };
       }
       if (status === 'running') {
-        return { kind: 'running', label: '正在运行' };
+        return { kind: 'running', label: 'Đang chạy' };
       }
       if (status === 'stopped') {
-        return { kind: 'stopped', label: '停止' };
+        return { kind: 'stopped', label: 'Dừng' };
       }
-      return { kind: 'failed', label: '失败' };
+      return { kind: 'failed', label: 'Thất bại' };
     }
 
     function getRecordSummaryText(record = {}) {
@@ -309,15 +309,15 @@
         return String(record.displaySummary || '').trim();
       }
       if (status === 'success') {
-        return '流程完成';
+        return '流程完Thành công';
       }
       if (status === 'running') {
-        return '正在运行';
+        return 'Đang chạy';
       }
 
       return String(record.failureDetail || record.reason || '').trim()
         || String(record.failureLabel || '').trim()
-        || '流程失败';
+        || '流程Thất bại';
     }
 
     function getRecordTooltipText(record = {}, summaryText = '') {
@@ -438,7 +438,7 @@
       }
 
       if (!allRecords.length) {
-        dom.accountRecordsMeta.textContent = '暂无账号记录';
+        dom.accountRecordsMeta.textContent = 'Chưa có bản ghi tài khoản';
         return;
       }
 
@@ -479,14 +479,14 @@
       setNodeHidden(dom.btnClearAccountRecords, selectionMode);
       toggleNodeClass(dom.btnToggleAccountRecordsSelection, 'is-active', selectionMode);
       setNodeAttr(dom.btnToggleAccountRecordsSelection, 'aria-pressed', selectionMode ? 'true' : 'false');
-      setNodeText(dom.btnToggleAccountRecordsSelection, selectionMode ? '取消多选' : '多选');
+      setNodeText(dom.btnToggleAccountRecordsSelection, selectionMode ? 'Huỷ chọn nhiều' : 'Chọn nhiều');
 
       const selectedCount = selectedRecordIds.size;
       setNodeHidden(dom.btnDeleteSelectedAccountRecords, !selectionMode);
       setNodeDisabled(dom.btnDeleteSelectedAccountRecords, selectedCount === 0);
       setNodeText(
         dom.btnDeleteSelectedAccountRecords,
-        selectedCount > 0 ? `删除选中(${selectedCount})` : '删除选中'
+        selectedCount > 0 ? `Xoá选中(${selectedCount})` : 'Xoá选中'
       );
     }
 
@@ -514,7 +514,7 @@
 
       const message = allRecords.length
         ? `当前筛选“${getFilterConfig(activeFilter).metaLabel}”下暂无记录`
-        : '暂无账号记录';
+        : 'Chưa có bản ghi tài khoản';
       dom.accountRecordsList.innerHTML = `<div class="account-records-empty">${escapeHtml(message)}</div>`;
     }
 
@@ -534,7 +534,7 @@
 
       dom.accountRecordsList.innerHTML = visibleRecords.map((record) => {
         const recordId = buildRecordId(record);
-        const primaryIdentifier = getRecordPrimaryIdentifier(record) || '(空账号)';
+        const primaryIdentifier = getRecordPrimaryIdentifier(record) || '(Tài khoản trống)';
         const secondaryIdentifier = getRecordSecondaryIdentifier(record);
         const statusMeta = getStatusMeta(record);
         const summaryText = getRecordSummaryText(record);
@@ -580,7 +580,7 @@
             </div>
             <div class="account-record-item-bottom">
               <div class="account-record-item-summary">${escapeHtml(summaryText)}</div>
-              <span class="account-record-item-retry mono">重试 ${escapeHtml(String(retryCount))}</span>
+              <span class="account-record-item-retry mono">Thử lại ${escapeHtml(String(retryCount))}</span>
             </div>
           </div>
         `;
@@ -653,14 +653,14 @@
     async function clearRecords() {
       const records = getAccountRunRecords();
       if (!records.length) {
-        helpers.showToast?.('没有可清理的账号记录。', 'warn', 1800);
+        helpers.showToast?.('Không có bản ghi tài khoản nào để dọn dẹp.', 'warn', 1800);
         return;
       }
 
       const confirmed = await helpers.openConfirmModal({
-        title: '清理账号记录',
-        message: '确认清理当前全部账号记录吗？该操作会同时清空面板记录与本地同步快照。',
-        confirmLabel: '确认清理',
+        title: 'Dọn dẹp bản ghi tài khoản',
+        message: 'Xác nhận dọn dẹp当前Tất cảTài khoản记录吗？该操作会同时清空面板记录与本地同步快照。',
+        confirmLabel: 'Xác nhận dọn dẹp',
         confirmVariant: 'btn-danger',
       });
       if (!confirmed) {
@@ -680,20 +680,20 @@
       selectionMode = false;
       resetSelection();
       state.syncLatestState({ accountRunHistory: [] });
-      helpers.showToast?.(`已清理 ${Math.max(0, Number(response?.clearedCount) || 0)} 条账号记录。`, 'success', 2200);
+      helpers.showToast?.(`已清理 ${Math.max(0, Number(response?.clearedCount) || 0)} 条Tài khoản记录。`, 'success', 2200);
     }
 
     async function deleteSelectedRecords() {
       const recordIds = Array.from(selectedRecordIds).filter(Boolean);
       if (!recordIds.length) {
-        helpers.showToast?.('请先勾选要删除的账号记录。', 'warn', 1800);
+        helpers.showToast?.('请先勾选要Xoá的Tài khoản记录。', 'warn', 1800);
         return;
       }
 
       const confirmed = await helpers.openConfirmModal({
-        title: '删除选中记录',
-        message: `确认删除选中的 ${recordIds.length} 条账号记录吗？该操作会同步更新本地 helper 快照。`,
-        confirmLabel: '确认删除',
+        title: 'Xoá选中记录',
+        message: `Xác nhận xoá选中的 ${recordIds.length} 条Tài khoản记录吗？该操作会同步更新本地 helper 快照。`,
+        confirmLabel: 'Xác nhận xoá',
         confirmVariant: 'btn-danger',
       });
       if (!confirmed) {
@@ -717,7 +717,7 @@
 
       resetSelection();
       state.syncLatestState({ accountRunHistory: nextRecords });
-      helpers.showToast?.(`已删除 ${Math.max(0, Number(response?.deletedCount) || 0)} 条账号记录。`, 'success', 2200);
+      helpers.showToast?.(`已Xoá ${Math.max(0, Number(response?.deletedCount) || 0)} 条Tài khoản记录。`, 'success', 2200);
     }
 
     function handleStatsClick(event) {
@@ -802,14 +802,14 @@
         try {
           await deleteSelectedRecords();
         } catch (error) {
-          helpers.showToast?.(`删除账号记录失败：${error.message}`, 'error');
+          helpers.showToast?.(`XoáTài khoản记录Thất bại：${error.message}`, 'error');
         }
       });
       dom.btnClearAccountRecords?.addEventListener('click', async () => {
         try {
           await clearRecords();
         } catch (error) {
-          helpers.showToast?.(`清理账号记录失败：${error.message}`, 'error');
+          helpers.showToast?.(`Dọn dẹp bản ghi tài khoảnThất bại：${error.message}`, 'error');
         }
       });
     }

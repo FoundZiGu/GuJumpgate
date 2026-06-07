@@ -24,7 +24,7 @@
         return '<option value=""></option>';
       }
       return accounts.map((account) => (
-        `<option value="${helpers.escapeHtml(account.id)}">${helpers.escapeHtml(account.email || '(未命名账号)')}</option>`
+        `<option value="${helpers.escapeHtml(account.id)}">${helpers.escapeHtml(account.email || '(Tài khoản chưa đặt tên)')}</option>`
       )).join('');
     }
 
@@ -33,7 +33,7 @@
     }
 
     function getPayPalAccountLabel(account = {}) {
-      return String(account?.email || '(未命名账号)');
+      return String(account?.email || '(Tài khoản chưa đặt tên)');
     }
 
     function normalizePickerPayPalAccounts(accounts = []) {
@@ -66,7 +66,7 @@
         current: dom.payPalAccountCurrent,
         menu: dom.payPalAccountMenu,
         emptyLabel: '',
-        itemLabel: '账号',
+        itemLabel: 'Tài khoản',
         normalizeItems: normalizePickerPayPalAccounts,
         normalizeValue: (value) => String(value || '').trim(),
         getItemValue: getPayPalAccountValue,
@@ -138,7 +138,7 @@
       });
       renderPayPalAccounts();
       if (!silent) {
-        helpers.showToast(`已切换当前 PayPal 账号为 ${response.account?.email || accountId}`, 'success', 1800);
+        helpers.showToast(`已切换当前 Tài khoản PayPal为 ${response.account?.email || accountId}`, 'success', 1800);
       }
       return response.account || null;
     }
@@ -190,7 +190,7 @@
           currentPayPalAccountId: payload.currentPayPalAccountId || null,
         });
         renderPayPalAccounts();
-        helpers.showToast(`已删除 PayPal 账号：${targetAccount.email || targetId}`, 'success', 1600);
+        helpers.showToast(`已Xoá Tài khoản PayPal：${targetAccount.email || targetId}`, 'success', 1600);
       } finally {
         actionInFlight = false;
         if (dom.btnAddPayPalAccount) {
@@ -201,37 +201,37 @@
 
     async function openPayPalAccountDialog() {
       if (typeof helpers.openFormDialog !== 'function') {
-        throw new Error('表单弹窗能力未加载，请刷新扩展后重试。');
+        throw new Error('表单弹窗能力未加载，请刷新扩展后Thử lại。');
       }
       return helpers.openFormDialog({
-        title: '添加 PayPal 账号',
-        confirmLabel: '保存账号',
+        title: '添加 Tài khoản PayPal',
+        confirmLabel: 'Lưu tài khoản',
         confirmVariant: 'btn-primary',
         fields: [
           {
             key: 'email',
-            label: 'PayPal 账号',
+            label: 'Tài khoản PayPal',
             type: 'text',
-            placeholder: '请输入 PayPal 登录邮箱',
+            placeholder: 'Hãy nhập email đăng nhập PayPal',
             autocomplete: 'username',
             required: true,
-            requiredMessage: '请先填写 PayPal 账号。',
+            requiredMessage: '请先填写 Tài khoản PayPal。',
             validate: (value) => {
               const normalized = String(value || '').trim();
               if (!normalized.includes('@')) {
-                return 'PayPal 账号需填写邮箱格式。';
+                return 'Tài khoản PayPal需填写邮箱格式。';
               }
               return '';
             },
           },
           {
             key: 'password',
-            label: 'PayPal 密码',
+            label: 'Mật khẩu PayPal',
             type: 'password',
-            placeholder: '请输入 PayPal 登录密码',
+            placeholder: 'Hãy nhập mật khẩu đăng nhập PayPal',
             autocomplete: 'current-password',
             required: true,
-            requiredMessage: '请先填写 PayPal 密码。',
+            requiredMessage: '请先填写 Mật khẩu PayPal。',
           },
         ],
       });
@@ -270,9 +270,9 @@
           dom.selectPayPalAccount.value = response.account.id;
           await syncSelectedPayPalAccount({ silent: true });
         }
-        helpers.showToast(`已保存 PayPal 账号 ${response.account?.email || ''}`, 'success', 2200);
+        helpers.showToast(`Đã lưu Tài khoản PayPal ${response.account?.email || ''}`, 'success', 2200);
       } catch (error) {
-        helpers.showToast(`保存 PayPal 账号失败：${error.message}`, 'error');
+        helpers.showToast(`保存 Tài khoản PayPalThất bại：${error.message}`, 'error');
         throw error;
       } finally {
         actionInFlight = false;

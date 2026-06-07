@@ -97,9 +97,9 @@
         const haystack = [
           entry.email,
           entry.note,
-          entry.enabled ? 'enabled 启用' : 'disabled 停用',
-          entry.used ? 'used 已用' : 'unused 未用',
-          entry.current ? 'current 当前' : '',
+          entry.enabled ? 'enabled Bật' : 'disabled ngừng dùng',
+          entry.used ? 'used đã dùng' : 'unused chưa dùng',
+          entry.current ? 'current hiện tại' : '',
         ].join(' ').toLowerCase();
 
         return haystack.includes(normalizedSearchTerm);
@@ -159,8 +159,8 @@
 
       if (!renderedEntries.length) {
         selectedEntryIds.clear();
-        dom.customEmailPoolList.innerHTML = '<div class="luckmail-empty">还没有自定义邮箱，先导入一批邮箱再开始。</div>';
-        dom.customEmailPoolSummary.textContent = '导入你提前准备好的注册邮箱，每行一个邮箱地址。';
+        dom.customEmailPoolList.innerHTML = '<div class="luckmail-empty">Chưa có email tuỳ chỉnh, hãy nhập một lô email trước khi bắt đầu.</div>';
+        dom.customEmailPoolSummary.textContent = 'Nhập các email đăng ký bạn đã chuẩn bị sẵn, mỗi dòng một địa chỉ email.';
         if (dom.btnCustomEmailPoolClearUsed) dom.btnCustomEmailPoolClearUsed.disabled = true;
         if (dom.btnCustomEmailPoolDeleteAll) dom.btnCustomEmailPoolDeleteAll.disabled = true;
         updateBulkUi([]);
@@ -170,13 +170,13 @@
       const entriesWithCurrent = withCurrentFlag(renderedEntries);
       const usedCount = entriesWithCurrent.filter((entry) => entry.used).length;
       const enabledCount = entriesWithCurrent.filter((entry) => entry.enabled).length;
-      dom.customEmailPoolSummary.textContent = `已加载 ${entriesWithCurrent.length} 个邮箱，其中 ${enabledCount} 个启用，${usedCount} 个已标记为已用。`;
+      dom.customEmailPoolSummary.textContent = `已加载 ${entriesWithCurrent.length} 个邮箱，其中 ${enabledCount} 个Bật，${usedCount} 个已Đánh dấu là đã dùng。`;
       if (dom.btnCustomEmailPoolClearUsed) dom.btnCustomEmailPoolClearUsed.disabled = loading || usedCount === 0;
       if (dom.btnCustomEmailPoolDeleteAll) dom.btnCustomEmailPoolDeleteAll.disabled = loading || entriesWithCurrent.length === 0;
 
       const visibleEntries = getFilteredEntries(entriesWithCurrent);
       if (!visibleEntries.length) {
-        dom.customEmailPoolList.innerHTML = '<div class="luckmail-empty">没有匹配当前筛选条件的邮箱。</div>';
+        dom.customEmailPoolList.innerHTML = '<div class="luckmail-empty">Không có email nào khớp bộ lọc hiện tại.</div>';
         updateBulkUi([]);
         return;
       }
@@ -189,27 +189,27 @@
           <input class="luckmail-item-check" type="checkbox" data-action="select" ${selectedEntryIds.has(entryId) ? 'checked' : ''} />
           <div class="luckmail-item-main">
             <div class="luckmail-item-email-row">
-              <div class="luckmail-item-email">${helpers.escapeHtml(entry.email || '(未知邮箱)')}</div>
+              <div class="luckmail-item-email">${helpers.escapeHtml(entry.email || '(Email không xác định)')}</div>
               <button
                 class="hotmail-copy-btn"
                 type="button"
                 data-action="copy-email"
-                title="复制邮箱"
-                aria-label="复制邮箱 ${helpers.escapeHtml(entry.email || '')}"
+                title="Sao chép email"
+                aria-label="Sao chép email ${helpers.escapeHtml(entry.email || '')}"
               >${copyIcon}</button>
             </div>
             <div class="luckmail-item-meta">
-              ${entry.current ? '<span class="luckmail-tag current">当前</span>' : ''}
-              ${entry.used ? '<span class="luckmail-tag used">已用</span>' : '<span class="luckmail-tag active">未用</span>'}
-              ${entry.enabled ? '<span class="luckmail-tag active">启用</span>' : '<span class="luckmail-tag disabled">停用</span>'}
+              ${entry.current ? '<span class="luckmail-tag current">Hiện tại</span>' : ''}
+              ${entry.used ? '<span class="luckmail-tag used">Đã dùng</span>' : '<span class="luckmail-tag active">Chưa dùng</span>'}
+              ${entry.enabled ? '<span class="luckmail-tag active">Bật</span>' : '<span class="luckmail-tag disabled">Ngừng dùng</span>'}
               ${entry.note ? `<span class="luckmail-tag">${helpers.escapeHtml(entry.note)}</span>` : ''}
             </div>
           </div>
           <div class="luckmail-item-actions">
             <button class="btn btn-outline btn-xs" type="button" data-action="use">使用此邮箱</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-used">${helpers.escapeHtml(entry.used ? '标记未用' : '标记已用')}</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-enabled">${helpers.escapeHtml(entry.enabled ? '停用' : '启用')}</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="delete">删除</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-used">${helpers.escapeHtml(entry.used ? 'Đánh dấu chưa dùng' : 'Đánh dấu đã dùng')}</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-enabled">${helpers.escapeHtml(entry.enabled ? 'Dừng用' : 'Bật')}</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="delete">Xoá</button>
           </div>
         `;
 
@@ -224,17 +224,17 @@
 
         item.querySelector('[data-action="copy-email"]').addEventListener('click', async () => {
           await helpers.copyTextToClipboard(entry.email || '');
-          helpers.showToast('邮箱已复制', 'success', 1600);
+          helpers.showToast('Đã sao chép email', 'success', 1600);
         });
 
         item.querySelector('[data-action="use"]').addEventListener('click', async () => {
           try {
-            setLoadingState(true, '正在切换当前邮箱...');
+            setLoadingState(true, 'Đang chuyển email hiện tại...');
             await actions.setRuntimeEmail?.(entry.email);
             helpers.showToast(`已切换到 ${entry.email}`, 'success', 1800);
             queueCustomEmailPoolRefresh();
           } catch (error) {
-            helpers.showToast(`切换邮箱失败：${error.message}`, 'error');
+            helpers.showToast(`切换邮箱Thất bại：${error.message}`, 'error');
           } finally {
             setLoadingState(false);
           }
@@ -263,7 +263,7 @@
         item.querySelector('[data-action="delete"]').addEventListener('click', async () => {
           await deleteEntries({
             ids: [entry.id],
-          }, `确认删除 ${entry.email} 吗？此操作不可撤销。`);
+          }, `Xác nhận xoá ${entry.email} 吗？此操作不可撤销。`);
         });
 
         dom.customEmailPoolList.appendChild(item);
@@ -276,7 +276,7 @@
       const previousEntries = normalizeEntries(state.getEntries?.() || []);
       const nextEntries = normalizeEntries(mutator(previousEntries.map((entry) => ({ ...entry }))));
 
-      setLoadingState(true, '正在更新自定义邮箱池...');
+      setLoadingState(true, 'Đang cập nhật pool email tuỳ chỉnh...');
       state.setEntries?.(nextEntries);
       renderCustomEmailPoolEntries(nextEntries);
 
@@ -285,7 +285,7 @@
       } catch (error) {
         state.setEntries?.(previousEntries);
         renderCustomEmailPoolEntries(previousEntries);
-        helpers.showToast(`更新自定义邮箱池失败：${error.message}`, 'error');
+        helpers.showToast(`更新自定义邮箱池Thất bại：${error.message}`, 'error');
       } finally {
         setLoadingState(false);
       }
@@ -293,9 +293,9 @@
 
     async function deleteEntries(payload = {}, confirmMessage = '') {
       const confirmed = await helpers.openConfirmModal({
-        title: '删除邮箱',
-        message: confirmMessage || '确认删除选中的邮箱吗？此操作不可撤销。',
-        confirmLabel: '确认删除',
+        title: 'Xoá邮箱',
+        message: confirmMessage || 'Xác nhận xoá选中的邮箱吗？此操作不可撤销。',
+        confirmLabel: 'Xác nhận xoá',
         confirmVariant: 'btn-danger',
       });
       if (!confirmed) {
@@ -327,7 +327,7 @@
     async function importEntriesFromTextarea() {
       const text = String(dom.inputCustomEmailPoolImport?.value || '');
       if (!text.trim()) {
-        helpers.showToast('请先粘贴邮箱列表，每行一个邮箱。', 'warn');
+        helpers.showToast('Hãy dán trước danh sách email, mỗi dòng một email.', 'warn');
         return;
       }
 
@@ -358,12 +358,12 @@
       }
 
       if (!importedEntries.length && skippedCount > 0) {
-        helpers.showToast('没有可导入的新邮箱（可能都重复或无效）。', 'warn');
+        helpers.showToast('Không có email mới nào để nhập (có thể đều bị trùng hoặc không hợp lệ).', 'warn');
         return;
       }
 
       const nextEntries = normalizeEntries([...previousEntries, ...importedEntries]);
-      setLoadingState(true, '正在导入邮箱...');
+      setLoadingState(true, 'Đang nhập email...');
       state.setEntries?.(nextEntries);
       renderCustomEmailPoolEntries(nextEntries);
 
@@ -382,7 +382,7 @@
       } catch (error) {
         state.setEntries?.(previousEntries);
         renderCustomEmailPoolEntries(previousEntries);
-        helpers.showToast(`导入邮箱失败：${error.message}`, 'error');
+        helpers.showToast(`导入邮箱Thất bại：${error.message}`, 'error');
       } finally {
         setLoadingState(false);
       }
@@ -395,7 +395,7 @@
       }
 
       if (!silent) {
-        setLoadingState(true, '正在刷新自定义邮箱池...');
+        setLoadingState(true, 'Đang làm mới pool email tuỳ chỉnh...');
       }
       renderCustomEmailPoolEntries(state.getEntries?.());
       if (!silent) {
@@ -422,7 +422,7 @@
         dom.customEmailPoolList.innerHTML = '';
       }
       if (dom.customEmailPoolSummary) {
-        dom.customEmailPoolSummary.textContent = '导入你提前准备好的注册邮箱，每行一个邮箱地址。';
+        dom.customEmailPoolSummary.textContent = 'Nhập các email đăng ký bạn đã chuẩn bị sẵn, mỗi dòng một địa chỉ email.';
       }
       updateBulkUi([]);
     }
@@ -503,19 +503,19 @@
       dom.btnCustomEmailPoolBulkDelete?.addEventListener('click', async () => {
         await deleteEntries({
           ids: [...selectedEntryIds],
-        }, `确认删除当前选中的 ${selectedEntryIds.size} 个邮箱吗？此操作不可撤销。`);
+        }, `Xác nhận xoá当前选中的 ${selectedEntryIds.size} 个邮箱吗？此操作不可撤销。`);
       });
 
       dom.btnCustomEmailPoolClearUsed?.addEventListener('click', async () => {
         await deleteEntries({
           mode: 'used',
-        }, '确认删除当前所有已用邮箱吗？此操作不可撤销。');
+        }, 'Xác nhận xoá当前所有Đã dùng邮箱吗？此操作不可撤销。');
       });
 
       dom.btnCustomEmailPoolDeleteAll?.addEventListener('click', async () => {
         await deleteEntries({
           mode: 'all',
-        }, '确认删除当前全部邮箱吗？此操作不可撤销。');
+        }, 'Xác nhận xoá当前Tất cả邮箱吗？此操作不可撤销。');
       });
     }
 

@@ -98,7 +98,7 @@
         }, {
           timeoutMs: 30000,
           retryDelayMs: 500,
-          logMessage: '步骤 2：正在检查官网注册入口状态...',
+          logMessage: 'Bước 2: Đang kiểm tra trạng thái cổng đăng ký trên trang chính thức...',
         });
         if (result?.error) {
           return '';

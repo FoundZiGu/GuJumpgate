@@ -1141,9 +1141,9 @@ function getAccountListParseFailureHint(state = {}, provider = DEFAULT_IP_PROXY_
     return '';
   }
   if (normalizedProvider === '711proxy') {
-    return '账号列表已填写，但未解析出有效条目。请按每行 host:port:username:password 填写。';
+    return 'Đã điền danh sách tài khoản nhưng không phân tích được mục hợp lệ nào. Hãy điền mỗi dòng theo định dạng host:port:username:password.';
   }
-  return '账号列表已填写，但未解析出有效条目。请检查列表格式。';
+  return 'Đã điền danh sách tài khoản nhưng không phân tích được mục hợp lệ nào. Hãy kiểm tra lại định dạng danh sách.';
 }
 
 function resolveIpProxyPoolTargetCountForMode(state = {}, mode = normalizeIpProxyMode(state?.ipProxyMode)) {
@@ -1170,7 +1170,7 @@ function buildProxyPoolSummary(pool = [], preferredIndex = 0) {
       count: 0,
       index: 0,
       current: null,
-      display: '暂无可用代理',
+      display: 'Chưa có proxy khả dụng',
     };
   }
   const index = normalizeIpProxyCurrentIndex(preferredIndex, 0) % normalizedPool.length;

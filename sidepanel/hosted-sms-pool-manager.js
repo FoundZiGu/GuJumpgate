@@ -13,16 +13,16 @@
     } = context;
 
     const copyIcon = constants.copyIcon || '';
-    const poolLabel = String(labels.poolLabel || 'PayPal 接码池').trim() || 'PayPal 接码池';
-    const importSubject = String(labels.importSubject || `${poolLabel}号码`).trim() || `${poolLabel}号码`;
-    const numberNoun = String(labels.numberNoun || '号码').trim() || '号码';
-    const localPhonePrefix = String(labels.localPhonePrefix || 'PayPal 填').trim();
+    const poolLabel = String(labels.poolLabel || 'Kho số nhận mã PayPal').trim() || 'Kho số nhận mã PayPal';
+    const importSubject = String(labels.importSubject || `${poolLabel}Số`).trim() || `${poolLabel}Số`;
+    const numberNoun = String(labels.numberNoun || 'Số').trim() || 'Số';
+    const localPhonePrefix = String(labels.localPhonePrefix || 'Điền PayPal').trim();
     const emptySummary = String(
-      labels.emptySummary || `导入 ${importSubject}，每行一个号码和验证码接口。`
-    ).trim() || `导入 ${importSubject}，每行一个号码和验证码接口。`;
+      labels.emptySummary || `导入 ${importSubject}，每行一个Số和验证码接口。`
+    ).trim() || `导入 ${importSubject}，每行一个Số和验证码接口。`;
     const emptyListText = String(
-      labels.emptyListText || `还没有 ${poolLabel}号码，先导入一批号码再开始。`
-    ).trim() || `还没有 ${poolLabel}号码，先导入一批号码再开始。`;
+      labels.emptyListText || `还没有 ${poolLabel}Số，先导入一批Số再开始。`
+    ).trim() || `还没有 ${poolLabel}Số，先导入一批Số再开始。`;
     const noMatchText = String(
       labels.noMatchText || `没有匹配当前筛选条件的${numberNoun}。`
     ).trim() || `没有匹配当前筛选条件的${numberNoun}。`;
@@ -33,21 +33,21 @@
       labels.updateLoadingText || `正在更新${poolLabel}...`
     ).trim() || `正在更新${poolLabel}...`;
     const updateFailedPrefix = String(
-      labels.updateFailedPrefix || `更新${poolLabel}失败`
-    ).trim() || `更新${poolLabel}失败`;
-    const copySuccessText = String(labels.copySuccessText || '号码已复制').trim() || '号码已复制';
+      labels.updateFailedPrefix || `更新${poolLabel}Thất bại`
+    ).trim() || `更新${poolLabel}Thất bại`;
+    const copySuccessText = String(labels.copySuccessText || 'Số已复制').trim() || 'Số已复制';
     const importEmptyWarning = String(
-      labels.importEmptyWarning || `请先粘贴${importSubject}，每行一个号码和验证码接口。`
-    ).trim() || `请先粘贴${importSubject}，每行一个号码和验证码接口。`;
-    const deleteTitle = String(labels.deleteTitle || `删除${poolLabel}号码`).trim() || `删除${poolLabel}号码`;
-    const clearUsageTitle = String(labels.clearUsageTitle || '清空使用次数').trim() || '清空使用次数';
+      labels.importEmptyWarning || `请先粘贴${importSubject}，每行一个Số和验证码接口。`
+    ).trim() || `请先粘贴${importSubject}，每行一个Số和验证码接口。`;
+    const deleteTitle = String(labels.deleteTitle || `Xoá${poolLabel}Số`).trim() || `Xoá${poolLabel}Số`;
+    const clearUsageTitle = String(labels.clearUsageTitle || 'Xoá số lần sử dụng').trim() || 'Xoá số lần sử dụng';
     const clearUsageMessage = String(
-      labels.clearUsageMessage || `确认清空${poolLabel}的使用次数吗？号码本身会保留。`
-    ).trim() || `确认清空${poolLabel}的使用次数吗？号码本身会保留。`;
-    const deleteAllTitle = String(labels.deleteAllTitle || `删除${poolLabel}`).trim() || `删除${poolLabel}`;
+      labels.clearUsageMessage || `确认清空${poolLabel}的使用次数吗？Số本身会Giữ lại。`
+    ).trim() || `确认清空${poolLabel}的使用次数吗？Số本身会Giữ lại。`;
+    const deleteAllTitle = String(labels.deleteAllTitle || `Xoá${poolLabel}`).trim() || `Xoá${poolLabel}`;
     const deleteAllMessage = String(
-      labels.deleteAllMessage || `确认删除当前全部${importSubject}吗？此操作不可撤销。`
-    ).trim() || `确认删除当前全部${importSubject}吗？此操作不可撤销。`;
+      labels.deleteAllMessage || `Xác nhận xoá当前Tất cả${importSubject}吗？此操作不可撤销。`
+    ).trim() || `Xác nhận xoá当前Tất cả${importSubject}吗？此操作不可撤销。`;
     const normalizePoolPhoneValue = typeof normalizers.normalizePhone === 'function'
       ? normalizers.normalizePhone
       : normalizeUsHostedPhoneDigits;
@@ -224,12 +224,12 @@
         return [
           entry.phone,
           entry.verificationUrl,
-          entry.enabled ? 'enabled 启用' : 'disabled 禁用',
-          entry.current ? 'current 当前' : '',
-          entry.used ? 'used 已用' : 'unused 未用',
-          entry.exhausted ? 'exhausted 已达上限' : '',
+          entry.enabled ? 'enabled Bật' : 'disabled Tắt',
+          entry.current ? 'current hiện tại' : '',
+          entry.used ? 'used đã dùng' : 'unused chưa dùng',
+          entry.exhausted ? 'exhausted đã đạt giới hạn' : '',
           entry.disabledReason ? `disabledReason ${entry.disabledReason}` : '',
-          entry.lastError ? `error 异常 ${entry.lastError}` : '',
+          entry.lastError ? `error Lỗi ${entry.lastError}` : '',
         ].join(' ').toLowerCase().includes(normalizedSearch);
       });
     }
@@ -286,8 +286,8 @@
         ? entriesWithState.filter((entry) => entry.exhausted).length
         : 0;
       dom.hostedSmsPoolSummary.textContent = usageLimit > 0
-        ? `已加载 ${entriesWithState.length} 个号码，${usedCount} 个有使用记录，${exhaustedCount} 个已达上限，${disabledCount} 个已禁用，累计使用 ${totalUseCount} 次。`
-        : `已加载 ${entriesWithState.length} 个号码，${usedCount} 个有使用记录，${disabledCount} 个已禁用，累计使用 ${totalUseCount} 次。`;
+        ? `已加载 ${entriesWithState.length} 个Số，${usedCount} 个有使用记录，${exhaustedCount} 个已达上限，${disabledCount} 个已Tắt，累计使用 ${totalUseCount} 次。`
+        : `已加载 ${entriesWithState.length} 个Số，${usedCount} 个有使用记录，${disabledCount} 个已Tắt，累计使用 ${totalUseCount} 次。`;
 
       const visibleEntries = getFilteredEntries(renderedEntries);
       if (!visibleEntries.length) {
@@ -309,32 +309,32 @@
             <div class="luckmail-item-email-row">
               <div class="luckmail-item-email hosted-sms-pool-phone">
                 <span>${helpers.escapeHtml?.(entry.phone) || entry.phone}</span>
-                ${entry.current ? '<span class="hosted-sms-pool-current-label">当前</span>' : ''}
+                ${entry.current ? '<span class="hosted-sms-pool-current-label">Hiện tại</span>' : ''}
                 ${localPhonePrefix && localPhone && localPhone !== entry.phone ? `<span class="hosted-sms-pool-phone-local">${helpers.escapeHtml?.(localPhonePrefix) || localPhonePrefix} ${helpers.escapeHtml?.(localPhone) || localPhone}</span>` : ''}
               </div>
               <button
                 class="hotmail-copy-btn"
                 type="button"
                 data-action="copy-phone"
-                title="复制号码"
-                aria-label="复制号码 ${helpers.escapeHtml?.(entry.phone) || entry.phone}"
+                title="复制Số"
+                aria-label="复制Số ${helpers.escapeHtml?.(entry.phone) || entry.phone}"
               >${copyIcon}</button>
             </div>
             <div class="luckmail-item-details mono">${helpers.escapeHtml?.(entry.verificationUrl) || entry.verificationUrl}</div>
             <div class="luckmail-item-meta">
-              ${entry.current ? '<span class="luckmail-tag current">当前</span>' : ''}
-              ${entry.enabled ? '<span class="luckmail-tag active">启用中</span>' : '<span class="luckmail-tag disabled">已禁用</span>'}
+              ${entry.current ? '<span class="luckmail-tag current">Hiện tại</span>' : ''}
+              ${entry.enabled ? '<span class="luckmail-tag active">Bật中</span>' : '<span class="luckmail-tag disabled">已Tắt</span>'}
               <span class="luckmail-tag active">${helpers.escapeHtml?.(usageText) || usageText}</span>
-              ${entry.exhausted ? '<span class="luckmail-tag disabled">已达上限</span>' : ''}
-              ${entry.failureCount > 0 ? `<span class="luckmail-tag used">失败 ${Math.max(0, Number(entry.failureCount) || 0)} 次</span>` : ''}
+              ${entry.exhausted ? '<span class="luckmail-tag disabled">Đã đạt giới hạn</span>' : ''}
+              ${entry.failureCount > 0 ? `<span class="luckmail-tag used">Thất bại ${Math.max(0, Number(entry.failureCount) || 0)} 次</span>` : ''}
             </div>
             ${entry.disabledReason ? `<div class="hosted-sms-pool-disabled-reason">${helpers.escapeHtml?.(entry.disabledReason) || entry.disabledReason}</div>` : ''}
           </div>
           <div class="luckmail-item-actions">
-            <button class="btn btn-outline btn-xs" type="button" data-action="${entry.enabled ? 'disable' : 'enable'}">${entry.enabled ? '禁用' : '启用'}</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="${entry.enabled ? 'disable' : 'enable'}">${entry.enabled ? 'Tắt' : 'Bật'}</button>
             <button class="btn btn-outline btn-xs" type="button" data-action="increment-usage">次数 +1</button>
             <button class="btn btn-outline btn-xs" type="button" data-action="reset-usage">清零</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="delete">删除</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="delete">Xoá</button>
           </div>
         `;
 
@@ -353,7 +353,7 @@
               lastAttemptAt: Math.max(0, Number(nextUsage[entry.key]?.lastAttemptAt) || 0),
               lastError: normalizeText(nextUsage[entry.key]?.lastError),
               enabled: false,
-              disabledReason: '手动禁用',
+              disabledReason: '手动Tắt',
               disabledAt: Date.now(),
               failureCount: Math.max(0, Math.floor(Number(nextUsage[entry.key]?.failureCount) || 0)),
             };
@@ -420,8 +420,8 @@
         item.querySelector('[data-action="delete"]')?.addEventListener('click', async () => {
           const confirmed = await helpers.openConfirmModal?.({
             title: deleteTitle,
-            message: `确认删除 ${entry.phone} 吗？此操作不可撤销。`,
-            confirmLabel: '确认删除',
+            message: `Xác nhận xoá ${entry.phone} 吗？此操作不可撤销。`,
+            confirmLabel: 'Xác nhận xoá',
             confirmVariant: 'btn-danger',
           });
           if (!confirmed) return;
@@ -499,7 +499,7 @@
         imported.push(entry);
       }
       if (!imported.length) {
-        helpers.showToast?.(skippedCount > 0 ? '没有可导入的新号码（可能都重复或格式无效）。' : '没有识别到有效号码。', 'warn');
+        helpers.showToast?.(skippedCount > 0 ? '没有可导入的新Số（可能都重复或格式无效）。' : '没有识别到有效Số。', 'warn');
         return;
       }
 
@@ -515,8 +515,8 @@
       }
       helpers.showToast?.(
         skippedCount > 0
-          ? `已导入 ${imported.length} 个号码，跳过 ${skippedCount} 条重复数据。`
-          : `已导入 ${imported.length} 个号码。`,
+          ? `已导入 ${imported.length} 个Số，跳过 ${skippedCount} 条重复数据。`
+          : `已导入 ${imported.length} 个Số。`,
         'success',
         2200
       );
@@ -526,7 +526,7 @@
       const confirmed = await helpers.openConfirmModal?.({
         title: clearUsageTitle,
         message: clearUsageMessage,
-        confirmLabel: '清空次数',
+        confirmLabel: 'Xoá số lần',
       });
       if (!confirmed) return;
       await patchPool(({ entries, usage }) => ({
@@ -548,7 +548,7 @@
       const confirmed = await helpers.openConfirmModal?.({
         title: deleteAllTitle,
         message: deleteAllMessage,
-        confirmLabel: '确认删除',
+        confirmLabel: 'Xác nhận xoá',
         confirmVariant: 'btn-danger',
       });
       if (!confirmed) return;

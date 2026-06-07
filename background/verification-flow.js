@@ -95,7 +95,7 @@
     }
 
     function getVerificationCodeLabel(step) {
-      return step === 4 ? '注册' : '登录';
+      return step === 4 ? 'đăng ký' : 'đăng nhập';
     }
 
     function isIcloudMail(mail) {

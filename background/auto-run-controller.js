@@ -80,7 +80,7 @@
       if (typeof runAutoSequenceFromNode === 'function') {
         return runAutoSequenceFromNode(startNodeId, context);
       }
-      throw new Error('自动运行节点执行器未接入。');
+      throw new Error('Chưa tích hợp bộ thực thi node cho chế độ chạy tự động.');
     }
 
     function createAutoRunRoundSummary(round) {
@@ -268,7 +268,7 @@
       const failedRounds = summaries.filter((item) => item.status === 'failed');
       const pendingRounds = summaries.filter((item) => item.status === 'pending');
 
-      await addLog('=== 自动运行汇总 ===', failedRounds.length ? 'warn' : 'ok');
+      await addLog('=== Tổng kết chạy tự động ===', failedRounds.length ? 'warn' : 'ok');
       await addLog(
         `总轮数：${totalRuns}；成功：${successRounds.length}；失败：${failedRounds.length}；未完成：${pendingRounds.length}`,
         failedRounds.length ? 'warn' : 'ok'
@@ -442,7 +442,7 @@
     async function autoRunLoop(totalRuns, options = {}) {
       let currentRuntime = runtime.get();
       if (currentRuntime.autoRunActive) {
-        await addLog('自动运行已在进行中', 'warn');
+        await addLog('Chạy tự động đang diễn ra', 'warn');
         return;
       }
 

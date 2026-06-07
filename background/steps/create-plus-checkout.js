@@ -13,8 +13,8 @@
   const PLUS_CHECKOUT_MODE_JP_PP = 'jp_pp';
   const DEFAULT_PLUS_CHECKOUT_MODE = PLUS_CHECKOUT_MODE_US_PP;
   const PLUS_CHECKOUT_MODE_LABELS = Object.freeze({
-    [PLUS_CHECKOUT_MODE_US_PP]: '美区PP Plus Checkout',
-    [PLUS_CHECKOUT_MODE_JP_PP]: '日区PP Plus Checkout',
+    [PLUS_CHECKOUT_MODE_US_PP]: 'Plus Checkout PayPal khu vực Mỹ',
+    [PLUS_CHECKOUT_MODE_JP_PP]: 'Plus Checkout PayPal khu vực Nhật',
   });
   const PLUS_ACCOUNT_ACCESS_STRATEGY_SMS_OAUTH = 'sms_oauth';
   const DEFAULT_GPC_HELPER_API_URL = 'https://your-gpc-helper-domain.example';
@@ -343,9 +343,9 @@
     function getCheckoutModeLabel(state = {}) {
       const paymentMethod = normalizePlusPaymentMethod(state?.plusPaymentMethod);
       if (paymentMethod === PLUS_PAYMENT_METHOD_GPC_HELPER) {
-        return 'GPC 订阅页';
+        return 'Trang đăng ký GPC';
       }
-      return paymentMethod === PLUS_PAYMENT_METHOD_GOPAY ? 'GoPay 订阅页' : 'Plus Checkout';
+      return paymentMethod === PLUS_PAYMENT_METHOD_GOPAY ? 'Trang đăng ký GoPay' : 'Plus Checkout';
     }
 
     async function refreshOAuthTimeoutWindowAfterHostedCheckoutSuccess() {
@@ -568,9 +568,9 @@
       if (!errorInspection) {
         return inspections;
       }
-      const message = String(errorInspection?.result?.customCheckoutErrorMessage || '').trim() || '页面出现错误提示框。';
+      const message = String(errorInspection?.result?.customCheckoutErrorMessage || '').trim() || 'Trang hiển thị hộp thông báo lỗi.';
       const frameLabel = Number(errorInspection?.frame?.frameId) === 0
-        ? '主页面'
+        ? 'trang chính'
         : `iframe(${Number(errorInspection?.frame?.frameId) || 0})`;
       throw new Error(`${PLUS_CHECKOUT_START_NEW_FLOW_ERROR_PREFIX}步骤 6：${contextLabel ? `${contextLabel}：` : ''}custom checkout 检测到错误提示框（${frameLabel}）：${message}`);
     }
@@ -675,7 +675,7 @@
 
     async function waitForBillingFrame(tabId) {
       const result = await waitForFrameMatch(tabId, pickBillingFrame, {
-        label: '账单地址 iframe',
+        label: 'iframe địa chỉ thanh toán',
       });
       return {
         frameId: result.picked.frame.frameId,

@@ -544,7 +544,7 @@
     function assertFiveSimMaxPriceCompatibleWithOperator(operator, maxPriceLimit) {
       const normalizedOperator = normalizeFiveSimCountryCode(operator, DEFAULT_FIVE_SIM_OPERATOR);
       if (maxPriceLimit !== null && maxPriceLimit !== undefined && normalizedOperator !== DEFAULT_FIVE_SIM_OPERATOR) {
-        throw new Error('5sim 价格上限仅支持运营商为 "any" 时使用；请清空价格上限，或先把运营商切换为 any。');
+        throw new Error('Giới hạn giá của 5sim chỉ hỗ trợ khi nhà mạng là "any"; hãy xóa giới hạn giá hoặc chuyển nhà mạng sang any trước.');
       }
     }
 
@@ -1340,7 +1340,7 @@
         return 'SMSPool';
       }
       if (provider === PHONE_SMS_PROVIDER_CHATGPT_API) {
-        return 'ChatGPT API 接码';
+        return 'Nhận mã qua ChatGPT API';
       }
       return 'HeroSMS';
     }
@@ -1348,23 +1348,23 @@
     function formatStep9Reason(reason = '') {
       const text = String(reason || '').trim();
       if (!text) {
-        return '未知';
+        return 'Không xác định';
       }
       const normalized = text.toLowerCase();
       const reasonMap = {
-        returned_to_add_phone_loop: '反复返回添加手机号页',
-        phone_number_used: '手机号已被使用',
-        sms_not_received: '未收到短信',
-        sms_timeout: '短信超时',
-        resend_throttled: '重发短信被限流',
-        code_rejected: '验证码被拒绝',
-        add_phone_rejected: '添加手机号被拒绝',
-        activation_not_found: '接码订单不存在或已失效',
-        resend_phone_banned: 'OpenAI 无法向该号码发送短信',
-        phone_max_usage_exceeded: '手机号达到使用上限',
-        resend_server_error: '重发短信后进入服务器错误页',
-        whatsapp_resend_channel: '页面重发入口切换为 WhatsApp 通道',
-        unknown: '未知',
+        returned_to_add_phone_loop: 'Liên tục quay lại trang thêm số điện thoại',
+        phone_number_used: 'Số điện thoại đã được dùng',
+        sms_not_received: 'Chưa nhận được SMS',
+        sms_timeout: 'SMS hết thời gian chờ',
+        resend_throttled: 'Gửi lại SMS bị giới hạn tần suất',
+        code_rejected: 'Mã xác minh bị từ chối',
+        add_phone_rejected: 'Thêm số điện thoại bị từ chối',
+        activation_not_found: 'Đơn nhận mã không tồn tại hoặc đã hết hiệu lực',
+        resend_phone_banned: 'OpenAI không thể gửi SMS tới số này',
+        phone_max_usage_exceeded: 'Số điện thoại đã đạt giới hạn sử dụng',
+        resend_server_error: 'Sau khi gửi lại SMS thì chuyển sang trang lỗi máy chủ',
+        whatsapp_resend_channel: 'Nút gửi lại trên trang đã chuyển sang kênh WhatsApp',
+        unknown: 'Không xác định',
       };
       if (reasonMap[normalized]) {
         return reasonMap[normalized];
@@ -1379,22 +1379,22 @@
     function formatPhoneSmsApiFailureReason(reason = '') {
       const text = String(reason || '').trim();
       if (!text) {
-        return '未知错误';
+        return 'Lỗi không xác định';
       }
       if (/\bBAD_KEY\b|\bWRONG_KEY\b|\bINVALID_KEY\b/i.test(text)) {
-        return 'API Key 无效（BAD_KEY）';
+        return 'API Key không hợp lệ (BAD_KEY)';
       }
       if (/\bNO_BALANCE\b|\bNOT_ENOUGH_BALANCE\b/i.test(text)) {
-        return '余额不足';
+        return 'Số dư không đủ';
       }
       if (/\bBANNED\b|\bACCOUNT_BANNED\b/i.test(text)) {
-        return '账号已被封禁';
+        return 'Tài khoản đã bị khóa';
       }
       if (/\bNO_NUMBERS\b/i.test(text)) {
-        return '暂无可用号码（NO_NUMBERS）';
+        return 'Hiện không có số khả dụng (NO_NUMBERS)';
       }
       if (/no\s+free\s+phones|numbers?\s+not\s+found|no\s+numbers\s+available|no\s+numbers\s+within|暂无可用号码|均无可用号码|无可用号码/i.test(text)) {
-        return '暂无可用号码';
+        return 'Hiện không có số khả dụng';
       }
       const wrongMaxPrice = text.match(/\bWRONG_MAX_PRICE(?::|\s+requires\s+)?(\d+(?:\.\d+)?)?\b/i);
       if (wrongMaxPrice) {
@@ -1403,25 +1403,25 @@
           : '价格上限不符合平台要求（WRONG_MAX_PRICE）';
       }
       if (/rate\s*limit|too\s+many\s+requests|限流/i.test(text)) {
-        return '请求限流';
+        return 'Yêu cầu bị giới hạn tần suất';
       }
       if (/unauthorized|forbidden|invalid\s+token|bad\s+key|wrong\s+key/i.test(text)) {
-        return 'API Key 无效';
+        return 'API Key không hợp lệ';
       }
       if (/order\s+not\s+found|activation\s+not\s+found|no\s+such\s+order/i.test(text)) {
-        return '订单不存在或已失效';
+        return 'Đơn hàng không tồn tại hoặc đã hết hiệu lực';
       }
       if (/timed\s*out|timeout/i.test(text)) {
-        return '请求超时';
+        return 'Yêu cầu hết thời gian chờ';
       }
       if (/failed\s+to\s+fetch|networkerror|load\s+failed/i.test(text)) {
-        return '网络请求失败';
+        return 'Yêu cầu mạng thất bại';
       }
       if (/empty\s+response/i.test(text)) {
-        return '空响应';
+        return 'Phản hồi rỗng';
       }
       if (/unknown\s+terminal\s+error/i.test(text)) {
-        return '未知终止错误';
+        return 'Lỗi kết thúc không xác định';
       }
       return text;
     }
@@ -1429,16 +1429,16 @@
     function formatHeroSmsActionName(action = '') {
       const normalized = String(action || '').trim().toLowerCase();
       if (normalized === 'getnumber' || normalized === 'getnumberv2') {
-        return '获取手机号';
+        return 'Lấy số điện thoại';
       }
       if (normalized === 'getstatus' || normalized === 'getstatusv2') {
-        return '查询短信状态';
+        return 'Kiểm tra trạng thái SMS';
       }
       if (normalized === 'setstatus') {
-        return '更新订单状态';
+        return 'Cập nhật trạng thái đơn hàng';
       }
       if (normalized === 'getprices' || normalized === 'getpricesextended') {
-        return '查询价格';
+        return 'Kiểm tra giá';
       }
       return action ? `${action} 请求` : '请求';
     }
@@ -1446,7 +1446,7 @@
     function formatPhoneSmsActionLabel(actionLabel = '') {
       const text = String(actionLabel || '').trim();
       if (!text) {
-        return '接码平台请求';
+        return 'Yêu cầu tới nền tảng nhận mã';
       }
       const normalized = text.toLowerCase();
       const heroMatch = text.match(/^HeroSMS\s+(.+)$/i);
@@ -1454,34 +1454,34 @@
         return `HeroSMS ${formatHeroSmsActionName(heroMatch[1])}`;
       }
       if (normalized === '5sim guest prices') {
-        return '5sim 查询游客价格';
+        return '5sim kiểm tra giá khách';
       }
       if (normalized === '5sim user prices') {
-        return '5sim 查询账号价格';
+        return '5sim kiểm tra giá tài khoản';
       }
       if (normalized === '5sim buy activation') {
-        return '5sim 购买手机号';
+        return '5sim mua số điện thoại';
       }
       if (normalized === '5sim check activation') {
-        return '5sim 查询短信状态';
+        return '5sim kiểm tra trạng thái SMS';
       }
       if (normalized === '5sim reuse activation') {
-        return '5sim 复用手机号';
+        return '5sim tái sử dụng số điện thoại';
       }
       if (normalized === 'nexsms getcountrybyservice') {
-        return 'NexSMS 查询服务国家';
+        return 'NexSMS kiểm tra quốc gia dịch vụ';
       }
       if (normalized === 'nexsms price lookup') {
-        return 'NexSMS 查询价格';
+        return 'NexSMS kiểm tra giá';
       }
       if (normalized === 'nexsms purchase') {
-        return 'NexSMS 购买手机号';
+        return 'NexSMS mua số điện thoại';
       }
       if (normalized === 'nexsms close activation') {
-        return 'NexSMS 关闭订单';
+        return 'NexSMS đóng đơn hàng';
       }
       if (normalized === 'nexsms get sms messages') {
-        return 'NexSMS 查询短信';
+        return 'NexSMS kiểm tra SMS';
       }
       return text;
     }
@@ -1522,7 +1522,7 @@
       const providerLabel = getPhoneSmsProviderLabel(providerId);
       let text = String(message || '').trim();
       if (!text) {
-        return '未知错误';
+        return 'Lỗi không xác định';
       }
       text = text.replace(/^Step\s+\d+\s*[:：]\s*/i, '').trim();
       const heroFailureMatch = text.match(/^HeroSMS\s+([A-Za-z0-9]+)\s+failed\s*:\s*(.+)$/i);
@@ -1533,10 +1533,10 @@
         return text.replace(/^HeroSMS\s+/, '').trim();
       }
       if (/countries\s+are\s+empty|未选择国家/i.test(text)) {
-        return '未选择国家，请先在接码设置中至少选择 1 个国家';
+        return 'Chưa chọn quốc gia, hãy chọn ít nhất 1 quốc gia trong phần cài đặt nhận mã trước';
       }
       if (/failed\s+to\s+acquire\s+(?:a\s+)?phone(?:\s+number|\s+activation)?/i.test(text)) {
-        return '获取手机号失败';
+        return 'Lấy số điện thoại thất bại';
       }
       if (/no\s+numbers\s+available\s+across|no\s+free\s+phones|numbers?\s+not\s+found|no\s+numbers\s+within|暂无可用号码|均无可用号码|无可用号码|\bNO_NUMBERS\b/i.test(text)) {
         return formatPhoneSmsApiFailureReason(text);
@@ -1568,7 +1568,7 @@
     async function logPreservedPhoneActivationOnStop(activation) {
       const normalizedActivation = normalizeActivation(activation);
       const identifier = normalizedActivation?.phoneNumber || normalizedActivation?.activationId || '当前接码手机号';
-      await addLog(`已停止：按设置保留 ${identifier}，不自动释放接码订单。`, 'warn');
+      await addLog(`Đã dừng: giữ lại ${identifier} theo cấu hình, không tự động giải phóng đơn nhận mã.`, 'warn');
     }
 
     function createResolvedFiveSimProvider() {
@@ -2082,20 +2082,20 @@
     function getFreeReuseEligibility(activation) {
       const normalizedActivation = normalizeActivation(activation);
       if (!normalizedActivation) {
-        return { ok: false, reason: 'activation_missing', message: '接码订单无效。' };
+        return { ok: false, reason: 'activation_missing', message: 'Đơn nhận mã không hợp lệ.' };
       }
       if (!supportsFreePhoneReuseProvider(normalizedActivation.provider)) {
         return {
           ok: false,
           reason: 'provider_not_supported',
-          message: `${getPhoneSmsProviderLabel(normalizedActivation.provider)} 当前不支持白嫖复用。`,
+          message: `${getPhoneSmsProviderLabel(normalizedActivation.provider)} hiện chưa hỗ trợ tái sử dụng miễn phí.`,
         };
       }
       if (!normalizedActivation.phoneCodeReceived) {
         return {
           ok: false,
           reason: 'code_not_received',
-          message: '当前号码尚未成功收到验证码，不能进入白嫖复用。',
+          message: 'Số hiện tại chưa nhận được mã xác minh thành công, không thể vào chế độ tái sử dụng miễn phí.',
         };
       }
       if (
@@ -2434,7 +2434,7 @@
 
     function buildPhoneCodeTimeoutError(lastResponse = '') {
       const suffix = lastResponse ? ` HeroSMS 最后状态：${lastResponse}` : '';
-      return new Error(`${PHONE_CODE_TIMEOUT_ERROR_PREFIX}等待手机验证码超时。${suffix}`);
+      return new Error(`${PHONE_CODE_TIMEOUT_ERROR_PREFIX}Hết thời gian chờ mã xác minh điện thoại.${suffix}`);
     }
 
     function isSignupEmailVerificationPageState(pageState = {}) {
@@ -2870,7 +2870,7 @@
       if (provider === PHONE_SMS_PROVIDER_5SIM) {
         const apiKey = normalizeApiKey(state.fiveSimApiKey || state.heroSmsApiKey);
         if (!apiKey) {
-          throw new Error('5sim API Key 缺失，请先在侧边栏保存接码 API Key。');
+          throw new Error('Thiếu 5sim API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
         }
         const configuredMaxPrice = normalizeHeroSmsPriceLimit(state.fiveSimMaxPrice);
         const operator = normalizeFiveSimCountryCode(state.fiveSimOperator, DEFAULT_FIVE_SIM_OPERATOR);
@@ -2892,7 +2892,7 @@
       if (provider === PHONE_SMS_PROVIDER_NEXSMS) {
         const apiKey = normalizeApiKey(state.nexSmsApiKey || state.heroSmsApiKey);
         if (!apiKey) {
-          throw new Error('NexSMS API Key 缺失，请先在侧边栏保存接码 API Key。');
+          throw new Error('Thiếu NexSMS API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
         }
         return {
           provider,
@@ -2906,7 +2906,7 @@
       if (provider === PHONE_SMS_PROVIDER_SMSBOWER) {
         const apiKey = normalizeApiKey(state.smsBowerApiKey || state.heroSmsApiKey);
         if (!apiKey) {
-          throw new Error('SMSBower API Key 缺失，请先在侧边栏保存接码 API Key。');
+          throw new Error('Thiếu SMSBower API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
         }
         return {
           provider,
@@ -2925,7 +2925,7 @@
       if (provider === PHONE_SMS_PROVIDER_SMS_VERIFICATION_NUMBER) {
         const apiKey = normalizeApiKey(state.smsVerificationNumberApiKey || state.heroSmsApiKey);
         if (!apiKey) {
-          throw new Error('SMS Verification Number API Key 缺失，请先在侧边栏保存接码 API Key。');
+          throw new Error('Thiếu API Key của SMS Verification Number, hãy lưu API Key nhận mã trong thanh bên trước.');
         }
         return {
           provider,
@@ -2944,7 +2944,7 @@
       if (provider === PHONE_SMS_PROVIDER_GRIZZLYSMS) {
         const apiKey = normalizeApiKey(state.grizzlySmsApiKey || state.heroSmsApiKey);
         if (!apiKey) {
-          throw new Error('GrizzlySMS API Key 缺失，请先在侧边栏保存接码 API Key。');
+          throw new Error('Thiếu GrizzlySMS API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
         }
         return {
           provider,
@@ -2962,7 +2962,7 @@
       if (provider === PHONE_SMS_PROVIDER_SMSPOOL) {
         const apiKey = normalizeApiKey(state.smsPoolApiKey || state.heroSmsApiKey);
         if (!apiKey) {
-          throw new Error('SMSPool API Key 缺失，请先在侧边栏保存接码 API Key。');
+          throw new Error('Thiếu SMSPool API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
         }
         return {
           provider,
@@ -2986,7 +2986,7 @@
 
       const apiKey = normalizeApiKey(state.heroSmsApiKey);
       if (!apiKey) {
-        throw new Error('HeroSMS API Key 缺失，请先在侧边栏保存接码 API Key。');
+        throw new Error('Thiếu HeroSMS API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
       }
       return {
         provider,
@@ -2999,7 +2999,7 @@
     function resolveHeroSmsPhoneConfig(state = {}) {
       const apiKey = normalizeApiKey(state.heroSmsApiKey);
       if (!apiKey) {
-        throw new Error('HeroSMS API Key 缺失，请先在侧边栏保存接码 API Key。');
+        throw new Error('Thiếu HeroSMS API Key, hãy lưu API Key nhận mã trong thanh bên trước.');
       }
       return {
         provider: PHONE_SMS_PROVIDER_HERO,

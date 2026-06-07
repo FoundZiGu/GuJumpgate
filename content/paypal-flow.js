@@ -67,7 +67,7 @@ async function handlePayPalCommand(message) {
     case 'PAYPAL_RUN_HOSTED_CHECKOUT_STEP':
       return runHostedCheckoutStep(message.payload || {});
     default:
-      throw new Error(`paypal-flow.js 不处理消息：${message.type}`);
+      throw new Error(`paypal-flow.js không xử lý tin nhắn: ${message.type}`);
   }
 }
 
@@ -717,17 +717,17 @@ async function switchHostedNationalityToUnitedStatesIfNeeded(countryCode = '') {
   if (!button) {
     return false;
   }
-  log('PayPal guest checkout：日区页面切换国籍为 United States，避免日文姓名校验。', 'info');
+  log('PayPal guest checkout: trang khu vực JP sẽ chuyển quốc tịch sang United States để tránh kiểm tra tên tiếng Nhật.', 'info');
   simulateClick(button);
   let option = null;
   try {
     option = await waitUntil(() => findHostedUnitedStatesNationalityOption(), {
       intervalMs: 250,
       timeoutMs: 5000,
-      timeoutMessage: 'PayPal guest checkout 未找到 United States 国籍选项。',
+      timeoutMessage: 'PayPal guest checkout không tìm thấy tùy chọn quốc tịch United States.',
     });
   } catch (error) {
-    log(`PayPal guest checkout：国籍选项查找失败，继续按当前国籍填写。${error?.message || error}`, 'warn');
+    log(`PayPal guest checkout: tìm tùy chọn quốc tịch thất bại, sẽ tiếp tục điền theo quốc tịch hiện tại. ${error?.message || error}`, 'warn');
     return false;
   }
   simulateClick(option);
@@ -737,7 +737,7 @@ async function switchHostedNationalityToUnitedStatesIfNeeded(countryCode = '') {
       timeoutMs: 8000,
     });
   } catch {
-    log('PayPal guest checkout：等待国籍切换到 United States 超时，继续尝试填写英文姓名。', 'warn');
+    log('PayPal guest checkout: chờ chuyển quốc tịch sang United States quá thời gian, tiếp tục thử điền tên tiếng Anh.', 'warn');
   }
   await sleep(1000);
   return true;
@@ -801,7 +801,7 @@ async function switchHostedGuestCheckoutToEnglishIfNeeded(countryCode = '') {
   if (!button) {
     return false;
   }
-  log('PayPal guest checkout：检测到日区页面，先切换到 English 后再填写。', 'info');
+  log('PayPal guest checkout: phát hiện trang khu vực JP, sẽ chuyển sang English trước khi điền.', 'info');
   simulateClick(button);
   try {
     await waitUntil(() => isHostedGuestCheckoutLikelyEnglish() || !findHostedEnglishLanguageButton(), {
@@ -809,7 +809,7 @@ async function switchHostedGuestCheckoutToEnglishIfNeeded(countryCode = '') {
       timeoutMs: 8000,
     });
   } catch {
-    log('PayPal guest checkout：等待 English 页面完成超时，继续按当前页面状态尝试填写。', 'warn');
+    log('PayPal guest checkout: chờ trang English hoàn tất quá thời gian, sẽ tiếp tục thử điền theo trạng thái hiện tại.', 'warn');
   }
   await waitForDocumentComplete();
   await sleep(1000);
@@ -943,7 +943,7 @@ async function clickHostedGenericSubmitButton(retries = 0) {
   const button = findHostedGuestSubmitButton() || findEmailNextButton() || findLoginNextButton();
   if (!button) {
     if (retries >= 10) {
-      throw new Error('PayPal hosted checkout 未找到可点击的继续/提交按钮。');
+      throw new Error('PayPal hosted checkout không tìm thấy nút tiếp tục/gửi có thể bấm.');
     }
     await sleep(1000);
     return clickHostedGenericSubmitButton(retries + 1);
@@ -952,7 +952,7 @@ async function clickHostedGenericSubmitButton(retries = 0) {
   const buttonText = normalizeText(button.textContent || '');
   if (button.disabled) {
     if (retries >= 10) {
-      throw new Error('PayPal hosted checkout 按钮长时间处于 disabled 状态。');
+      throw new Error('Nút PayPal hosted checkout bị disabled quá lâu.');
     }
     await sleep(1000);
     return clickHostedGenericSubmitButton(retries + 1);
@@ -961,7 +961,7 @@ async function clickHostedGenericSubmitButton(retries = 0) {
   const rect = button.getBoundingClientRect();
   if (rect.height === 0) {
     if (retries >= 10) {
-      throw new Error('PayPal hosted checkout 按钮长时间不可见。');
+      throw new Error('Nút PayPal hosted checkout không hiển thị trong thời gian dài.');
     }
     await sleep(1000);
     return clickHostedGenericSubmitButton(retries + 1);

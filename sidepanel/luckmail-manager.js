@@ -40,10 +40,10 @@
           purchase.email_address,
           purchase.project_name,
           purchase.tag_name,
-          purchase.used ? '已用 used' : '未用 unused',
-          purchase.preserved ? '保留 preserved' : '',
-          purchase.disabled ? '已禁用 disabled' : '',
-          purchase.reusable ? '可复用 reusable' : '',
+          purchase.used ? 'Đã dùng used' : 'chưa dùng unused',
+          purchase.preserved ? 'Giữ lại preserved' : '',
+          purchase.disabled ? '已Tắt disabled' : '',
+          purchase.reusable ? 'có thể tái dùng reusable' : '',
         ].join(' ').toLowerCase();
 
         return haystack.includes(normalizedSearchTerm);
@@ -104,8 +104,8 @@
 
       if (!renderedPurchases.length) {
         selectedPurchaseIds.clear();
-        dom.luckmailList.innerHTML = '<div class="luckmail-empty">未找到 openai 项目的 LuckMail 邮箱。</div>';
-        dom.luckmailSummary.textContent = '加载已购邮箱后可在这里管理 openai 项目的 LuckMail 邮箱。';
+        dom.luckmailList.innerHTML = '<div class="luckmail-empty">Không tìm thấy email LuckMail của dự án OpenAI.</div>';
+        dom.luckmailSummary.textContent = 'Sau khi tải email đã mua, bạn có thể quản lý email LuckMail của dự án OpenAI tại đây.';
         if (dom.btnLuckmailDisableUsed) dom.btnLuckmailDisableUsed.disabled = true;
         updateLuckmailBulkUI([]);
         return;
@@ -114,15 +114,15 @@
       const usedCount = renderedPurchases.filter((purchase) => purchase.used).length;
       const reusableCount = renderedPurchases.filter((purchase) => purchase.reusable).length;
       const disableUsedCount = renderedPurchases.filter((purchase) => purchase.used && !purchase.preserved && !purchase.disabled).length;
-      dom.luckmailSummary.textContent = `已加载 ${renderedPurchases.length} 个 openai 邮箱，其中 ${reusableCount} 个可复用，${usedCount} 个已本地标记为已用。`;
+      dom.luckmailSummary.textContent = `已加载 ${renderedPurchases.length} 个 openai 邮箱，其中 ${reusableCount} 个可复用，${usedCount} 个已本地Đánh dấu là đã dùng。`;
       if (dom.btnLuckmailDisableUsed) {
-        dom.btnLuckmailDisableUsed.textContent = `禁用已用${disableUsedCount > 0 ? `（${disableUsedCount}）` : ''}`;
+        dom.btnLuckmailDisableUsed.textContent = `TắtĐã dùng${disableUsedCount > 0 ? `（${disableUsedCount}）` : ''}`;
         dom.btnLuckmailDisableUsed.disabled = disableUsedCount === 0;
       }
 
       const visiblePurchases = getFilteredLuckmailPurchases(renderedPurchases);
       if (!visiblePurchases.length) {
-        dom.luckmailList.innerHTML = '<div class="luckmail-empty">没有匹配当前筛选条件的 LuckMail 邮箱。</div>';
+        dom.luckmailList.innerHTML = '<div class="luckmail-empty">Không có email LuckMail nào khớp bộ lọc hiện tại.</div>';
         updateLuckmailBulkUI([]);
         return;
       }
@@ -135,22 +135,22 @@
           <input class="luckmail-item-check" type="checkbox" data-action="select" ${selectedPurchaseIds.has(purchaseId) ? 'checked' : ''} />
           <div class="luckmail-item-main">
             <div class="luckmail-item-email-row">
-              <div class="luckmail-item-email">${helpers.escapeHtml(purchase.email_address || '(未知邮箱)')}</div>
+              <div class="luckmail-item-email">${helpers.escapeHtml(purchase.email_address || '(Email không xác định)')}</div>
               <button
                 class="hotmail-copy-btn"
                 type="button"
                 data-action="copy-email"
-                title="复制邮箱"
-                aria-label="复制邮箱 ${helpers.escapeHtml(purchase.email_address || '')}"
+                title="Sao chép email"
+                aria-label="Sao chép email ${helpers.escapeHtml(purchase.email_address || '')}"
               >${copyIcon}</button>
             </div>
             <div class="luckmail-item-meta">
               <span class="luckmail-tag">${helpers.escapeHtml(helpers.normalizeLuckmailProjectName(purchase.project_name) || 'openai')}</span>
-              ${purchase.reusable ? '<span class="luckmail-tag active">可复用</span>' : ''}
-              ${purchase.current ? '<span class="luckmail-tag current">当前</span>' : ''}
-              ${purchase.used ? '<span class="luckmail-tag used">已用</span>' : ''}
-              ${purchase.preserved ? '<span class="luckmail-tag">保留</span>' : ''}
-              ${purchase.disabled ? '<span class="luckmail-tag disabled">已禁用</span>' : ''}
+              ${purchase.reusable ? '<span class="luckmail-tag active">Có thể tái dùng</span>' : ''}
+              ${purchase.current ? '<span class="luckmail-tag current">Hiện tại</span>' : ''}
+              ${purchase.used ? '<span class="luckmail-tag used">Đã dùng</span>' : ''}
+              ${purchase.preserved ? '<span class="luckmail-tag">Giữ lại</span>' : ''}
+              ${purchase.disabled ? '<span class="luckmail-tag disabled">已Tắt</span>' : ''}
               ${purchase.tag_name && normalizeLuckmailSearchText(purchase.tag_name) !== normalizeLuckmailSearchText(helpers.getLuckmailPreserveTagName())
                 ? `<span class="luckmail-tag">${helpers.escapeHtml(purchase.tag_name)}</span>`
                 : ''}
@@ -162,9 +162,9 @@
           </div>
           <div class="luckmail-item-actions">
             <button class="btn btn-outline btn-xs" type="button" data-action="use">使用此邮箱</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-used">${helpers.escapeHtml(purchase.used ? '标记未用' : '标记已用')}</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-preserved">${helpers.escapeHtml(purchase.preserved ? '取消保留' : '保留')}</button>
-            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-disabled">${helpers.escapeHtml(purchase.disabled ? '启用' : '禁用')}</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-used">${helpers.escapeHtml(purchase.used ? 'Đánh dấu chưa dùng' : 'Đánh dấu đã dùng')}</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-preserved">${helpers.escapeHtml(purchase.preserved ? 'Bỏ giữ lại' : 'Giữ lại')}</button>
+            <button class="btn btn-outline btn-xs" type="button" data-action="toggle-disabled">${helpers.escapeHtml(purchase.disabled ? 'Bật' : 'Tắt')}</button>
           </div>
         `;
 
@@ -178,7 +178,7 @@
         });
         item.querySelector('[data-action="copy-email"]').addEventListener('click', async () => {
           await helpers.copyTextToClipboard(purchase.email_address || '');
-          helpers.showToast('邮箱已复制', 'success', 1600);
+          helpers.showToast('Đã sao chép email', 'success', 1600);
         });
         item.querySelector('[data-action="use"]').addEventListener('click', async () => {
           await selectSingleLuckmailPurchase(purchase);
@@ -204,7 +204,7 @@
         return;
       }
 
-      if (!silent) setLuckmailLoadingState(true, '正在加载 LuckMail openai 邮箱...');
+      if (!silent) setLuckmailLoadingState(true, 'Đang tải email LuckMail OpenAI...');
       try {
         const response = await runtime.sendMessage({
           type: 'LIST_LUCKMAIL_PURCHASES',
@@ -216,14 +216,14 @@
       } catch (err) {
         selectedPurchaseIds.clear();
         if (dom.luckmailList) {
-          dom.luckmailList.innerHTML = '<div class="luckmail-empty">无法加载 LuckMail 邮箱列表。</div>';
+          dom.luckmailList.innerHTML = '<div class="luckmail-empty">Không thể tải danh sách email LuckMail.</div>';
         }
         if (dom.luckmailSummary) {
           dom.luckmailSummary.textContent = err.message;
         }
         updateLuckmailBulkUI([]);
         if (!silent) {
-          helpers.showToast(`LuckMail 邮箱列表加载失败：${err.message}`, 'error');
+          helpers.showToast(`LuckMail 邮箱列表加载Thất bại：${err.message}`, 'error');
         }
       } finally {
         setLuckmailLoadingState(false);
@@ -253,14 +253,14 @@
         await refreshLuckmailPurchases({ silent: true });
       } catch (err) {
         if (dom.luckmailSummary) dom.luckmailSummary.textContent = err.message;
-        helpers.showToast(`切换 LuckMail 邮箱失败：${err.message}`, 'error');
+        helpers.showToast(`切换 LuckMail 邮箱Thất bại：${err.message}`, 'error');
       } finally {
         setLuckmailLoadingState(false);
       }
     }
 
     async function setSingleLuckmailPurchaseUsedState(purchase, used) {
-      setLuckmailLoadingState(true, `正在更新 ${purchase.email_address} 的已用状态...`);
+      setLuckmailLoadingState(true, `正在更新 ${purchase.email_address} 的Đã dùng状态...`);
       try {
         const response = await runtime.sendMessage({
           type: 'SET_LUCKMAIL_PURCHASE_USED_STATE',
@@ -268,18 +268,18 @@
           payload: { purchaseId: purchase.id, used },
         });
         if (response?.error) throw new Error(response.error);
-        helpers.showToast(`${purchase.email_address} 已${used ? '标记为已用' : '恢复为未用'}`, 'success', 2200);
+        helpers.showToast(`${purchase.email_address} 已${used ? 'Đánh dấu là đã dùng' : 'Khôi phục về chưa dùng'}`, 'success', 2200);
         await refreshLuckmailPurchases({ silent: true });
       } catch (err) {
         if (dom.luckmailSummary) dom.luckmailSummary.textContent = err.message;
-        helpers.showToast(`更新 LuckMail 已用状态失败：${err.message}`, 'error');
+        helpers.showToast(`更新 LuckMail Đã dùng状态Thất bại：${err.message}`, 'error');
       } finally {
         setLuckmailLoadingState(false);
       }
     }
 
     async function setSingleLuckmailPurchasePreservedState(purchase, preserved) {
-      setLuckmailLoadingState(true, `正在更新 ${purchase.email_address} 的保留状态...`);
+      setLuckmailLoadingState(true, `正在更新 ${purchase.email_address} 的Giữ lại状态...`);
       try {
         const response = await runtime.sendMessage({
           type: 'SET_LUCKMAIL_PURCHASE_PRESERVED_STATE',
@@ -287,18 +287,18 @@
           payload: { purchaseId: purchase.id, preserved },
         });
         if (response?.error) throw new Error(response.error);
-        helpers.showToast(`${purchase.email_address} 已${preserved ? '设为保留' : '取消保留'}`, 'success', 2200);
+        helpers.showToast(`${purchase.email_address} 已${preserved ? '设为Giữ lại' : 'Bỏ giữ lại'}`, 'success', 2200);
         await refreshLuckmailPurchases({ silent: true });
       } catch (err) {
         if (dom.luckmailSummary) dom.luckmailSummary.textContent = err.message;
-        helpers.showToast(`更新 LuckMail 保留状态失败：${err.message}`, 'error');
+        helpers.showToast(`更新 LuckMail Giữ lại状态Thất bại：${err.message}`, 'error');
       } finally {
         setLuckmailLoadingState(false);
       }
     }
 
     async function setSingleLuckmailPurchaseDisabledState(purchase, disabled) {
-      setLuckmailLoadingState(true, `正在${disabled ? '禁用' : '启用'} ${purchase.email_address} ...`);
+      setLuckmailLoadingState(true, `正在${disabled ? 'Tắt' : 'Bật'} ${purchase.email_address} ...`);
       try {
         const response = await runtime.sendMessage({
           type: 'SET_LUCKMAIL_PURCHASE_DISABLED_STATE',
@@ -306,11 +306,11 @@
           payload: { purchaseId: purchase.id, disabled },
         });
         if (response?.error) throw new Error(response.error);
-        helpers.showToast(`${purchase.email_address} 已${disabled ? '禁用' : '启用'}`, 'success', 2200);
+        helpers.showToast(`${purchase.email_address} 已${disabled ? 'Tắt' : 'Bật'}`, 'success', 2200);
         await refreshLuckmailPurchases({ silent: true });
       } catch (err) {
         if (dom.luckmailSummary) dom.luckmailSummary.textContent = err.message;
-        helpers.showToast(`更新 LuckMail 禁用状态失败：${err.message}`, 'error');
+        helpers.showToast(`更新 LuckMail Tắt状态Thất bại：${err.message}`, 'error');
       } finally {
         setLuckmailLoadingState(false);
       }
@@ -326,15 +326,15 @@
       }
 
       const actionLabelMap = {
-        used: '标记已用',
-        unused: '标记未用',
-        preserve: '保留',
-        unpreserve: '取消保留',
-        disable: '禁用',
-        enable: '启用',
+        used: 'Đánh dấu đã dùng',
+        unused: 'Đánh dấu chưa dùng',
+        preserve: 'Giữ lại',
+        unpreserve: 'Bỏ giữ lại',
+        disable: 'Tắt',
+        enable: 'Bật',
       };
 
-      setLuckmailLoadingState(true, `正在批量${actionLabelMap[action] || '处理'} LuckMail 邮箱...`);
+      setLuckmailLoadingState(true, `正在批量${actionLabelMap[action] || 'Xử lý'} LuckMail 邮箱...`);
       try {
         const response = await runtime.sendMessage({
           type: 'BATCH_UPDATE_LUCKMAIL_PURCHASES',
@@ -342,11 +342,11 @@
           payload: { action, ids: selectedIds },
         });
         if (response?.error) throw new Error(response.error);
-        helpers.showToast(`已批量${actionLabelMap[action] || '处理'} ${selectedIds.length} 个 LuckMail 邮箱`, 'success', 2400);
+        helpers.showToast(`已批量${actionLabelMap[action] || 'Xử lý'} ${selectedIds.length} 个 LuckMail 邮箱`, 'success', 2400);
         await refreshLuckmailPurchases({ silent: true });
       } catch (err) {
         if (dom.luckmailSummary) dom.luckmailSummary.textContent = err.message;
-        helpers.showToast(`批量处理 LuckMail 邮箱失败：${err.message}`, 'error');
+        helpers.showToast(`批量Xử lý LuckMail 邮箱Thất bại：${err.message}`, 'error');
       } finally {
         setLuckmailLoadingState(false);
         updateLuckmailBulkUI();
@@ -355,16 +355,16 @@
 
     async function disableUsedLuckmailPurchases() {
       const confirmed = await helpers.openConfirmModal({
-        title: '禁用已用 LuckMail 邮箱',
-        message: '确认禁用所有本地已用且未保留的 openai LuckMail 邮箱吗？',
-        confirmLabel: '确认禁用',
+        title: 'TắtĐã dùng LuckMail 邮箱',
+        message: '确认Tắt所有本地Đã dùng且未Giữ lại的 openai LuckMail 邮箱吗？',
+        confirmLabel: '确认Tắt',
         confirmVariant: 'btn-danger',
       });
       if (!confirmed) {
         return;
       }
 
-      setLuckmailLoadingState(true, '正在禁用已用 LuckMail 邮箱...');
+      setLuckmailLoadingState(true, '正在TắtĐã dùng LuckMail 邮箱...');
       try {
         const response = await runtime.sendMessage({
           type: 'DISABLE_USED_LUCKMAIL_PURCHASES',
@@ -373,11 +373,11 @@
         });
         if (response?.error) throw new Error(response.error);
         const disabledCount = Array.isArray(response?.disabledIds) ? response.disabledIds.length : 0;
-        helpers.showToast(`已禁用 ${disabledCount} 个 LuckMail 邮箱`, disabledCount > 0 ? 'success' : 'info', 2400);
+        helpers.showToast(`已Tắt ${disabledCount} 个 LuckMail 邮箱`, disabledCount > 0 ? 'success' : 'info', 2400);
         await refreshLuckmailPurchases({ silent: true });
       } catch (err) {
         if (dom.luckmailSummary) dom.luckmailSummary.textContent = err.message;
-        helpers.showToast(`禁用已用 LuckMail 邮箱失败：${err.message}`, 'error');
+        helpers.showToast(`TắtĐã dùng LuckMail 邮箱Thất bại：${err.message}`, 'error');
       } finally {
         setLuckmailLoadingState(false);
       }
@@ -392,7 +392,7 @@
       if (dom.inputLuckmailSearch) dom.inputLuckmailSearch.value = '';
       if (dom.selectLuckmailFilter) dom.selectLuckmailFilter.value = 'all';
       if (dom.luckmailList) dom.luckmailList.innerHTML = '';
-      if (dom.luckmailSummary) dom.luckmailSummary.textContent = '加载已购邮箱后可在这里管理 openai 项目的 LuckMail 邮箱。';
+      if (dom.luckmailSummary) dom.luckmailSummary.textContent = 'Sau khi tải email đã mua, bạn có thể quản lý email LuckMail của dự án OpenAI tại đây.';
       if (dom.btnLuckmailDisableUsed) dom.btnLuckmailDisableUsed.disabled = true;
       updateLuckmailBulkUI([]);
     }

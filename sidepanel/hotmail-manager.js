@@ -35,7 +35,7 @@
         return hotmailUtils.getHotmailBulkActionLabel(mode, count);
       }
       const normalizedCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
-      const prefix = mode === 'used' ? '清空已用' : '全部删除';
+      const prefix = mode === 'used' ? '清空Đã dùng' : 'Tất cảXoá';
       const suffix = normalizedCount > 0 ? `（${normalizedCount}）` : '';
       return `${prefix}${suffix}`;
     }
@@ -46,7 +46,7 @@
       }
       const normalizedCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
       const suffix = normalizedCount > 0 ? `（${normalizedCount}）` : '';
-      return `${expanded ? '收起列表' : '展开列表'}${suffix}`;
+      return `${expanded ? 'Thu gọn danh sách' : 'Mở rộng danh sách'}${suffix}`;
     }
 
     function updateHotmailListViewport() {
@@ -157,7 +157,7 @@
     function formatDateTime(timestamp) {
       const value = Number(timestamp);
       if (!Number.isFinite(value) || value <= 0) {
-        return '未使用';
+        return 'Chưa dùng';
       }
       return new Date(value).toLocaleString('zh-CN', {
         hour12: false,
@@ -166,20 +166,20 @@
     }
 
     function getHotmailAvailabilityLabel(account) {
-      if (account.used) return '已用';
-      return '可分配';
+      if (account.used) return 'Đã dùng';
+      return 'Có thể phân bổ';
     }
 
     function getHotmailStatusLabel(account) {
-      if (account.used) return '已用';
+      if (account.used) return 'Đã dùng';
 
       switch (account.status) {
         case 'authorized':
-          return '可用';
+          return 'Có thể dùng';
         case 'error':
-          return '异常';
+          return 'Lỗi';
         default:
-          return '待校验';
+          return 'Chờ kiểm tra';
       }
     }
 
@@ -214,7 +214,7 @@
           account.status,
           getHotmailAvailabilityLabel(account),
           getHotmailStatusLabel(account),
-          isCurrent ? 'current 当前' : '',
+          isCurrent ? 'current hiện tại' : '',
         ].join(' ').toLowerCase();
 
         return haystack.includes(normalizedSearchTerm);
@@ -232,8 +232,8 @@
       ? createAccountPoolFormController({
         formShell: dom.hotmailFormShell,
         toggleButton: dom.btnToggleHotmailForm,
-        hiddenLabel: '添加账号',
-        visibleLabel: '取消添加',
+        hiddenLabel: 'Thêm tài khoản',
+        visibleLabel: 'Huỷ thêm',
         onClear: () => {
           clearHotmailForm();
         },
@@ -254,14 +254,14 @@
       const currentId = latestState?.currentHotmailAccountId || '';
 
       if (!accounts.length) {
-        dom.hotmailAccountsList.innerHTML = '<div class="hotmail-empty">还没有 Hotmail 账号，先添加一条再校验。</div>';
+        dom.hotmailAccountsList.innerHTML = '<div class="hotmail-empty">Chưa có tài khoản Hotmail, hãy thêm một tài khoản trước khi kiểm tra.</div>';
         updateHotmailListViewport();
         return;
       }
 
       const visibleAccounts = getFilteredHotmailAccounts(accounts, currentId);
       if (!visibleAccounts.length) {
-        dom.hotmailAccountsList.innerHTML = '<div class="hotmail-empty">没有匹配当前筛选条件的 Hotmail 账号。</div>';
+        dom.hotmailAccountsList.innerHTML = '<div class="hotmail-empty">Không có tài khoản Hotmail nào khớp bộ lọc hiện tại.</div>';
         updateHotmailListViewport();
         return;
       }
@@ -270,32 +270,32 @@
         <div class="hotmail-account-item${account.id === currentId ? ' is-current' : ''}">
           <div class="hotmail-account-top">
             <div class="hotmail-account-title-row">
-              <div class="hotmail-account-email">${helpers.escapeHtml(account.email || '(未命名账号)')}</div>
+              <div class="hotmail-account-email">${helpers.escapeHtml(account.email || '(Tài khoản chưa đặt tên)')}</div>
               <button
                 class="hotmail-copy-btn"
                 type="button"
                 data-account-action="copy-email"
                 data-account-id="${helpers.escapeHtml(account.id)}"
-                title="复制邮箱"
-                aria-label="复制邮箱 ${helpers.escapeHtml(account.email || '')}"
+                title="Sao chép email"
+                aria-label="Sao chép email ${helpers.escapeHtml(account.email || '')}"
               >${copyIcon}</button>
             </div>
             <span class="hotmail-status-chip ${helpers.escapeHtml(getHotmailStatusClass(account))}">${helpers.escapeHtml(getHotmailStatusLabel(account))}</span>
           </div>
           <div class="hotmail-account-meta">
-            <span>客户端 ID：${helpers.escapeHtml(account.clientId ? `${account.clientId.slice(0, 10)}...` : '未填写')}</span>
-            <span>刷新令牌：${account.refreshToken ? '已保存' : '未保存'}</span>
+            <span>客户端 ID：${helpers.escapeHtml(account.clientId ? `${account.clientId.slice(0, 10)}...` : 'Chưa điền')}</span>
+            <span>刷新令牌：${account.refreshToken ? 'Đã lưu' : 'Chưa lưu'}</span>
             <span>分配状态: ${helpers.escapeHtml(getHotmailAvailabilityLabel(account))}</span>
             <span>上次校验: ${helpers.escapeHtml(formatDateTime(account.lastAuthAt))}</span>
             <span>上次使用: ${helpers.escapeHtml(formatDateTime(account.lastUsedAt))}</span>
           </div>
           ${account.lastError ? `<div class="hotmail-account-error">${helpers.escapeHtml(account.lastError)}</div>` : ''}
           <div class="hotmail-account-actions">
-            <button class="btn btn-outline btn-sm" type="button" data-account-action="select" data-account-id="${helpers.escapeHtml(account.id)}">使用此账号</button>
-            <button class="btn btn-outline btn-sm" type="button" data-account-action="toggle-used" data-account-id="${helpers.escapeHtml(account.id)}">${account.used ? '标记未用' : '标记已用'}</button>
+            <button class="btn btn-outline btn-sm" type="button" data-account-action="select" data-account-id="${helpers.escapeHtml(account.id)}">使用此Tài khoản</button>
+            <button class="btn btn-outline btn-sm" type="button" data-account-action="toggle-used" data-account-id="${helpers.escapeHtml(account.id)}">${account.used ? 'Đánh dấu chưa dùng' : 'Đánh dấu đã dùng'}</button>
             <button class="btn btn-primary btn-sm" type="button" data-account-action="verify" data-account-id="${helpers.escapeHtml(account.id)}">校验</button>
             <button class="btn btn-outline btn-sm" type="button" data-account-action="test" data-account-id="${helpers.escapeHtml(account.id)}">复制最新验证码</button>
-            <button class="btn btn-ghost btn-sm" type="button" data-account-action="delete" data-account-id="${helpers.escapeHtml(account.id)}">删除</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-account-action="delete" data-account-id="${helpers.escapeHtml(account.id)}">Xoá</button>
           </div>
         </div>
       `).join('');
@@ -306,16 +306,16 @@
       const isUsedMode = mode === 'used';
       const targetAccounts = getHotmailAccountsByUsage(isUsedMode ? 'used' : 'all');
       if (!targetAccounts.length) {
-        helpers.showToast(isUsedMode ? '没有已用账号可清空。' : '没有可删除的 Hotmail 账号。', 'warn');
+        helpers.showToast(isUsedMode ? '没有Đã dùngTài khoản可清空。' : '没有可Xoá的 Hotmail Tài khoản。', 'warn');
         return;
       }
 
       const confirmed = await helpers.openConfirmModal({
-        title: isUsedMode ? '清空已用账号' : '全部删除账号',
+        title: isUsedMode ? '清空Đã dùngTài khoản' : 'Tất cảXoáTài khoản',
         message: isUsedMode
-          ? `确认删除当前 ${targetAccounts.length} 个已用 Hotmail 账号吗？`
-          : `确认删除全部 ${targetAccounts.length} 个 Hotmail 账号吗？`,
-        confirmLabel: isUsedMode ? '确认清空已用' : '确认全部删除',
+          ? `Xác nhận xoá当前 ${targetAccounts.length} 个Đã dùng Hotmail Tài khoản吗？`
+          : `Xác nhận xoáTất cả ${targetAccounts.length} 个 Hotmail Tài khoản吗？`,
+        confirmLabel: isUsedMode ? '确认清空Đã dùng' : 'Xác nhận xoá tất cả',
         confirmVariant: isUsedMode ? 'btn-outline' : 'btn-danger',
       });
       if (!confirmed) {
@@ -350,8 +350,8 @@
 
       helpers.showToast(
         isUsedMode
-          ? `已清空 ${response.deletedCount || 0} 个已用 Hotmail 账号`
-          : `已删除全部 ${response.deletedCount || 0} 个 Hotmail 账号`,
+          ? `已清空 ${response.deletedCount || 0} 个Đã dùng Hotmail Tài khoản`
+          : `已XoáTất cả ${response.deletedCount || 0} 个 Hotmail Tài khoản`,
         'success',
         2200
       );
@@ -364,15 +364,15 @@
       const clientId = dom.inputHotmailClientId.value.trim();
       const refreshToken = dom.inputHotmailRefreshToken.value.trim();
       if (!email) {
-        helpers.showToast('请先填写 Hotmail 邮箱。', 'warn');
+        helpers.showToast('Hãy nhập trước email Hotmail.', 'warn');
         return;
       }
       if (!clientId) {
-        helpers.showToast('请先填写微软应用客户端 ID。', 'warn');
+        helpers.showToast('Hãy nhập trước client ID ứng dụng Microsoft.', 'warn');
         return;
       }
       if (!refreshToken) {
-        helpers.showToast('请先填写刷新令牌（refresh token）。', 'warn');
+        helpers.showToast('Hãy nhập trước refresh token.', 'warn');
         return;
       }
 
@@ -396,10 +396,10 @@
         }
 
         await syncHotmailStateFromBackground();
-        helpers.showToast(`已保存 Hotmail 账号 ${email}`, 'success', 1800);
+        helpers.showToast(`Đã lưu Hotmail Tài khoản ${email}`, 'success', 1800);
         formController.setVisible(false, { clearForm: true });
       } catch (err) {
-        helpers.showToast(`保存 Hotmail 账号失败：${err.message}`, 'error');
+        helpers.showToast(`保存 Hotmail Tài khoảnThất bại：${err.message}`, 'error');
       } finally {
         actionInFlight = false;
         dom.btnAddHotmailAccount.disabled = false;
@@ -409,19 +409,19 @@
     async function handleImportHotmailAccounts() {
       if (actionInFlight) return;
       if (typeof hotmailUtils.parseHotmailImportText !== 'function') {
-        helpers.showToast('导入解析器未加载，请刷新扩展后重试。', 'error');
+        helpers.showToast('导入解析器未加载，请刷新扩展后Thử lại。', 'error');
         return;
       }
 
       const rawText = dom.inputHotmailImport.value.trim();
       if (!rawText) {
-        helpers.showToast('请先粘贴账号导入内容。', 'warn');
+        helpers.showToast('Hãy dán trước nội dung nhập tài khoản.', 'warn');
         return;
       }
 
       const parsedAccounts = hotmailUtils.parseHotmailImportText(rawText);
       if (!parsedAccounts.length) {
-        helpers.showToast('没有解析到有效账号，请检查格式是否为 账号----密码----ID----Token。', 'error');
+        helpers.showToast('Không phân tích được tài khoản hợp lệ, hãy kiểm tra định dạng có phải là tài khoản----mật khẩu----ID----Token hay không.', 'error');
         return;
       }
 
@@ -445,9 +445,9 @@
 
         await syncHotmailStateFromBackground();
         dom.inputHotmailImport.value = '';
-        helpers.showToast(`已导入 ${parsedAccounts.length} 条 Hotmail 账号`, 'success', 2200);
+        helpers.showToast(`已导入 ${parsedAccounts.length} 条 Hotmail Tài khoản`, 'success', 2200);
       } catch (err) {
-        helpers.showToast(`批量导入失败：${err.message}`, 'error');
+        helpers.showToast(`批量导入Thất bại：${err.message}`, 'error');
       } finally {
         actionInFlight = false;
         dom.btnImportHotmailAccounts.disabled = false;
@@ -473,7 +473,7 @@
 
       try {
         if (action === 'copy-email') {
-          if (!targetAccount?.email) throw new Error('未找到可复制的邮箱地址。');
+          if (!targetAccount?.email) throw new Error('Không tìm thấy địa chỉ email có thể sao chép.');
           await helpers.copyTextToClipboard(targetAccount.email);
           helpers.showToast(`已复制 ${targetAccount.email}`, 'success', 1800);
         } else if (action === 'select') {
@@ -486,9 +486,9 @@
           await syncHotmailStateFromBackground();
           state.syncLatestState({ currentHotmailAccountId: response.account.id });
           applyHotmailAccountMutation(response.account, { preserveCurrentSelection: true });
-          helpers.showToast(`已切换当前 Hotmail 账号为 ${response.account.email}`, 'success', 1800);
+          helpers.showToast(`已切换当前 Hotmail Tài khoản为 ${response.account.email}`, 'success', 1800);
         } else if (action === 'toggle-used') {
-          if (!targetAccount) throw new Error('未找到目标 Hotmail 账号。');
+          if (!targetAccount) throw new Error('Không tìm thấy tài khoản Hotmail mục tiêu.');
           const response = await runtime.sendMessage({
             type: 'PATCH_HOTMAIL_ACCOUNT',
             source: 'sidepanel',
@@ -500,7 +500,7 @@
           if (response?.error) throw new Error(response.error);
           await syncHotmailStateFromBackground();
           applyHotmailAccountMutation(response.account);
-          helpers.showToast(`账号 ${response.account.email} 已${response.account.used ? '标记为已用' : '恢复为未用'}`, 'success', 2200);
+          helpers.showToast(`Tài khoản ${response.account.email} 已${response.account.used ? 'Đánh dấu là đã dùng' : 'Khôi phục về chưa dùng'}`, 'success', 2200);
         } else if (action === 'verify') {
           const response = await runtime.sendMessage({
             type: 'VERIFY_HOTMAIL_ACCOUNT',
@@ -510,7 +510,7 @@
           if (response?.error) throw new Error(response.error);
           await syncHotmailStateFromBackground();
           applyHotmailAccountMutation(response.account, { preserveCurrentSelection: true });
-          helpers.showToast(`账号 ${response.account.email} 校验通过`, 'success', 2200);
+          helpers.showToast(`Tài khoản ${response.account.email} 校验通过`, 'success', 2200);
         } else if (action === 'test') {
           const response = await runtime.sendMessage({
             type: 'TEST_HOTMAIL_ACCOUNT',
@@ -528,13 +528,13 @@
             const mailbox = response.latestMailbox ? `（${response.latestMailbox}）` : '';
             helpers.showToast(`最新邮件${mailbox}没有验证码：${response.latestSubject}`, 'warn', 3200);
           } else {
-            helpers.showToast('当前没有可读取的最新邮件。', 'warn', 2600);
+            helpers.showToast('Hiện không có email mới nhất nào có thể đọc được.', 'warn', 2600);
           }
         } else if (action === 'delete') {
           const confirmed = await helpers.openConfirmModal({
-            title: '删除账号',
-            message: '确认删除这个 Hotmail 账号吗？对应 token 也会一起移除。',
-            confirmLabel: '确认删除',
+            title: 'XoáTài khoản',
+            message: 'Xác nhận xoá这个 Hotmail Tài khoản吗？对应 token 也会一起移除。',
+            confirmLabel: 'Xác nhận xoá',
             confirmVariant: 'btn-danger',
           });
           if (!confirmed) {
@@ -547,7 +547,7 @@
           });
           if (response?.error) throw new Error(response.error);
           await syncHotmailStateFromBackground();
-          helpers.showToast('Hotmail 账号已删除', 'success', 1800);
+          helpers.showToast('Đã xoá tài khoản Hotmail', 'success', 1800);
         }
       } catch (err) {
         helpers.showToast(err.message, 'error');
@@ -572,9 +572,9 @@
 
       dom.btnHotmailUsageGuide?.addEventListener('click', async () => {
         await helpers.openConfirmModal({
-          title: '使用教程',
-          message: 'API对接模式会直接调用微软邮箱接口取件；本地助手模式仍走本地服务。两种模式继续共用同一套 Hotmail 账号池与导入格式。',
-          confirmLabel: '确定',
+          title: 'Hướng dẫn sử dụng',
+          message: 'Chế độ tích hợp API sẽ gọi trực tiếp giao diện email Microsoft để lấy thư; chế độ trợ lý cục bộ vẫn dùng dịch vụ local. Cả hai chế độ tiếp tục dùng chung cùng một pool tài khoản Hotmail và định dạng nhập.',
+          confirmLabel: 'Xác nhận',
           confirmVariant: 'btn-primary',
         });
       });
