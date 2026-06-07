@@ -3737,7 +3737,7 @@ async function recoverCurrentAuthRetryPage(payload = {}) {
     }
 
     if (retryState.maxCheckAttemptsBlocked) {
-      throw new Error('CF_SECURITY_BLOCKED::您已触发Cloudflare 安全防护系统，已完全停止流程，请不要短时间内多次进行重新发送验证码，连续刷新、反复点击重试会加重风控；请先关闭页面等待 15-30 分钟，让系统的临时限制自动解除。或者更换浏览器');
+      throw new Error('CF_SECURITY_BLOCKED::Bạn đã kích hoạt lớp bảo vệ Cloudflare và quy trình đã bị dừng hoàn toàn. Đừng gửi lại mã quá nhiều lần trong thời gian ngắn; việc refresh liên tục hoặc bấm thử lại lặp đi lặp lại sẽ làm tăng mức kiểm soát rủi ro. Hãy đóng trang và chờ 15-30 phút để giới hạn tạm thời tự gỡ, hoặc đổi sang trình duyệt khác.');
     }
     if (retryState.userAlreadyExistsBlocked) {
       throw createSignupUserAlreadyExistsError();
@@ -3782,7 +3782,7 @@ async function recoverCurrentAuthRetryPage(payload = {}) {
     };
   }
   if (finalRetryState.maxCheckAttemptsBlocked) {
-    throw new Error('CF_SECURITY_BLOCKED::您已触发Cloudflare 安全防护系统，已完全停止流程，请不要短时间内多次进行重新发送验证码，连续刷新、反复点击重试会加重风控；请先关闭页面等待 15-30 分钟，让系统的临时限制自动解除。或者更换浏览器');
+    throw new Error('CF_SECURITY_BLOCKED::Bạn đã kích hoạt lớp bảo vệ Cloudflare và quy trình đã bị dừng hoàn toàn. Đừng gửi lại mã quá nhiều lần trong thời gian ngắn; việc refresh liên tục hoặc bấm thử lại lặp đi lặp lại sẽ làm tăng mức kiểm soát rủi ro. Hãy đóng trang và chờ 15-30 phút để giới hạn tạm thời tự gỡ, hoặc đổi sang trình duyệt khác.');
   }
   if (finalRetryState.userAlreadyExistsBlocked) {
     throw createSignupUserAlreadyExistsError();
@@ -4499,7 +4499,7 @@ function getLoginAuthStateLabel(snapshot) {
   const state = snapshot?.state;
   switch (state) {
     case 'verification_page':
-      return '登录验证码页';
+      return 'Trang mã xác minh đăng nhập';
     case 'password_page':
       return '密码页';
     case 'email_page':
@@ -4507,7 +4507,7 @@ function getLoginAuthStateLabel(snapshot) {
     case 'phone_entry_page':
       return '手机号输入页';
     case 'phone_verification_page':
-      return '手机验证码页';
+      return 'Trang mã xác minh SĐT';
     case 'login_timeout_error_page':
       return '登录超时报错页';
     case 'oauth_consent_page':
@@ -4563,7 +4563,7 @@ async function waitForLoginVerificationPageReady(timeout = 10000, visibleStep = 
   }
 
   throw new Error(
-    `当前未进入登录验证码页面，请先重新完成步骤 ${Number(visibleStep) >= 11 ? 10 : 7}。当前状态：${getLoginAuthStateLabel(snapshot)}。URL: ${snapshot?.url || location.href}`
+    `Hiện chưa vào trang mã xác minh đăng nhập, hãy hoàn tất lại bước ${Number(visibleStep) >= 11 ? 10 : 7} trước. Trạng thái hiện tại: ${getLoginAuthStateLabel(snapshot)}. URL: ${snapshot?.url || location.href}`
   );
 }
 
@@ -4760,7 +4760,7 @@ async function finalizeStep6VerificationReady(options = {}) {
 
     if (snapshot.state === 'verification_page' || (allowPhoneVerificationPage && snapshot.state === 'phone_verification_page')) {
       log(
-        snapshot.state === 'phone_verification_page' ? '登录手机验证码页面已稳定就绪。' : '登录验证码页面已稳定就绪。',
+        snapshot.state === 'phone_verification_page' ? 'Trang mã xác minh SĐT đăng nhập đã ổn định.' : 'Trang mã xác minh đăng nhập đã ổn định.',
         'ok',
         { step: visibleStep, stepKey: 'oauth-login' }
       );
@@ -4789,7 +4789,7 @@ async function finalizeStep6VerificationReady(options = {}) {
       return createStep6LoginTimeoutRecoverableResult(
         'login_timeout_error_page',
         snapshot,
-        '登录验证码页面准备就绪前进入登录超时报错页。',
+        'Quá trình chờ trang mã xác minh đăng nhập sẵn sàng đã rơi vào trang lỗi timeout đăng nhập.',
         { visibleStep }
       );
     }
@@ -4802,7 +4802,7 @@ async function finalizeStep6VerificationReady(options = {}) {
     }
 
     if (snapshot.state === 'add_phone_page') {
-      throw new Error(`登录验证码页面准备过程中页面进入手机号页面。URL: ${snapshot.url}`);
+      throw new Error(`Trang đã vào màn hình nhập số điện thoại trong lúc chờ trang mã xác minh đăng nhập. URL: ${snapshot.url}`);
     }
   }
 
@@ -4810,7 +4810,7 @@ async function finalizeStep6VerificationReady(options = {}) {
   const snapshot = normalizeStep6Snapshot(rawSnapshot);
   if (snapshot.state === 'verification_page' || (allowPhoneVerificationPage && snapshot.state === 'phone_verification_page')) {
     log(
-      snapshot.state === 'phone_verification_page' ? '登录手机验证码页面已稳定就绪。' : '登录验证码页面已稳定就绪。',
+      snapshot.state === 'phone_verification_page' ? 'Trang mã xác minh SĐT đăng nhập đã ổn định.' : 'Trang mã xác minh đăng nhập đã ổn định.',
       'ok',
       { step: visibleStep, stepKey: 'oauth-login' }
     );
@@ -4836,7 +4836,7 @@ async function finalizeStep6VerificationReady(options = {}) {
     return createStep6LoginTimeoutRecoverableResult(
       'login_timeout_error_page',
       snapshot,
-      '登录验证码页面准备就绪前进入登录超时报错页。',
+      'Quá trình chờ trang mã xác minh đăng nhập sẵn sàng đã rơi vào trang lỗi timeout đăng nhập.',
       { visibleStep }
     );
   }
@@ -4848,7 +4848,7 @@ async function finalizeStep6VerificationReady(options = {}) {
   }
 
   return createStep6RecoverableResult('verification_page_finalize_unknown', snapshot, {
-    message: `登录验证码页面状态在收尾确认阶段未稳定，准备重新执行步骤 ${visibleStep}。`,
+    message: `Trạng thái trang mã xác minh đăng nhập chưa ổn định ở bước xác nhận cuối, sẽ chạy lại bước ${visibleStep}.`,
     loginVerificationRequestedAt,
   });
 }
@@ -4863,9 +4863,9 @@ function throwForStep6FatalState(snapshot, visibleStep = 7) {
     case 'oauth_consent_page':
       return;
     case 'add_phone_page':
-      throw new Error(`当前页面已进入手机号页面，未经过登录验证码页，无法完成步骤 ${visibleStep}。URL: ${snapshot.url}`);
+      throw new Error(`Trang hiện đã vào màn hình nhập số điện thoại, chưa đi qua trang mã xác minh đăng nhập nên không thể hoàn tất bước ${visibleStep}. URL: ${snapshot.url}`);
     case 'unknown':
-      throw new Error(`无法识别当前登录页面状态。URL: ${snapshot?.url || location.href}`);
+      throw new Error(`Không nhận diện được trạng thái trang đăng nhập hiện tại. URL: ${snapshot?.url || location.href}`);
     default:
       return;
   }
@@ -5486,7 +5486,7 @@ async function fillVerificationCode(step, payload) {
     } else if (outcome.emailVerificationRequired) {
       log(`步骤 ${step}：手机验证码已通过，页面进入邮箱验证码验证。`, 'ok');
     } else if (outcome.addPhonePage) {
-      log(`步骤 ${step}：验证码提交后页面进入手机号页面，当前流程将停止自动授权。`, 'warn');
+      log(`Bước ${step}: sau khi gửi mã xác minh, trang đã nhảy sang màn hình nhập số điện thoại; luồng hiện tại sẽ dừng auto-authorize.`, 'warn');
     } else {
       if (typeof clearStep405RecoveryCount === 'function') clearStep405RecoveryCount(step);
       log(`步骤 ${step}：验证码已通过${outcome.assumed ? '（按成功推定）' : ''}。`, 'ok');
@@ -5527,7 +5527,7 @@ async function fillVerificationCode(step, payload) {
   } else if (outcome.emailVerificationRequired) {
     log(`步骤 ${step}：手机验证码已通过，页面进入邮箱验证码验证。`, 'ok');
   } else if (outcome.addPhonePage) {
-    log(`步骤 ${step}：验证码提交后页面进入手机号页面，当前流程将停止自动授权。`, 'warn');
+    log(`Bước ${step}: sau khi gửi mã xác minh, trang đã nhảy sang màn hình nhập số điện thoại; luồng hiện tại sẽ dừng auto-authorize.`, 'warn');
   } else {
     if (typeof clearStep405RecoveryCount === 'function') clearStep405RecoveryCount(step);
     log(`步骤 ${step}：验证码已通过${outcome.assumed ? '（按成功推定）' : ''}。`, 'ok');
@@ -5712,8 +5712,8 @@ async function waitForStep6EmailSubmitTransition(emailSubmittedAt, timeout = 120
     timeoutRecoveryVia: 'email_submit_timeout_recovered',
     allowPasswordAction: true,
     stalledReason: 'email_submit_stalled',
-    stalledMessage: '提交邮箱后长时间未进入密码页或登录验证码页。',
-    addPhoneMessage: (snapshot) => `提交邮箱后页面直接进入手机号页面，未经过登录验证码页。URL: ${snapshot.url}`,
+    stalledMessage: 'Gửi email xong nhưng chờ quá lâu vẫn chưa vào trang mật khẩu hoặc trang mã xác minh đăng nhập.',
+    addPhoneMessage: (snapshot) => `Sau khi gửi email, trang nhảy thẳng sang màn hình nhập số điện thoại mà không đi qua trang mã xác minh đăng nhập. URL: ${snapshot.url}`,
   });
 }
 
@@ -5730,8 +5730,8 @@ async function waitForStep6PhoneSubmitTransition(phoneSubmittedAt, timeout = 120
     allowPasswordAction: true,
     allowFinalPhoneAction: true,
     stalledReason: 'phone_submit_stalled',
-    stalledMessage: '提交手机号后长时间未进入密码页或手机验证码页。',
-    addPhoneMessage: (snapshot) => `提交手机号后页面直接进入手机号补全页面，未经过登录验证码页。URL: ${snapshot.url}`,
+    stalledMessage: 'Gửi SĐT xong nhưng chờ quá lâu vẫn chưa vào trang mật khẩu hoặc trang mã xác minh SĐT.',
+    addPhoneMessage: (snapshot) => `Sau khi gửi SĐT, trang nhảy thẳng sang màn hình bổ sung số điện thoại mà không đi qua trang mã xác minh đăng nhập. URL: ${snapshot.url}`,
   });
 }
 
@@ -5746,8 +5746,8 @@ async function waitForStep6PasswordSubmitTransition(passwordSubmittedAt, timeout
     timeoutRecoveryVia: 'password_submit_timeout_recovered',
     allowFinalSwitchAction: true,
     stalledReason: 'password_submit_stalled',
-    stalledMessage: '提交密码后仍未进入登录验证码页。',
-    addPhoneMessage: (snapshot) => `提交密码后页面直接进入手机号页面，未经过登录验证码页。URL: ${snapshot.url}`,
+    stalledMessage: 'Gửi mật khẩu xong nhưng vẫn chưa vào trang mã xác minh đăng nhập.',
+    addPhoneMessage: (snapshot) => `Sau khi gửi mật khẩu, trang nhảy thẳng sang màn hình nhập số điện thoại mà không đi qua trang mã xác minh đăng nhập. URL: ${snapshot.url}`,
   });
 }
 
@@ -5758,11 +5758,11 @@ async function waitForStep6SwitchTransition(loginVerificationRequestedAt, timeou
     via: 'switch_to_one_time_code_login',
     oauthConsentVia: 'switch_to_one_time_code_oauth_consent',
     loginVerificationRequestedAt,
-    timeoutRecoveryMessage: '切换到一次性验证码登录后进入登录超时报错页。',
+    timeoutRecoveryMessage: 'Sau khi chuyển sang đăng nhập bằng mã dùng một lần, trang rơi vào trang lỗi timeout đăng nhập.',
     timeoutRecoveryVia: 'switch_to_one_time_code_timeout_recovered',
     stalledReason: 'one_time_code_switch_stalled',
-    stalledMessage: '点击一次性验证码登录后仍未进入登录验证码页。',
-    addPhoneMessage: (snapshot) => `切换到一次性验证码登录后页面直接进入手机号页面，未经过登录验证码页。URL: ${snapshot.url}`,
+    stalledMessage: 'Sau khi bấm đăng nhập bằng mã dùng một lần, trang vẫn chưa vào trang mã xác minh đăng nhập.',
+    addPhoneMessage: (snapshot) => `Sau khi chuyển sang đăng nhập bằng mã dùng một lần, trang nhảy thẳng sang màn hình nhập số điện thoại mà không đi qua trang mã xác minh đăng nhập. URL: ${snapshot.url}`,
   });
 
   if (transition.action === 'done' || transition.action === 'recoverable') {
@@ -6294,7 +6294,7 @@ async function step6LoginFromPasswordPage(payload, snapshot) {
       });
     }
     if (transition.action === 'recoverable') {
-      log(transition.result.message || `提交密码后仍未进入登录验证码页面，准备重新执行步骤 ${visibleStep}。`, 'warn', { step: visibleStep, stepKey: 'oauth-login' });
+      log(transition.result.message || `Gửi mật khẩu xong nhưng vẫn chưa vào trang mã xác minh đăng nhập, sẽ chạy lại bước ${visibleStep}.`, 'warn', { step: visibleStep, stepKey: 'oauth-login' });
       return transition.result;
     }
     if (transition.action === 'password') {
@@ -6396,7 +6396,7 @@ async function step6_login(payload) {
   const snapshot = normalizeStep6Snapshot(await waitForKnownLoginAuthState(15000));
 
   if (snapshot.state === 'verification_page' || snapshot.state === 'phone_verification_page') {
-    log('认证页已在登录验证码页，开始确认页面是否稳定。', 'info', { step: visibleStep, stepKey: 'oauth-login' });
+    log('Trang xác thực đã ở sẵn trang mã xác minh đăng nhập, bắt đầu kiểm tra độ ổn định của trang.', 'info', { step: visibleStep, stepKey: 'oauth-login' });
     return finalizeStep6VerificationReady({
       visibleStep,
       loginVerificationRequestedAt: null,
@@ -6490,7 +6490,7 @@ async function step6_login(payload) {
   }
 
   throwForStep6FatalState(snapshot, visibleStep);
-  throw new Error(`无法识别当前登录页面状态。URL: ${snapshot?.url || location.href}`);
+  throw new Error(`Không nhận diện được trạng thái trang đăng nhập hiện tại. URL: ${snapshot?.url || location.href}`);
 }
 
 async function waitForAddEmailPageReady(timeout = 15000) {

@@ -148,11 +148,11 @@ async function handlePollEmail(step, payload) {
         });
         if (code) {
           if (excludedCodeSet.has(code)) {
-            log(`步骤 ${step}：跳过排除的验证码：${code}`, 'info');
+            log(`Bước ${step}: bỏ qua mã xác minh nằm trong danh sách loại trừ: ${code}`, 'info');
             continue;
           }
           const source = useFallback && existingMailIds.has(mailId) ? '回退首封匹配邮件' : '新邮件';
-          log(`步骤 ${step}：已找到验证码：${code}（来源：${source}，主题：${subject.slice(0, 40)}）`, 'ok');
+          log(`Bước ${step}: đã tìm thấy mã xác minh: ${code} (nguồn: ${source}, tiêu đề: ${subject.slice(0, 40)})`, 'ok');
           return { ok: true, code, emailTimestamp: Date.now(), mailId };
         }
       }

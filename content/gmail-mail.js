@@ -658,7 +658,7 @@ async function handlePollEmail(step, payload) {
         });
         if (previewCode) {
           if (excludedCodeSet.has(previewCode)) {
-            log(`步骤 ${step}：跳过排除的验证码：${previewCode}`, 'info');
+            log(`Bước ${step}: bỏ qua mã xác minh nằm trong danh sách loại trừ: ${previewCode}`, 'info');
             continue;
           }
           if (seenCodes.has(previewCode)) {
@@ -688,7 +688,7 @@ async function handlePollEmail(step, payload) {
           continue;
         }
         if (excludedCodeSet.has(bodyCode)) {
-          log(`步骤 ${step}：跳过排除的验证码：${bodyCode}`, 'info');
+          log(`Bước ${step}: bỏ qua mã xác minh nằm trong danh sách loại trừ: ${bodyCode}`, 'info');
           continue;
         }
         if (seenCodes.has(bodyCode)) {
@@ -720,7 +720,7 @@ async function handlePollEmail(step, payload) {
   }
 
   throw new Error(
-    `${(maxAttempts * intervalMs / 1000).toFixed(0)} 秒后仍未在 Gmail 中找到匹配邮件。请手动检查 Gmail 收件箱。`
+    `${(maxAttempts * intervalMs / 1000).toFixed(0)} giây trôi qua nhưng vẫn chưa tìm thấy email khớp trong Gmail. Hãy tự kiểm tra hộp thư Gmail.`
   );
 }
 

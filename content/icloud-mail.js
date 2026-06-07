@@ -389,12 +389,12 @@ if (shouldHandlePollEmailInCurrentFrame) {
           continue;
         }
         if (excludedCodeSet.has(code)) {
-          log(`步骤 ${step}：跳过排除的验证码：${code}`, 'info');
+          log(`Bước ${step}: bỏ qua mã xác minh nằm trong danh sách loại trừ: ${code}`, 'info');
           continue;
         }
 
         const source = useFallback && existingSignatures.has(signature) ? '回退匹配邮件' : '新邮件';
-        log(`步骤 ${step}：已找到验证码：${code}（来源：${source}）`, 'ok');
+        log(`Bước ${step}: đã tìm thấy mã xác minh: ${code} (nguồn: ${source})`, 'ok');
         persistPollSessionBaseline(
           pollSessionKey,
           new Set(collectThreadItems().map(buildItemSignature)),
@@ -425,7 +425,7 @@ if (shouldHandlePollEmailInCurrentFrame) {
     );
 
     throw new Error(
-      `${Math.round((maxAttempts * intervalMs) / 1000)} 秒后仍未在 iCloud 邮箱中找到新的匹配邮件。请手动检查收件箱。`
+      `${Math.round((maxAttempts * intervalMs) / 1000)} giây trôi qua nhưng vẫn chưa tìm thấy email mới khớp trong iCloud. Hãy tự kiểm tra hộp thư.`
     );
   }
 }

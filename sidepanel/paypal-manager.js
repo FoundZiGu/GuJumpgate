@@ -201,7 +201,7 @@
 
     async function openPayPalAccountDialog() {
       if (typeof helpers.openFormDialog !== 'function') {
-        throw new Error('表单弹窗能力未加载，请刷新扩展后Thử lại。');
+        throw new Error('Khả năng popup biểu mẫu chưa được tải, hãy làm mới extension rồi thử lại.');
       }
       return helpers.openFormDialog({
         title: '添加 Tài khoản PayPal',

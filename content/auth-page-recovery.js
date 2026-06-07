@@ -158,7 +158,7 @@
 
         if (retryState.maxCheckAttemptsBlocked) {
           throw new Error(
-            'CF_SECURITY_BLOCKED::您已触发Cloudflare 安全防护系统，已完全停止流程，请不要短时间内多次进行重新发送验证码，连续刷新、反复点击重试会加重风控；请先关闭页面等待 15-30 分钟，让系统的临时限制自动解除。或者更换浏览器'
+            'CF_SECURITY_BLOCKED::Bạn đã kích hoạt lớp bảo vệ Cloudflare và quy trình đã bị dừng hoàn toàn. Đừng gửi lại mã quá nhiều lần trong thời gian ngắn; việc refresh liên tục hoặc bấm thử lại lặp đi lặp lại sẽ làm tăng mức kiểm soát rủi ro. Hãy đóng trang và chờ 15-30 phút để giới hạn tạm thời tự gỡ, hoặc đổi sang trình duyệt khác.'
           );
         }
 
@@ -217,7 +217,7 @@
 
       if (finalRetryState.maxCheckAttemptsBlocked) {
         throw new Error(
-          'CF_SECURITY_BLOCKED::您已触发Cloudflare 安全防护系统，已完全停止流程，请不要短时间内多次进行重新发送验证码，连续刷新、反复点击重试会加重风控；请先关闭页面等待 15-30 分钟，让系统的临时限制自动解除。或者更换浏览器'
+          'CF_SECURITY_BLOCKED::Bạn đã kích hoạt lớp bảo vệ Cloudflare và quy trình đã bị dừng hoàn toàn. Đừng gửi lại mã quá nhiều lần trong thời gian ngắn; việc refresh liên tục hoặc bấm thử lại lặp đi lặp lại sẽ làm tăng mức kiểm soát rủi ro. Hãy đóng trang và chờ 15-30 phút để giới hạn tạm thời tự gỡ, hoặc đổi sang trình duyệt khác.'
         );
       }
 

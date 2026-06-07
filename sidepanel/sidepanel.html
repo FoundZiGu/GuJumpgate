@@ -496,7 +496,7 @@
               data-password-toggle="input-gpc-helper-card-key" data-show-label="显示 GPC API Key"
               data-hide-label="隐藏 GPC API Key" aria-label="显示 GPC API Key" title="显示 GPC API Key"></button>
           </div>
-          <button id="btn-gpc-helper-balance" class="btn btn-ghost btn-xs data-inline-btn" type="button">查余额</button>
+          <button id="btn-gpc-helper-balance" class="btn btn-ghost btn-xs data-inline-btn" type="button">Xem số dư</button>
           <span id="display-gpc-helper-balance" class="data-value mono">余额未获取</span>
         </div>
       </div>
@@ -601,7 +601,7 @@
         </div>
       </div>
       <div class="data-row module-divider-start" id="row-mail-provider">
-        <span class="data-label">邮箱服务</span>
+        <span class="data-label">Dịch vụ email</span>
         <div class="data-inline">
           <select id="select-mail-provider" class="data-select">
             <option value="hotmail-api">Outlook/Hotmail 账号池</option>
@@ -745,14 +745,14 @@
         <input type="text" id="input-inbucket-mailbox" class="data-input" placeholder="例如 zju2001" />
       </div>
       <div class="data-row" id="row-auto-run-controls">
-        <span class="data-label">注册邮箱</span>
+        <span class="data-label">Email đăng ký</span>
         <div class="data-inline">
           <input type="text" id="input-email" class="data-input" placeholder="由 微软邮箱账户池 自动分配" />
           <button id="btn-fetch-email" class="btn btn-outline btn-sm data-inline-btn" type="button">获取</button>
         </div>
       </div>
       <div class="data-row" id="row-operation-delay-settings">
-        <span class="data-label">操作间延迟</span>
+        <span class="data-label">Độ trễ giữa thao tác</span>
         <div class="data-inline setting-pair operation-delay-setting-pair">
           <div class="setting-group setting-group-primary operation-delay-setting">
             <label class="toggle-switch" for="input-operation-delay-enabled" title="开启后，页面输入、选择、点击、提交、继续、授权操作完成后等待 2 秒">
@@ -762,7 +762,7 @@
               </span>
               <span>启用</span>
             </label>
-            <span class="setting-caption">页面输入、选择、点击、提交、继续、授权后等待 2 秒</span>
+            <span class="setting-caption">Đợi 2 giây sau thao tác nhập/chọn/bấm/gửi/tiếp tục/uỷ quyền trên trang</span>
           </div>
         </div>
       </div>
@@ -778,7 +778,7 @@
             </label>
           </div>
           <div class="setting-group auto-run-retry-non-free-trial-setting">
-            <span class="setting-caption">无试用套餐自动重试</span>
+            <span class="setting-caption">Tự động thử lại khi không có gói dùng thử</span>
             <label class="toggle-switch" for="input-auto-run-retry-non-free-trial"
               title="开启后，步骤 6 检测到今日应付金额非 0 时会换新邮箱重走流程">
               <input type="checkbox" id="input-auto-run-retry-non-free-trial" />
@@ -788,7 +788,7 @@
             </label>
           </div>
           <div class="setting-group auto-run-retry-paypal-callback-setting">
-            <span class="setting-caption">PAYPAL回调自动重试</span>
+            <span class="setting-caption">Tự động thử lại callback PayPal</span>
             <label class="toggle-switch" for="input-auto-run-retry-paypal-callback"
               title="开启后，PayPal Checkout 回调异常时会换新邮箱重走流程">
               <input type="checkbox" id="input-auto-run-retry-paypal-callback" />
@@ -808,7 +808,7 @@
             </label>
           </div>
           <div class="setting-group auto-run-retry-card-declined-setting">
-            <span class="setting-caption">拒卡重试</span>
+            <span class="setting-caption">Thử lại khi thẻ bị từ chối</span>
             <label class="toggle-switch" for="input-hosted-checkout-card-declined-retry-enabled"
               title="开启后，hosted checkout 检测到银行卡被拒绝时会自动更换地址并重试；关闭后遇到拒卡会立即停止当前流程">
               <input type="checkbox" id="input-hosted-checkout-card-declined-retry-enabled" />
@@ -828,7 +828,7 @@
         </div>
       </div>
       <div class="data-row" id="row-oauth-flow-timeout">
-        <span class="data-label">授权总超时</span>
+        <span class="data-label">Tổng timeout uỷ quyền</span>
         <div class="data-inline setting-pair">
           <div class="setting-group setting-group-primary oauth-flow-timeout-setting">
             <label class="toggle-switch" for="input-oauth-flow-timeout-enabled"
@@ -856,11 +856,11 @@
         <span id="display-oauth-url" class="data-value mono truncate">等待中...</span>
       </div>
       <div class="data-row">
-        <span class="data-label">登录验证码</span>
+        <span class="data-label">Mã xác minh đăng nhập</span>
         <span id="display-oauth-login-code" class="data-value mono">未获取</span>
       </div>
       <div class="data-row">
-        <span class="data-label">回调</span>
+        <span class="data-label">Callback</span>
         <div class="data-inline data-value-actions">
           <span id="display-localhost-url" class="data-value data-value-fill mono truncate">等待中...</span>
           <button id="btn-save-settings" class="btn btn-outline btn-sm data-inline-btn" type="button">保存</button>
@@ -1710,7 +1710,7 @@
               </select>
             </div>
             <div class="data-row" id="row-phone-sms-provider-order" style="display:none;">
-              <span class="data-label">服务商顺序</span>
+              <span class="data-label">Thứ tự nhà cung cấp</span>
               <div class="data-inline hero-sms-country-stack">
                 <select id="select-phone-sms-provider-order" class="data-input mono" multiple size="4" style="display:none;">
                   <option value="hero-sms" selected>HeroSMS</option>
@@ -1730,22 +1730,22 @@
                     <div id="phone-sms-provider-order-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">第一位为主服务商，后续按顺序自动回退。</span>
+                <span class="data-value hero-sms-country-note">Nhà cung cấp đầu tiên là chính, các nhà cung cấp sau sẽ tự động fallback theo thứ tự.</span>
               </div>
             </div>
             <div class="data-row" id="row-phone-sms-provider-order-actions" style="display:none;">
-              <span class="data-label">顺序管理</span>
+              <span class="data-label">Quản lý thứ tự</span>
               <div class="data-inline data-value-actions">
-                <span id="display-phone-sms-provider-order" class="data-value data-value-fill mono country-order-list">未设置</span>
-                <button id="btn-phone-sms-provider-order-reset" class="btn btn-ghost btn-xs data-inline-btn" type="button">清空</button>
+                <span id="display-phone-sms-provider-order" class="data-value data-value-fill mono country-order-list">Chưa thiết lập</span>
+                <button id="btn-phone-sms-provider-order-reset" class="btn btn-ghost btn-xs data-inline-btn" type="button">Xoá hết</button>
               </div>
             </div>
             <div class="data-row" id="row-hero-sms-platform" style="display:none;">
-              <span class="data-label">接码平台</span>
+              <span class="data-label">Nền tảng nhận mã</span>
               <span id="display-hero-sms-platform" class="data-value mono">HeroSMS / OpenAI / Colombia</span>
             </div>
             <div class="data-row" id="row-hero-sms-country" style="display:none;">
-              <span class="data-label">国家优先级</span>
+              <span class="data-label">Ưu tiên quốc gia</span>
               <div class="data-inline hero-sms-country-stack">
                 <select id="select-hero-sms-country" class="data-input mono" multiple size="6" style="display:none;">
                   <option value="33" selected>Colombia</option>
@@ -1758,26 +1758,26 @@
                     <div id="hero-sms-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
+                <span class="data-value hero-sms-country-note">Chọn tối đa 10 mục, thứ tự hiệu lực theo thứ tự bạn bấm chọn.</span>
               </div>
             </div>
             <div class="data-row" id="row-hero-sms-country-fallback" style="display:none;">
-              <span class="data-label">生效顺序</span>
+              <span class="data-label">Thứ tự hiệu lực</span>
               <div class="data-inline data-value-actions">
-                <span id="display-hero-sms-country-fallback-order" class="data-value data-value-fill mono country-order-list">未设置</span>
-                <button id="btn-hero-sms-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">清空</button>
+                <span id="display-hero-sms-country-fallback-order" class="data-value data-value-fill mono country-order-list">Chưa thiết lập</span>
+                <button id="btn-hero-sms-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">Xoá hết</button>
               </div>
             </div>
             <div class="data-row" id="row-hero-sms-acquire-priority" style="display:none;">
-              <span class="data-label">拿号优先级</span>
+              <span class="data-label">Ưu tiên lấy số</span>
               <select id="select-hero-sms-acquire-priority" class="data-input mono">
-                <option value="country">国家优先（默认）</option>
+                <option value="country">Ưu tiên quốc gia (mặc định)</option>
                 <option value="price">低价优先（同价按国家顺序）</option>
                 <option value="price_high">高价优先（同价按国家顺序）</option>
               </select>
             </div>
             <div class="data-row" id="row-hero-sms-api-key" style="display:none;">
-              <span class="data-label">接码 API</span>
+              <span class="data-label">API nhận mã</span>
               <div class="input-with-icon">
                 <input type="password" id="input-hero-sms-api-key" class="data-input data-input-with-icon mono"
                   placeholder="请输入 HeroSMS API Key" />
@@ -1797,7 +1797,7 @@
               </div>
             </div>
             <div class="data-row" id="row-five-sim-country" style="display:none;">
-              <span class="data-label">国家优先级</span>
+              <span class="data-label">Ưu tiên quốc gia</span>
               <div class="data-inline hero-sms-country-stack">
                 <select id="select-five-sim-country" class="data-input mono" multiple size="6" style="display:none;">
                   <option value="thailand" selected>泰国 (Thailand) [TH]</option>
@@ -1805,19 +1805,19 @@
                 <div class="hero-sms-country-mainline">
                   <div id="five-sim-country-menu-shell" class="hero-sms-country-menu">
                     <button id="btn-five-sim-country-menu" class="btn btn-outline btn-sm hero-sms-country-menu-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-                      未选择 (0/10)
+                      Chưa chọn (0/10)
                     </button>
                     <div id="five-sim-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
+                <span class="data-value hero-sms-country-note">Chọn tối đa 10 mục, thứ tự hiệu lực theo thứ tự bạn bấm chọn.</span>
               </div>
             </div>
             <div class="data-row" id="row-five-sim-country-fallback" style="display:none;">
-              <span class="data-label">生效顺序</span>
+              <span class="data-label">Thứ tự hiệu lực</span>
               <div class="data-inline data-value-actions">
-                <span id="display-five-sim-country-fallback-order" class="data-value data-value-fill mono country-order-list">未设置</span>
-                <button id="btn-five-sim-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">清空</button>
+                <span id="display-five-sim-country-fallback-order" class="data-value data-value-fill mono country-order-list">Chưa thiết lập</span>
+                <button id="btn-five-sim-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">Xoá hết</button>
               </div>
             </div>
             <div class="data-row" id="row-five-sim-operator" style="display:none;">
@@ -1841,7 +1841,7 @@
               </div>
             </div>
             <div class="data-row" id="row-nex-sms-country" style="display:none;">
-              <span class="data-label">国家优先级</span>
+              <span class="data-label">Ưu tiên quốc gia</span>
               <div class="data-inline hero-sms-country-stack">
                 <select id="select-nex-sms-country" class="data-input mono" multiple size="6" style="display:none;">
                   <option value="1" selected>Country #1</option>
@@ -1854,14 +1854,14 @@
                     <div id="nex-sms-country-menu" class="hero-sms-country-menu-dropdown" role="listbox" aria-multiselectable="true" hidden></div>
                   </div>
                 </div>
-                <span class="data-value hero-sms-country-note">多选最多 10 个，按点击顺序生效。</span>
+                <span class="data-value hero-sms-country-note">Chọn tối đa 10 mục, thứ tự hiệu lực theo thứ tự bạn bấm chọn.</span>
               </div>
             </div>
             <div class="data-row" id="row-nex-sms-country-fallback" style="display:none;">
-              <span class="data-label">生效顺序</span>
+              <span class="data-label">Thứ tự hiệu lực</span>
               <div class="data-inline data-value-actions">
-                <span id="display-nex-sms-country-fallback-order" class="data-value data-value-fill mono country-order-list">未设置</span>
-                <button id="btn-nex-sms-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">清空</button>
+                <span id="display-nex-sms-country-fallback-order" class="data-value data-value-fill mono country-order-list">Chưa thiết lập</span>
+                <button id="btn-nex-sms-country-clear" class="btn btn-ghost btn-xs data-inline-btn" type="button">Xoá hết</button>
               </div>
             </div>
             <div class="data-row" id="row-nex-sms-service-code" style="display:none;">
@@ -1870,11 +1870,11 @@
                 placeholder="ot" />
             </div>
             <div class="data-row" id="row-hero-sms-max-price" style="display:none;">
-              <span class="data-label">价格区间</span>
+              <span class="data-label">Khoảng giá</span>
               <div class="data-inline hero-sms-price-preview-stack">
                 <div class="hero-sms-price-preview-head">
-                  <button id="btn-hero-sms-price-preview" class="btn btn-outline btn-xs data-inline-btn" type="button">查询价格</button>
-                  <button id="btn-phone-sms-balance" class="btn btn-ghost btn-xs data-inline-btn" type="button">查余额</button>
+                  <button id="btn-hero-sms-price-preview" class="btn btn-outline btn-xs data-inline-btn" type="button">Tra giá</button>
+                  <button id="btn-phone-sms-balance" class="btn btn-ghost btn-xs data-inline-btn" type="button">Xem số dư</button>
                 </div>
                 <div id="row-hero-sms-price-tiers" class="hero-sms-price-preview-result" style="display:none;">
                   <span id="display-hero-sms-price-tiers" class="data-value mono hero-sms-price-preview-text">未获取</span>
@@ -1882,25 +1882,25 @@
                 </div>
                 <div class="hero-sms-price-controls-grid">
                   <div class="hero-sms-price-control">
-                    <span class="hero-sms-settings-caption">最低购买价</span>
+                    <span class="hero-sms-settings-caption">Giá mua tối thiểu</span>
                     <div class="setting-controls">
                       <input type="number" id="input-hero-sms-min-price" class="data-input auto-delay-input mono hero-sms-max-price-input" placeholder="0.05" min="0" step="0.0001" title="接码最低购买价；可空（空=不设下限）" />
                     </div>
                   </div>
                   <div class="hero-sms-price-control">
-                    <span class="hero-sms-settings-caption">价格上限</span>
+                    <span class="hero-sms-settings-caption">Giá trần</span>
                     <div class="setting-controls">
                       <input type="number" id="input-hero-sms-max-price" class="data-input auto-delay-input mono hero-sms-max-price-input" placeholder="0.12" min="0" step="0.0001" title="接码价格上限；可空（空=不设上限）" />
                     </div>
                   </div>
                   <div class="hero-sms-price-control">
-                    <span class="hero-sms-settings-caption">指定档位</span>
+                    <span class="hero-sms-settings-caption">Mốc giá ưu tiên</span>
                     <div class="setting-controls">
                       <input type="number" id="input-hero-sms-preferred-price" class="data-input auto-delay-input mono hero-sms-max-price-input" placeholder="例如 0.0512（可空）" min="0" step="0.0001" title="优先尝试该价格档位；可空（空=按优先级策略）" />
                     </div>
                   </div>
                   <div class="hero-sms-price-control hero-sms-price-control-reuse">
-                    <span class="hero-sms-settings-caption">号码复用</span>
+                    <span class="hero-sms-settings-caption">Tái sử dụng số</span>
                     <div class="setting-controls hero-sms-toggle-controls">
                       <label class="toggle-switch hero-sms-price-reuse-toggle" for="input-hero-sms-reuse-enabled" title="开启后会优先复用未超次数的可用号码">
                         <input type="checkbox" id="input-hero-sms-reuse-enabled" />
@@ -1914,10 +1914,10 @@
               </div>
             </div>
             <div class="data-row" id="row-phone-code-settings-group" style="display:none;">
-              <span class="data-label">接码参数</span>
+              <span class="data-label">Tham số nhận mã</span>
               <div class="data-inline hero-sms-settings-grid">
                 <div id="row-phone-verification-resend-count" class="hero-sms-settings-cell" style="display:none;">
-                  <span class="hero-sms-settings-caption">验证码重发</span>
+                  <span class="hero-sms-settings-caption">Gửi lại mã xác minh</span>
                   <div class="setting-controls">
                     <input type="number" id="input-verification-resend-count" class="data-input auto-delay-input" value="0"
                       min="0" max="20" step="1" title="自动点击重新发送验证码的次数" />

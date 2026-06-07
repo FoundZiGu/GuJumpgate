@@ -35,7 +35,7 @@
         return hotmailUtils.getHotmailBulkActionLabel(mode, count);
       }
       const normalizedCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
-      const prefix = mode === 'used' ? '清空Đã dùng' : 'Tất cảXoá';
+      const prefix = mode === 'used' ? 'Xoá sạch đã dùng' : 'Xoá tất cả';
       const suffix = normalizedCount > 0 ? `（${normalizedCount}）` : '';
       return `${prefix}${suffix}`;
     }
@@ -284,7 +284,7 @@
           </div>
           <div class="hotmail-account-meta">
             <span>客户端 ID：${helpers.escapeHtml(account.clientId ? `${account.clientId.slice(0, 10)}...` : 'Chưa điền')}</span>
-            <span>刷新令牌：${account.refreshToken ? 'Đã lưu' : 'Chưa lưu'}</span>
+            <span>Refresh token: ${account.refreshToken ? 'Đã lưu' : 'Chưa lưu'}</span>
             <span>分配状态: ${helpers.escapeHtml(getHotmailAvailabilityLabel(account))}</span>
             <span>上次校验: ${helpers.escapeHtml(formatDateTime(account.lastAuthAt))}</span>
             <span>上次使用: ${helpers.escapeHtml(formatDateTime(account.lastUsedAt))}</span>
@@ -409,7 +409,7 @@
     async function handleImportHotmailAccounts() {
       if (actionInFlight) return;
       if (typeof hotmailUtils.parseHotmailImportText !== 'function') {
-        helpers.showToast('导入解析器未加载，请刷新扩展后Thử lại。', 'error');
+        helpers.showToast('Trình phân tích nhập chưa được tải, hãy làm mới extension rồi thử lại.', 'error');
         return;
       }
 

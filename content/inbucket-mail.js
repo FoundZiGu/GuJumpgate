@@ -272,7 +272,7 @@ async function handleMailboxPollEmail(step, payload) {
       });
       if (!code) continue;
       if (excludedCodeSet.has(code)) {
-        log(`步骤 ${step}：跳过排除的验证码：${code}`, 'info');
+        log(`Bước ${step}: bỏ qua mã xác minh nằm trong danh sách loại trừ: ${code}`, 'info');
         continue;
       }
 
@@ -284,7 +284,7 @@ async function handleMailboxPollEmail(step, payload) {
 
       const source = existingMailIds.has(mail.mailId) ? '回退匹配邮件' : '新邮件';
       log(
-        `步骤 ${step}：已找到验证码：${code}（来源：${source}，发件人：${mail.sender || '未知'}，主题：${(mail.subject || '').slice(0, 60)}）`,
+        `Bước ${step}: đã tìm thấy mã xác minh: ${code} (nguồn: ${source}, người gửi: ${mail.sender || 'không rõ'}, tiêu đề: ${(mail.subject || '').slice(0, 60)})`,
         'ok'
       );
 
@@ -306,7 +306,7 @@ async function handleMailboxPollEmail(step, payload) {
   }
 
   throw new Error(
-    `${(maxAttempts * intervalMs / 1000).toFixed(0)} 秒后仍未在 Inbucket 邮箱中找到匹配的验证码邮件。` +
+    `${(maxAttempts * intervalMs / 1000).toFixed(0)} giây trôi qua nhưng vẫn chưa tìm thấy email mã xác minh khớp trong Inbucket.` +
     '请手动检查邮箱页面。'
   );
 }

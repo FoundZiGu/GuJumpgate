@@ -27,10 +27,10 @@
       labels.noMatchText || `没有匹配当前筛选条件的${numberNoun}。`
     ).trim() || `没有匹配当前筛选条件的${numberNoun}。`;
     const refreshLoadingText = String(
-      labels.refreshLoadingText || `正在刷新${poolLabel}...`
+      labels.refreshLoadingText || `Đang làm mới ${poolLabel}...`
     ).trim() || `正在刷新${poolLabel}...`;
     const updateLoadingText = String(
-      labels.updateLoadingText || `正在更新${poolLabel}...`
+      labels.updateLoadingText || `Đang cập nhật ${poolLabel}...`
     ).trim() || `正在更新${poolLabel}...`;
     const updateFailedPrefix = String(
       labels.updateFailedPrefix || `更新${poolLabel}Thất bại`
@@ -42,11 +42,11 @@
     const deleteTitle = String(labels.deleteTitle || `Xoá${poolLabel}Số`).trim() || `Xoá${poolLabel}Số`;
     const clearUsageTitle = String(labels.clearUsageTitle || 'Xoá số lần sử dụng').trim() || 'Xoá số lần sử dụng';
     const clearUsageMessage = String(
-      labels.clearUsageMessage || `确认清空${poolLabel}的使用次数吗？Số本身会Giữ lại。`
+      labels.clearUsageMessage || `Xác nhận xoá số lần sử dụng của ${poolLabel}? Bản thân số vẫn sẽ được giữ lại.`
     ).trim() || `确认清空${poolLabel}的使用次数吗？Số本身会Giữ lại。`;
     const deleteAllTitle = String(labels.deleteAllTitle || `Xoá${poolLabel}`).trim() || `Xoá${poolLabel}`;
     const deleteAllMessage = String(
-      labels.deleteAllMessage || `Xác nhận xoá当前Tất cả${importSubject}吗？此操作不可撤销。`
+      labels.deleteAllMessage || `Xác nhận xoá toàn bộ ${importSubject} hiện tại? Thao tác này không thể hoàn tác.`
     ).trim() || `Xác nhận xoá当前Tất cả${importSubject}吗？此操作不可撤销。`;
     const normalizePoolPhoneValue = typeof normalizers.normalizePhone === 'function'
       ? normalizers.normalizePhone

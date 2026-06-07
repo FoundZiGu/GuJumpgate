@@ -659,7 +659,7 @@
 
       const confirmed = await helpers.openConfirmModal({
         title: 'Dọn dẹp bản ghi tài khoản',
-        message: 'Xác nhận dọn dẹp当前Tất cảTài khoản记录吗？该操作会同时清空面板记录与本地同步快照。',
+        message: 'Xác nhận dọn dẹp toàn bộ bản ghi tài khoản hiện tại? Thao tác này sẽ xoá cả bản ghi trong panel lẫn snapshot đồng bộ cục bộ.',
         confirmLabel: 'Xác nhận dọn dẹp',
         confirmVariant: 'btn-danger',
       });

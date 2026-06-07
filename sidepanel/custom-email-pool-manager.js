@@ -515,7 +515,7 @@
       dom.btnCustomEmailPoolDeleteAll?.addEventListener('click', async () => {
         await deleteEntries({
           mode: 'all',
-        }, 'Xác nhận xoá当前Tất cả邮箱吗？此操作不可撤销。');
+        }, 'Xác nhận xoá toàn bộ email hiện tại? Thao tác này không thể hoàn tác.');
       });
     }
 

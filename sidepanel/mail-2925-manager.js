@@ -31,7 +31,7 @@
     function updateMail2925ListViewport() {
       const count = getMail2925Accounts().length;
       if (dom.btnDeleteAllMail2925Accounts) {
-        dom.btnDeleteAllMail2925Accounts.textContent = `Tất cảXoá${count > 0 ? `（${count}）` : ''}`;
+        dom.btnDeleteAllMail2925Accounts.textContent = `Xoá tất cả${count > 0 ? `（${count}）` : ''}`;
         dom.btnDeleteAllMail2925Accounts.disabled = count === 0;
       }
       if (dom.btnToggleMail2925List) {
@@ -323,7 +323,7 @@
     async function handleImportMail2925Accounts() {
       if (actionInFlight) return;
       if (typeof mail2925Utils.parseMail2925ImportText !== 'function') {
-        helpers.showToast('2925 导入解析器未加载，请刷新扩展后Thử lại。', 'error');
+        helpers.showToast('Trình phân tích nhập 2925 chưa được tải, hãy làm mới extension rồi thử lại.', 'error');
         return;
       }
 

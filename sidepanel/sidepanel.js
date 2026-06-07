@@ -5897,7 +5897,7 @@ function normalizePhoneSmsProviderOrderValue(value = [], fallbackOrder = []) {
 function formatPhoneSmsProviderOrderSummary(order = []) {
   const normalized = normalizePhoneSmsProviderOrderValue(order, []);
   if (!normalized.length) {
-    return '未设置';
+    return 'Chưa thiết lập';
   }
   return normalized
     .map((provider, index) => `${index + 1}. ${getPhoneSmsProviderLabel(provider)}`)
@@ -5912,7 +5912,7 @@ function updatePhoneSmsProviderOrderSummary(order = []) {
   if (btnPhoneSmsProviderOrderMenu) {
     btnPhoneSmsProviderOrderMenu.textContent = normalized.length
       ? `${normalized.map((provider) => getPhoneSmsProviderLabel(provider)).join(' / ')} (${normalized.length}/${DEFAULT_PHONE_SMS_PROVIDER_ORDER.length})`
-      : `未选择 (0/${DEFAULT_PHONE_SMS_PROVIDER_ORDER.length})`;
+      : `Chưa chọn (0/${DEFAULT_PHONE_SMS_PROVIDER_ORDER.length})`;
   }
 }
 
@@ -6017,7 +6017,7 @@ function syncPhoneSmsProviderOrderFromSelect(options = {}) {
     const droppedCount = nextOrder.length - selectionLimit;
     nextOrder = nextOrder.slice(0, selectionLimit);
     if (showLimitToast && droppedCount > 0 && typeof showToast === 'function') {
-      showToast(`服务商顺序最多 ${selectionLimit} 个，已保留前 ${selectionLimit} 个。`, 'warn', 2200);
+      showToast(`Tối đa ${selectionLimit} nhà cung cấp trong thứ tự ưu tiên; đã giữ lại ${selectionLimit} mục đầu tiên.`, 'warn', 2200);
     }
   }
 
@@ -15968,8 +15968,8 @@ function syncIpProxyPasswordToggleLabel() {
 
 function syncHeroSmsApiKeyToggleLabel() {
   syncToggleButtonLabel(btnToggleHeroSmsApiKey, inputHeroSmsApiKey, {
-    show: '显示接码 API Key',
-    hide: '隐藏接码 API Key',
+    show: 'Hiện API Key nhận mã',
+    hide: 'Ẩn API Key nhận mã',
   });
 }
 
