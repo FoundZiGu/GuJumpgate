@@ -344,6 +344,15 @@ const inputCloudMailAdminEmail = document.getElementById('input-cloud-mail-admin
 const inputCloudMailAdminPassword = document.getElementById('input-cloud-mail-admin-password');
 const inputCloudMailReceiveMailbox = document.getElementById('input-cloud-mail-receive-mailbox');
 const inputCloudMailDomain = document.getElementById('input-cloud-mail-domain');
+const mailApiSection = document.getElementById('mail-api-section');
+const rowMailApiBaseUrl = document.getElementById('row-mail-api-base-url');
+const rowMailApiKey = document.getElementById('row-mail-api-key');
+const rowMailApiGroupId = document.getElementById('row-mail-api-group-id');
+const rowMailApiLeaseDays = document.getElementById('row-mail-api-lease-days');
+const inputMailApiBaseUrl = document.getElementById('input-mail-api-base-url');
+const inputMailApiKey = document.getElementById('input-mail-api-key');
+const inputMailApiGroupId = document.getElementById('input-mail-api-group-id');
+const inputMailApiLeaseDays = document.getElementById('input-mail-api-lease-days');
 const freemailSection = document.getElementById('freemail-section');
 const btnFreemailGithub = document.getElementById('btn-freemail-github');
 const rowFreemailBaseUrl = document.getElementById('row-freemail-base-url');
@@ -1273,6 +1282,7 @@ const HOTMAIL_PROVIDER = 'hotmail-api';
 const LUCKMAIL_PROVIDER = 'luckmail-api';
 const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
 const CLOUD_MAIL_PROVIDER = 'cloudmail';
+const MAIL_API_PROVIDER = 'mail-api';
 const FREEMAIL_PROVIDER = 'freemail';
 const MOEMAIL_PROVIDER = 'moemail';
 const MOEMAIL_GENERATOR = 'moemail';
@@ -3971,6 +3981,9 @@ function normalizeSupportedMailProvider(value = '') {
   if (normalized === CLOUD_MAIL_PROVIDER) {
     return CLOUD_MAIL_PROVIDER;
   }
+  if (normalized === MAIL_API_PROVIDER) {
+    return MAIL_API_PROVIDER;
+  }
   if (normalized === FREEMAIL_PROVIDER) {
     return FREEMAIL_PROVIDER;
   }
@@ -4406,6 +4419,25 @@ function normalizeCloudMailDomainValue(value = '') {
   return normalizeCloudflareDomainValue(value);
 }
 
+function normalizeMailApiBaseUrlValue(value = '') {
+  return normalizeCloudflareTempEmailBaseUrlValue(value);
+}
+
+function normalizeMailApiGroupIdValue(value = '') {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) return '';
+  const numeric = Number(rawValue);
+  return Number.isSafeInteger(numeric) && numeric > 0 ? String(numeric) : '';
+}
+
+function normalizeMailApiLeaseDaysValue(value = '', fallback = 30) {
+  const rawValue = String(value ?? '').trim();
+  const fallbackValue = Math.max(1, Math.min(365, Math.floor(Number(fallback) || 30)));
+  if (!rawValue) return fallbackValue;
+  const numeric = Number(rawValue);
+  return Number.isFinite(numeric) ? Math.max(1, Math.min(365, Math.floor(numeric))) : fallbackValue;
+}
+
 function normalizeMoemailBaseUrlValue(value = '') {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -4549,6 +4581,21 @@ function applyCloudMailSettingsState(state = {}) {
   }
   if (inputCloudMailDomain) {
     inputCloudMailDomain.value = state?.cloudMailDomain || '';
+  }
+}
+
+function applyMailApiSettingsState(state = {}) {
+  if (inputMailApiBaseUrl) {
+    inputMailApiBaseUrl.value = state?.mailApiBaseUrl || '';
+  }
+  if (inputMailApiKey) {
+    inputMailApiKey.value = state?.mailApiKey || '';
+  }
+  if (inputMailApiGroupId) {
+    inputMailApiGroupId.value = state?.mailApiGroupId || '';
+  }
+  if (inputMailApiLeaseDays) {
+    inputMailApiLeaseDays.value = String(normalizeMailApiLeaseDaysValue(state?.mailApiLeaseDays, 30));
   }
 }
 
@@ -5712,6 +5759,10 @@ function collectSettingsPayload() {
     cloudMailAdminPassword: (typeof inputCloudMailAdminPassword !== 'undefined' && inputCloudMailAdminPassword) ? inputCloudMailAdminPassword.value : '',
     cloudMailReceiveMailbox: normalizeCloudMailReceiveMailboxInput((typeof inputCloudMailReceiveMailbox !== 'undefined' && inputCloudMailReceiveMailbox) ? inputCloudMailReceiveMailbox.value : ''),
     cloudMailDomain: normalizeCloudMailDomainInput((typeof inputCloudMailDomain !== 'undefined' && inputCloudMailDomain) ? inputCloudMailDomain.value : ''),
+    mailApiBaseUrl: normalizeMailApiBaseUrlValue(inputMailApiBaseUrl?.value || ''),
+    mailApiKey: String(inputMailApiKey?.value || '').trim(),
+    mailApiGroupId: normalizeMailApiGroupIdValue(inputMailApiGroupId?.value || ''),
+    mailApiLeaseDays: normalizeMailApiLeaseDaysValue(inputMailApiLeaseDays?.value || '', 30),
     freemailBaseUrl: normalizeFreemailBaseUrlInput((typeof inputFreemailBaseUrl !== 'undefined' && inputFreemailBaseUrl) ? inputFreemailBaseUrl.value : ''),
     freemailAdminUsername: ((typeof inputFreemailAdminUsername !== 'undefined' && inputFreemailAdminUsername) ? inputFreemailAdminUsername.value : '').trim(),
     freemailAdminPassword: (typeof inputFreemailAdminPassword !== 'undefined' && inputFreemailAdminPassword) ? inputFreemailAdminPassword.value : '',
@@ -12627,9 +12678,6 @@ function applySettingsState(state) {
       ? buildIpProxyStatePatchFromServiceProfile(normalizedIpProxyService, activeIpProxyProfile)
       : {}),
   });
-  if (typeof updateIpProxyUI === 'function') {
-    updateIpProxyUI(latestState);
-  }
   inputCodex2ApiUrl.value = state?.codex2apiUrl || '';
   inputCodex2ApiAdminKey.value = state?.codex2apiAdminKey || '';
   const restoredMailProvider = (
@@ -12643,6 +12691,9 @@ function applySettingsState(state) {
     const cloudflareTempEmailProvider = typeof CLOUDFLARE_TEMP_EMAIL_PROVIDER === 'string'
       ? CLOUDFLARE_TEMP_EMAIL_PROVIDER
       : 'cloudflare-temp-email';
+    const mailApiProvider = typeof MAIL_API_PROVIDER === 'string'
+      ? MAIL_API_PROVIDER
+      : 'mail-api';
     const freemailProvider = typeof FREEMAIL_PROVIDER === 'string'
       ? FREEMAIL_PROVIDER
       : 'freemail';
@@ -12678,7 +12729,7 @@ function applySettingsState(state) {
       selectEmailGenerator.value = yydsmailProvider;
     } else if (restoredMailProvider === outlookEmailPlusProvider) {
       selectEmailGenerator.value = outlookEmailPlusGenerator;
-    } else if (restoredMailProvider === 'hotmail-api') {
+    } else if (restoredMailProvider === 'hotmail-api' || restoredMailProvider === mailApiProvider) {
       selectEmailGenerator.value = 'duck';
     } else if (restoredMailProvider === gmailProvider) {
       selectEmailGenerator.value = restoredEmailGenerator === customEmailPoolGenerator
@@ -12774,6 +12825,9 @@ function applySettingsState(state) {
   applyCloudflareTempEmailSettingsState(state);
   if (typeof applyCloudMailSettingsState === 'function') {
     applyCloudMailSettingsState(state);
+  }
+  if (typeof applyMailApiSettingsState === 'function') {
+    applyMailApiSettingsState(state);
   }
   if (typeof applyFreemailSettingsState === 'function') {
     applyFreemailSettingsState(state);
@@ -14151,6 +14205,7 @@ function updateMailProviderUI() {
   const useCustomEmail = isCustomMailProvider();
   const useCloudflareTempEmailProvider = selectMailProvider.value === 'cloudflare-temp-email';
   const useCloudMailProvider = selectMailProvider.value === 'cloudmail';
+  const useMailApiProvider = selectMailProvider.value === MAIL_API_PROVIDER;
   const useFreemailProvider = selectMailProvider.value === FREEMAIL_PROVIDER;
   const useMoemailProvider = selectMailProvider.value === MOEMAIL_PROVIDER;
   const useYydsMailProvider = selectMailProvider.value === YYDSMAIL_PROVIDER;
@@ -14162,7 +14217,7 @@ function updateMailProviderUI() {
     ? CUSTOM_EMAIL_POOL_GENERATOR
     : 'custom-pool';
   let allowedEmailGenerators = null;
-  if (useHotmail || useLuckmail || useCustomEmail) {
+  if (useHotmail || useLuckmail || useCustomEmail || useMailApiProvider) {
     allowedEmailGenerators = new Set();
   } else if (useCloudflareTempEmailProvider) {
     allowedEmailGenerators = new Set(['cloudflare-temp-email']);
@@ -14219,7 +14274,7 @@ function updateMailProviderUI() {
   if (useOutlookEmailPlusProvider && String(selectEmailGenerator?.value || '').trim().toLowerCase() !== OUTLOOK_EMAIL_PLUS_GENERATOR) {
     selectEmailGenerator.value = OUTLOOK_EMAIL_PLUS_GENERATOR;
   }
-  const useEmailGenerator = !useHotmail && !useLuckmail && !useCustomEmail && (!useGeneratedAlias || useGmail);
+  const useEmailGenerator = !useHotmail && !useLuckmail && !useCustomEmail && !useMailApiProvider && (!useGeneratedAlias || useGmail);
   const aliasUiCopy = useGeneratedAlias
     ? getManagedAliasProviderUiCopy(selectMailProvider.value, mail2925Mode)
     : null;
@@ -14263,6 +14318,7 @@ function updateMailProviderUI() {
   const showCloudMailSettings = useCloudMailProvider || (useEmailGenerator && useCloudMailGenerator);
   const showCloudMailReceiveMailbox = useCloudMailProvider && !useCloudMailGenerator;
   const showCloudMailDomain = useEmailGenerator && useCloudMailGenerator;
+  const showMailApiSettings = useMailApiProvider;
   const showFreemailSettings = useFreemailProvider || (useEmailGenerator && useFreemailGenerator);
   const showFreemailDomain = useEmailGenerator && useFreemailGenerator;
   const showMoemailSettings = useMoemailProvider || (useEmailGenerator && useMoemailGenerator);
@@ -14303,6 +14359,13 @@ function updateMailProviderUI() {
   if (typeof rowCloudMailAdminPassword !== 'undefined' && rowCloudMailAdminPassword) rowCloudMailAdminPassword.style.display = showCloudMailSettings ? '' : 'none';
   if (typeof rowCloudMailReceiveMailbox !== 'undefined' && rowCloudMailReceiveMailbox) rowCloudMailReceiveMailbox.style.display = showCloudMailReceiveMailbox ? '' : 'none';
   if (typeof rowCloudMailDomain !== 'undefined' && rowCloudMailDomain) rowCloudMailDomain.style.display = showCloudMailDomain ? '' : 'none';
+  if (typeof mailApiSection !== 'undefined' && mailApiSection) {
+    mailApiSection.style.display = showMailApiSettings ? '' : 'none';
+  }
+  if (typeof rowMailApiBaseUrl !== 'undefined' && rowMailApiBaseUrl) rowMailApiBaseUrl.style.display = showMailApiSettings ? '' : 'none';
+  if (typeof rowMailApiKey !== 'undefined' && rowMailApiKey) rowMailApiKey.style.display = showMailApiSettings ? '' : 'none';
+  if (typeof rowMailApiGroupId !== 'undefined' && rowMailApiGroupId) rowMailApiGroupId.style.display = showMailApiSettings ? '' : 'none';
+  if (typeof rowMailApiLeaseDays !== 'undefined' && rowMailApiLeaseDays) rowMailApiLeaseDays.style.display = showMailApiSettings ? '' : 'none';
   if (typeof freemailSection !== 'undefined' && freemailSection) {
     freemailSection.style.display = showFreemailSettings ? '' : 'none';
   }
@@ -14404,6 +14467,7 @@ function updateMailProviderUI() {
     || useCustomEmail
     || useCloudflareTempEmailProvider
     || useCloudMailProvider
+    || useMailApiProvider
     || useFreemailProvider
     || (useGeneratedAlias && !useGmail);
   if (useGmail) {
@@ -14432,17 +14496,19 @@ function updateMailProviderUI() {
   if (typeof rowOutlookAliasMax !== 'undefined' && rowOutlookAliasMax) {
     rowOutlookAliasMax.style.display = useHotmail && hotmailAliasEnabled ? '' : 'none';
   }
-  btnFetchEmail.hidden = useHotmail || useLuckmail || useCustomEmail || useCustomEmailPool;
-  inputEmail.readOnly = useHotmail || useLuckmail;
+  btnFetchEmail.hidden = useHotmail || useLuckmail || useCustomEmail || useCustomEmailPool || useMailApiProvider;
+  inputEmail.readOnly = useHotmail || useLuckmail || useMailApiProvider;
   inputEmail.placeholder = useHotmail
     ? '由 微软邮箱账户池 自动分配'
     : (useLuckmail
       ? '步骤 3 自动购买 LuckMail 邮箱并回填'
-      : (useGeneratedAlias ? '步骤 3 自动生成 2925 邮箱并回填' : uiCopy.placeholder));
+      : (useMailApiProvider
+        ? '步骤 3 从 Mail API 账号池自动分配'
+        : (useGeneratedAlias ? '步骤 3 自动生成 2925 邮箱并回填' : uiCopy.placeholder)));
   if (useGmail && useGeneratedAlias) {
     inputEmail.placeholder = '步骤 3 自动生成 Gmail +tag 邮箱并回填';
   }
-  if (!useHotmail && !useLuckmail) {
+  if (!useHotmail && !useLuckmail && !useMailApiProvider) {
     inputEmail.placeholder = uiCopy.placeholder;
   }
   if (useCustomEmail && useCustomMailProviderPool) {
@@ -14457,9 +14523,11 @@ function updateMailProviderUI() {
       ? '请先校验并选择一个 Hotmail 账号'
       : (useLuckmail
         ? '步骤 3 会自动购买 LuckMail 邮箱并用于收码'
-        : (useGeneratedAlias
-          ? '步骤 3 会自动生成邮箱，无需手动获取'
-          : (useCustomEmail ? '请先填写自定义注册邮箱，成功一轮后会自动清空' : `先自动获取${uiCopy.label}，或手动粘贴邮箱后再继续`)));
+        : (useMailApiProvider
+          ? '步骤 3 会从 Mail API 分配邮箱并用于收码'
+          : (useGeneratedAlias
+            ? '步骤 3 会自动生成邮箱，无需手动获取'
+            : (useCustomEmail ? '请先填写自定义注册邮箱，成功一轮后会自动清空' : `先自动获取${uiCopy.label}，或手动粘贴邮箱后再继续`))));
   }
   if (autoHintText && useCustomEmailPool) {
     autoHintText.textContent = getCustomEmailPoolSize() > 0
@@ -16407,7 +16475,7 @@ stepsList?.addEventListener('click', async (event) => {
         if (response?.error) {
           throw new Error(response.error);
         }
-      } else if (selectMailProvider.value === 'hotmail-api' || isLuckmailProvider()) {
+      } else if (selectMailProvider.value === 'hotmail-api' || isLuckmailProvider() || selectMailProvider.value === MAIL_API_PROVIDER) {
         const response = await sendSidepanelMessage({ type: 'EXECUTE_NODE', source: 'sidepanel', payload: { nodeId } });
         if (response?.error) {
           throw new Error(response.error);
@@ -16456,7 +16524,7 @@ stepsList?.addEventListener('click', async (event) => {
 });
 
 btnFetchEmail.addEventListener('click', async () => {
-  if (selectMailProvider.value === 'hotmail-api' || isLuckmailProvider() || isCustomMailProvider()) {
+  if (selectMailProvider.value === 'hotmail-api' || isLuckmailProvider() || isCustomMailProvider() || selectMailProvider.value === MAIL_API_PROVIDER) {
     return;
   }
   await fetchGeneratedEmail().catch(() => { });
@@ -16949,7 +17017,7 @@ btnExportCurrentSessionSub2Json?.addEventListener('click', () => {
 
 // Save settings on change
 inputEmail.addEventListener('change', async () => {
-  if (selectMailProvider.value === 'hotmail-api' || isLuckmailProvider()) {
+  if (selectMailProvider.value === 'hotmail-api' || isLuckmailProvider() || selectMailProvider.value === MAIL_API_PROVIDER) {
     return;
   }
   const email = inputEmail.value.trim();
@@ -17235,12 +17303,14 @@ selectMailProvider.addEventListener('change', async () => {
   const leavingLuckmail = previousProvider === LUCKMAIL_PROVIDER
     && nextProvider !== LUCKMAIL_PROVIDER
     && isCurrentEmailManagedByLuckmail();
+  const leavingMailApi = previousProvider === MAIL_API_PROVIDER
+    && nextProvider !== MAIL_API_PROVIDER;
   const leavingGeneratedAlias = (
     previousProvider !== nextProvider
     || (previousProvider === '2925' && normalizeMail2925Mode(previousMail2925Mode) !== getSelectedMail2925Mode())
   ) && usesGeneratedAliasMailProvider(previousProvider, previousMail2925Mode)
     && isCurrentEmailManagedByGeneratedAlias(previousProvider, latestState, previousMail2925Mode);
-  if (leavingHotmail || leavingLuckmail || leavingGeneratedAlias) {
+  if (leavingHotmail || leavingLuckmail || leavingMailApi || leavingGeneratedAlias) {
     await clearRegistrationEmail({ silent: true }).catch(() => { });
   }
   if (nextProvider === '2925' && Boolean(inputMail2925UseAccountPool?.checked)) {
@@ -18143,6 +18213,7 @@ inputRunCount.addEventListener('blur', () => {
     return;
   }
   inputRunCount.value = String(getRunCountValue());
+
   updateFallbackThreadIntervalInputState();
 });
 
@@ -18211,6 +18282,42 @@ inputTempEmailUseRandomSubdomain?.addEventListener('change', () => {
   updateMailProviderUI();
   clearRegistrationEmail({ silent: true }).catch(() => { });
   markSettingsDirty(true);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+inputMailApiBaseUrl?.addEventListener('input', () => {
+  markSettingsDirty(true);
+  scheduleSettingsAutoSave();
+});
+inputMailApiBaseUrl?.addEventListener('blur', () => {
+  inputMailApiBaseUrl.value = normalizeMailApiBaseUrlValue(inputMailApiBaseUrl.value);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+inputMailApiKey?.addEventListener('input', () => {
+  markSettingsDirty(true);
+  scheduleSettingsAutoSave();
+});
+inputMailApiKey?.addEventListener('blur', () => {
+  inputMailApiKey.value = String(inputMailApiKey.value || '').trim();
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+inputMailApiGroupId?.addEventListener('input', () => {
+  markSettingsDirty(true);
+  scheduleSettingsAutoSave();
+});
+inputMailApiGroupId?.addEventListener('blur', () => {
+  inputMailApiGroupId.value = normalizeMailApiGroupIdValue(inputMailApiGroupId.value);
+  saveSettings({ silent: true }).catch(() => { });
+});
+
+inputMailApiLeaseDays?.addEventListener('input', () => {
+  markSettingsDirty(true);
+  scheduleSettingsAutoSave();
+});
+inputMailApiLeaseDays?.addEventListener('blur', () => {
+  inputMailApiLeaseDays.value = String(normalizeMailApiLeaseDaysValue(inputMailApiLeaseDays.value, 30));
   saveSettings({ silent: true }).catch(() => { });
 });
 
@@ -20201,6 +20308,26 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }
       if (message.payload.cloudMailDomain !== undefined && inputCloudMailDomain) {
         inputCloudMailDomain.value = message.payload.cloudMailDomain || '';
+      }
+      if (message.payload.mailApiBaseUrl !== undefined && inputMailApiBaseUrl) {
+        inputMailApiBaseUrl.value = message.payload.mailApiBaseUrl || '';
+      }
+      if (message.payload.mailApiKey !== undefined && inputMailApiKey) {
+        inputMailApiKey.value = message.payload.mailApiKey || '';
+      }
+      if (message.payload.mailApiGroupId !== undefined && inputMailApiGroupId) {
+        inputMailApiGroupId.value = message.payload.mailApiGroupId || '';
+      }
+      if (message.payload.mailApiLeaseDays !== undefined && inputMailApiLeaseDays) {
+        inputMailApiLeaseDays.value = String(normalizeMailApiLeaseDaysValue(message.payload.mailApiLeaseDays, 30));
+      }
+      if (
+        message.payload.mailApiBaseUrl !== undefined
+        || message.payload.mailApiKey !== undefined
+        || message.payload.mailApiGroupId !== undefined
+        || message.payload.mailApiLeaseDays !== undefined
+      ) {
+        updateMailProviderUI();
       }
       if (message.payload.freemailBaseUrl !== undefined && inputFreemailBaseUrl) {
         inputFreemailBaseUrl.value = message.payload.freemailBaseUrl || '';

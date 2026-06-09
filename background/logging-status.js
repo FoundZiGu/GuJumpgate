@@ -35,6 +35,7 @@
         'luckmail-api': 'LuckMail（API 购邮）',
         'cloudflare-temp-email': 'Cloudflare Temp Email',
         'cloudmail': 'Cloud Mail',
+        'mail-api': 'Mail API',
         'freemail': 'freemail',
         'moemail': 'MoeMail',
         'yydsmail': 'YYDS Mail',

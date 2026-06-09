@@ -76,6 +76,7 @@ importScripts(
   'background/freemail-provider.js',
   'background/outlook-email-plus-provider.js',
   'background/cloudmail-provider.js',
+  'background/mail-api-provider.js',
   'background/moemail-provider.js',
   'background/yydsmail-provider.js',
   'icloud-utils.js',
@@ -555,6 +556,7 @@ const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
 const CLOUDFLARE_TEMP_EMAIL_GENERATOR = 'cloudflare-temp-email';
 const CLOUD_MAIL_PROVIDER = 'cloudmail';
 const CLOUD_MAIL_GENERATOR = 'cloudmail';
+const MAIL_API_PROVIDER = 'mail-api';
 const FREEMAIL_PROVIDER = 'freemail';
 const FREEMAIL_GENERATOR = 'freemail';
 const MOEMAIL_PROVIDER = 'moemail';
@@ -1297,6 +1299,12 @@ const PERSISTED_SETTING_DEFAULTS = {
   cloudMailReceiveMailbox: '',
   cloudMailDomain: '',
   cloudMailDomains: [],
+  mailApiBaseUrl: '',
+  mailApiKey: '',
+  mailApiGroupId: '',
+  mailApiLeaseDays: 30,
+  mailApiLeases: {},
+  currentMailApiEmail: '',
   freemailBaseUrl: '',
   freemailAdminUsername: '',
   freemailAdminPassword: '',
@@ -3081,6 +3089,29 @@ async function markCurrentRegistrationAccountUsed(state = {}, options = {}) {
     }
   }
 
+  if (isMailApiProvider(latestState)) {
+    const email = String(latestState.email || latestState.currentMailApiEmail || '').trim().toLowerCase();
+    if (email) {
+      const now = Date.now();
+      const leaseDays = mailApiProvider?.normalizeMailApiLeaseDays
+        ? mailApiProvider.normalizeMailApiLeaseDays(latestState.mailApiLeaseDays)
+        : 30;
+      const nextLeases = {
+        ...(mailApiProvider?.normalizeMailApiLeases ? mailApiProvider.normalizeMailApiLeases(latestState.mailApiLeases) : {}),
+        [email]: {
+          email,
+          expiresAt: now + leaseDays * 24 * 60 * 60 * 1000,
+          lastUsedAt: now,
+        },
+      };
+      const updates = { mailApiLeases: nextLeases, currentMailApiEmail: email };
+      await setPersistentSettings(updates);
+      await setState(updates);
+      await addLog(`${reasonPrefix}：Mail API 邮箱 ${email} 已设置 ${leaseDays} 天有效期。`, options.level || 'warn');
+      updated = true;
+    }
+  }
+
   if (String(latestState.mailProvider || '').trim().toLowerCase() === '2925' && latestState.currentMail2925AccountId) {
     await patchMail2925Account(latestState.currentMail2925AccountId, {
       lastUsedAt: Date.now(),
@@ -3365,6 +3396,7 @@ function normalizeMailProvider(value = '') {
     case LUCKMAIL_PROVIDER:
     case CLOUDFLARE_TEMP_EMAIL_PROVIDER:
     case CLOUD_MAIL_PROVIDER:
+    case MAIL_API_PROVIDER:
     case FREEMAIL_PROVIDER:
     case MOEMAIL_PROVIDER:
     case YYDSMAIL_PROVIDER:
@@ -3606,6 +3638,22 @@ const {
   pollCloudMailVerificationCode,
   resolveCloudMailPollTargetEmail,
 } = cloudMailProvider;
+const mailApiProvider = self.MultiPageBackgroundMailApiProvider.createMailApiProvider({
+  addLog,
+  getState,
+  normalizeHotmailMailApiMessages,
+  persistRegistrationEmailState,
+  pickVerificationMessageWithTimeFallback,
+  setEmailState,
+  setPersistentSettings,
+  setState,
+  sleepWithStop,
+  throwIfStopped,
+});
+const {
+  ensureMailApiAccountForFlow,
+  pollMailApiVerificationCode,
+} = mailApiProvider;
 const freemailProvider = self.MultiPageBackgroundFreemailProvider.createFreemailProvider({
   addLog,
   buildFreemailHeaders,
@@ -4252,6 +4300,9 @@ function normalizePersistentSettingValue(key, value) {
         if (normalizedMailProvider === CLOUD_MAIL_PROVIDER) {
           return CLOUD_MAIL_PROVIDER;
         }
+        if (normalizedMailProvider === MAIL_API_PROVIDER) {
+          return MAIL_API_PROVIDER;
+        }
         if (normalizedMailProvider === FREEMAIL_PROVIDER) {
           return FREEMAIL_PROVIDER;
         }
@@ -4358,6 +4409,26 @@ function normalizePersistentSettingValue(key, value) {
       return normalizeCloudMailDomain(value);
     case 'cloudMailDomains':
       return normalizeCloudMailDomains(value);
+    case 'mailApiBaseUrl':
+      return mailApiProvider?.normalizeMailApiBaseUrl
+        ? mailApiProvider.normalizeMailApiBaseUrl(value)
+        : String(value || '').trim();
+    case 'mailApiKey':
+      return String(value || '').trim();
+    case 'mailApiGroupId':
+      return mailApiProvider?.normalizeMailApiGroupId
+        ? mailApiProvider.normalizeMailApiGroupId(value)
+        : String(value || '').trim();
+    case 'mailApiLeaseDays':
+      return mailApiProvider?.normalizeMailApiLeaseDays
+        ? mailApiProvider.normalizeMailApiLeaseDays(value)
+        : 30;
+    case 'mailApiLeases':
+      return mailApiProvider?.normalizeMailApiLeases
+        ? mailApiProvider.normalizeMailApiLeases(value)
+        : {};
+    case 'currentMailApiEmail':
+      return String(value || '').trim().toLowerCase();
     case 'freemailBaseUrl':
       return normalizeFreemailBaseUrl(value);
     case 'freemailAdminUsername':
@@ -5971,6 +6042,13 @@ function isLuckmailProvider(stateOrProvider) {
   return provider === LUCKMAIL_PROVIDER;
 }
 
+function isMailApiProvider(stateOrProvider) {
+  const provider = typeof stateOrProvider === 'string'
+    ? stateOrProvider
+    : stateOrProvider?.mailProvider;
+  return provider === MAIL_API_PROVIDER;
+}
+
 function isOutlookEmailPlusProvider(stateOrProvider) {
   const provider = typeof stateOrProvider === 'string'
     ? stateOrProvider
@@ -7104,6 +7182,7 @@ function isGeneratedAliasProvider(stateOrProvider, mail2925Mode = undefined) {
 function shouldUseCustomRegistrationEmail(state = {}) {
   return isCustomMailProvider(state)
     || (!isHotmailProvider(state)
+      && !isMailApiProvider(state)
       && !isGeneratedAliasProvider(state)
       && normalizeEmailGenerator(state.emailGenerator) === 'custom');
 }
@@ -7273,6 +7352,7 @@ function isGeneratedAliasProvider(stateOrProvider, mail2925Mode = undefined) {
 function shouldUseCustomRegistrationEmail(state = {}) {
   return isCustomMailProvider(state)
     || (!isHotmailProvider(state)
+      && !isMailApiProvider(state)
       && !isGeneratedAliasProvider(state)
       && normalizeEmailGenerator(state.emailGenerator) === 'custom');
 }
@@ -10847,6 +10927,7 @@ function getSourceLabel(source) {
     'luckmail-api': 'LuckMail（API 购邮）',
     'cloudflare-temp-email': 'Cloudflare Temp Email',
     'cloudmail': 'Cloud Mail',
+    'mail-api': 'Mail API',
     'freemail': 'freemail',
     'plus-checkout': 'Plus Checkout',
     'paypal-flow': 'PayPal 授权页',
@@ -14640,6 +14721,12 @@ async function ensureAutoEmailReady(targetRun, totalRuns, attemptRuns) {
     return purchase.email_address;
   }
 
+  if (isMailApiProvider(currentState)) {
+    const account = await ensureMailApiAccountForFlow({ allowReuse: false });
+    await addLog(`=== 目标 ${targetRun}/${totalRuns} 轮：Mail API 邮箱已就绪：${account.email}（第 ${attemptRuns} 次尝试）===`, 'ok');
+    return account.email;
+  }
+
   if (isGeneratedAliasProvider(currentState)) {
     if (currentState.mailProvider === GMAIL_PROVIDER) {
       if (!currentState.emailPrefix) {
@@ -14769,6 +14856,12 @@ async function ensureAutoEmailReady(targetRun, totalRuns, attemptRuns) {
     const purchase = await ensureLuckmailPurchaseForFlow({ allowReuse: true });
     await addLog(`=== 目标 ${targetRun}/${totalRuns} 轮：LuckMail 邮箱已就绪：${purchase.email_address}（第 ${attemptRuns} 次尝试）===`, 'ok');
     return purchase.email_address;
+  }
+
+  if (isMailApiProvider(currentState)) {
+    const account = await ensureMailApiAccountForFlow({ allowReuse: false });
+    await addLog(`=== 目标 ${targetRun}/${totalRuns} 轮：Mail API 邮箱已就绪：${account.email}（第 ${attemptRuns} 次尝试）===`, 'ok');
+    return account.email;
   }
 
   if (isGeneratedAliasProvider(currentState)) {
@@ -15634,6 +15727,7 @@ const signupFlowHelpers = self.MultiPageSignupFlowHelpers?.createSignupFlowHelpe
   ensureHotmailAccountForFlow,
   ensureMail2925AccountForFlow,
   ensureLuckmailPurchaseForFlow,
+  ensureMailApiAccountForFlow,
   fetchGeneratedEmail,
   getTabId,
   isGeneratedAliasProvider,
@@ -15650,6 +15744,7 @@ const signupFlowHelpers = self.MultiPageSignupFlowHelpers?.createSignupFlowHelpe
   isRetryableContentScriptTransportError,
   isHotmailProvider,
   isLuckmailProvider,
+  isMailApiProvider,
   isSignupPasswordPageUrl,
   isTabAlive,
   persistRegistrationEmailState,
@@ -15680,6 +15775,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   closeConflictingTabsForSource,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
   CLOUD_MAIL_PROVIDER,
+  MAIL_API_PROVIDER,
   FREEMAIL_PROVIDER,
   ICLOUD_API_PROVIDER,
   MOEMAIL_PROVIDER,
@@ -15705,6 +15801,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   MAIL_2925_VERIFICATION_MAX_ATTEMPTS,
   pollCloudflareTempEmailVerificationCode,
   pollCloudMailVerificationCode,
+  pollMailApiVerificationCode,
   pollFreemailVerificationCode,
   pollIcloudApiVerificationCode,
   pollMoemailVerificationCode,
@@ -15853,6 +15950,7 @@ const step4Executor = self.MultiPageBackgroundStep4?.createStep4Executor({
   LUCKMAIL_PROVIDER,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
   CLOUD_MAIL_PROVIDER,
+  MAIL_API_PROVIDER,
   FREEMAIL_PROVIDER,
   MOEMAIL_PROVIDER,
   YYDSMAIL_PROVIDER,
@@ -15914,6 +16012,7 @@ const step8Executor = self.MultiPageBackgroundStep8?.createStep8Executor({
   chrome,
   CLOUDFLARE_TEMP_EMAIL_PROVIDER,
   CLOUD_MAIL_PROVIDER,
+  MAIL_API_PROVIDER,
   FREEMAIL_PROVIDER,
   MOEMAIL_PROVIDER,
   YYDSMAIL_PROVIDER,
@@ -16558,6 +16657,9 @@ function getMailConfig(state) {
   }
   if (provider === 'cloudmail') {
     return { provider: 'cloudmail', label: 'Cloud Mail' };
+  }
+  if (provider === MAIL_API_PROVIDER) {
+    return { provider: MAIL_API_PROVIDER, label: 'Mail API' };
   }
   if (provider === FREEMAIL_PROVIDER) {
     return { provider: FREEMAIL_PROVIDER, label: 'freemail' };

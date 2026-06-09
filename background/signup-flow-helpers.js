@@ -10,12 +10,14 @@
       ensureHotmailAccountForFlow,
       ensureMail2925AccountForFlow,
       ensureLuckmailPurchaseForFlow,
+      ensureMailApiAccountForFlow,
       fetchGeneratedEmail,
       isGeneratedAliasProvider,
       isReusableGeneratedAliasEmail,
       isHotmailProvider,
       isRetryableContentScriptTransportError = () => false,
       isLuckmailProvider,
+      isMailApiProvider,
       isSignupEmailVerificationPageUrl,
       isSignupPasswordPageUrl,
       isSignupPhoneVerificationPageUrl = null,
@@ -356,6 +358,9 @@
       } else if (isLuckmailProvider(state)) {
         const purchase = await ensureLuckmailPurchaseForFlow({ allowReuse: true });
         resolvedEmail = purchase.email_address;
+      } else if (typeof isMailApiProvider === 'function' && isMailApiProvider(state)) {
+        const account = await ensureMailApiAccountForFlow({ allowReuse: false });
+        resolvedEmail = account.email;
       } else if (isGeneratedAliasProvider(state)) {
         if (Boolean(state?.mail2925UseAccountPool)
           && String(state?.mailProvider || '').trim().toLowerCase() === '2925'

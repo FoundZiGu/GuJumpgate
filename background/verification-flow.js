@@ -1,4 +1,4 @@
-﻿(function attachBackgroundVerificationFlow(root, factory) {
+(function attachBackgroundVerificationFlow(root, factory) {
   root.MultiPageBackgroundVerificationFlow = factory();
 })(typeof self !== 'undefined' ? self : globalThis, function createBackgroundVerificationFlowModule() {
   const ICLOUD_MAIL_POLL_MIN_ATTEMPTS = 5;
@@ -12,6 +12,7 @@
       closeConflictingTabsForSource,
       CLOUDFLARE_TEMP_EMAIL_PROVIDER,
       CLOUD_MAIL_PROVIDER = 'cloudmail',
+      MAIL_API_PROVIDER = 'mail-api',
       FREEMAIL_PROVIDER = 'freemail',
       ICLOUD_API_PROVIDER = 'icloud-api',
       MOEMAIL_PROVIDER = 'moemail',
@@ -33,6 +34,7 @@
       MAIL_2925_VERIFICATION_MAX_ATTEMPTS,
       pollCloudflareTempEmailVerificationCode,
       pollCloudMailVerificationCode,
+      pollMailApiVerificationCode,
       pollFreemailVerificationCode,
       pollIcloudApiVerificationCode,
       pollMoemailVerificationCode,
@@ -994,6 +996,13 @@
           ...cleanPollOverrides,
         }, cleanPollOverrides, `轮询${getVerificationCodeLabel(step)}验证码邮箱`);
         return pollCloudMailVerificationCode(step, state, timedPoll.payload);
+      }
+      if (mail.provider === MAIL_API_PROVIDER) {
+        const timedPoll = await applyMailPollingTimeBudget(step, {
+          ...getVerificationPollPayload(step, state),
+          ...cleanPollOverrides,
+        }, cleanPollOverrides, `轮询${getVerificationCodeLabel(step)}验证码邮箱`);
+        return pollMailApiVerificationCode(step, state, timedPoll.payload);
       }
       if (mail.provider === FREEMAIL_PROVIDER) {
         const timedPoll = await applyMailPollingTimeBudget(step, {

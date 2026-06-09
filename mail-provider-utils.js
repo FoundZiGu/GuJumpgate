@@ -10,6 +10,7 @@
   }
 })(typeof self !== 'undefined' ? self : globalThis, function createMailProviderUtils() {
   const HOTMAIL_PROVIDER = 'hotmail-api';
+  const MAIL_API_PROVIDER = 'mail-api';
   const GMAIL_PROVIDER = 'gmail';
   const ICLOUD_PROVIDER = 'icloud';
   const ICLOUD_API_PROVIDER = 'icloud-api';
@@ -32,6 +33,7 @@
     const normalized = String(value || '').trim().toLowerCase();
     switch (normalized) {
       case HOTMAIL_PROVIDER:
+      case MAIL_API_PROVIDER:
       case ICLOUD_PROVIDER:
       case ICLOUD_API_PROVIDER:
       case FREEMAIL_PROVIDER:
@@ -135,6 +137,9 @@
     if (provider === ICLOUD_API_PROVIDER) {
       return { provider: ICLOUD_API_PROVIDER, label: 'iCloud API（QQ 转发）' };
     }
+    if (provider === MAIL_API_PROVIDER) {
+      return { provider: MAIL_API_PROVIDER, label: 'Mail API' };
+    }
     if (provider === FREEMAIL_PROVIDER) {
       return { provider: FREEMAIL_PROVIDER, label: 'freemail' };
     }
@@ -191,6 +196,7 @@
 
   return {
     GMAIL_PROVIDER,
+    MAIL_API_PROVIDER,
     HOTMAIL_PROVIDER,
     ICLOUD_API_PROVIDER,
     ICLOUD_PROVIDER,

@@ -21,6 +21,7 @@
       LUCKMAIL_PROVIDER,
       CLOUDFLARE_TEMP_EMAIL_PROVIDER,
       CLOUD_MAIL_PROVIDER = 'cloudmail',
+      MAIL_API_PROVIDER = 'mail-api',
       FREEMAIL_PROVIDER = 'freemail',
       MOEMAIL_PROVIDER = 'moemail',
       YYDSMAIL_PROVIDER = 'yydsmail',
@@ -126,6 +127,7 @@
         || mail.provider === LUCKMAIL_PROVIDER
         || mail.provider === CLOUDFLARE_TEMP_EMAIL_PROVIDER
         || mail.provider === CLOUD_MAIL_PROVIDER
+        || mail.provider === MAIL_API_PROVIDER
         || mail.provider === FREEMAIL_PROVIDER
         || mail.provider === MOEMAIL_PROVIDER
         || mail.provider === YYDSMAIL_PROVIDER
@@ -157,6 +159,7 @@
         LUCKMAIL_PROVIDER,
         CLOUDFLARE_TEMP_EMAIL_PROVIDER,
         CLOUD_MAIL_PROVIDER,
+        MAIL_API_PROVIDER,
         FREEMAIL_PROVIDER,
         MOEMAIL_PROVIDER,
         YYDSMAIL_PROVIDER,
@@ -172,7 +175,7 @@
         signupProfile,
         resendIntervalMs: mail.provider === LUCKMAIL_PROVIDER
           ? 15000
-          : ((mail.provider === HOTMAIL_PROVIDER || mail.provider === ICLOUD_API_PROVIDER || mail.provider === '2925')
+          : ((mail.provider === HOTMAIL_PROVIDER || mail.provider === ICLOUD_API_PROVIDER || mail.provider === MAIL_API_PROVIDER || mail.provider === '2925')
             ? 0
             : STANDARD_MAIL_VERIFICATION_RESEND_INTERVAL_MS),
       });

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -612,6 +612,7 @@
             <option value="icloud-api">iCloud API（QQ 转发）</option>
             <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
             <option value="cloudmail">Cloud Mail</option>
+            <option value="mail-api">Mail API（mailapi.md）</option>
             <option value="freemail">freemail</option>
             <option value="moemail">MoeMail</option>
             <option value="yydsmail">YYDS Mail</option>
@@ -967,6 +968,39 @@
       <div class="data-row" id="row-cloud-mail-domain" style="display:none;">
         <span class="data-label">域名</span>
         <input type="text" id="input-cloud-mail-domain" class="data-input" placeholder="例如 mail.example.com" />
+      </div>
+    </div>
+    <div id="mail-api-section" class="data-card hotmail-card" style="display:none;">
+      <div class="section-mini-header">
+        <div class="section-mini-copy">
+          <span class="section-label">Mail API</span>
+          <span class="data-value">按 mailapi.md 的 /api/external/accounts 与 /api/external/emails 对接</span>
+        </div>
+      </div>
+      <div class="data-row" id="row-mail-api-base-url" style="display:none;">
+        <span class="data-label">API 地址</span>
+        <input type="text" id="input-mail-api-base-url" class="data-input" placeholder="https://your-mail-api-domain" />
+      </div>
+      <div class="data-row" id="row-mail-api-key" style="display:none;">
+        <span class="data-label">API Key</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-mail-api-key" class="data-input data-input-with-icon"
+            placeholder="X-API-Key" />
+          <button id="btn-toggle-mail-api-key" class="input-icon-btn" type="button"
+            data-password-toggle="input-mail-api-key" data-show-label="显示 Mail API Key"
+            data-hide-label="隐藏 Mail API Key" aria-label="显示 Mail API Key" title="显示 Mail API Key"></button>
+        </div>
+      </div>
+      <div class="data-row" id="row-mail-api-group-id" style="display:none;">
+        <span class="data-label">分组 ID</span>
+        <input type="number" id="input-mail-api-group-id" class="data-input" min="1" step="1" placeholder="留空则使用全部普通邮箱账号" />
+      </div>
+      <div class="data-row" id="row-mail-api-lease-days" style="display:none;">
+        <span class="data-label">邮箱有效期</span>
+        <div class="data-inline setting-pair">
+          <input type="number" id="input-mail-api-lease-days" class="data-input auto-delay-input" value="30" min="1" max="365" step="1" />
+          <span class="data-unit">天</span>
+        </div>
       </div>
     </div>
     <div id="freemail-section" class="data-card hotmail-card" style="display:none;">
