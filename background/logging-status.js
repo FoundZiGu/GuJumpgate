@@ -39,6 +39,7 @@
         'moemail': 'MoeMail',
         'yydsmail': 'YYDS Mail',
         'outlook-email-plus': 'Outlook Email Plus',
+        'outlook-email': 'outlookEmail',
         'plus-checkout': 'Plus Checkout',
         'paypal-flow': 'PayPal 授权页',
         'gopay-flow': 'GoPay 授权页',

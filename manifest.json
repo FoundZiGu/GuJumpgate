@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "GuJumpgate",
-  "version": "0.2.0",
-  "version_name": "GuJumpgate  V0.2.0",
+  "version": "0.2.1",
+  "version_name": "GuJumpgate  V0.2.1",
   "description": "用于自动执行多步骤 OAuth 注册流程",
   "permissions": [
     "sidePanel",

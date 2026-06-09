@@ -73,8 +73,10 @@ importScripts(
   'moemail-utils.js',
   'yydsmail-utils.js',
   'outlook-email-plus-utils.js',
+  'outlook-email-utils.js',
   'background/freemail-provider.js',
   'background/outlook-email-plus-provider.js',
+  'background/outlook-email-provider.js',
   'background/cloudmail-provider.js',
   'background/moemail-provider.js',
   'background/yydsmail-provider.js',
@@ -395,6 +397,23 @@ const {
   normalizeOutlookEmailPlusVerificationCode,
   unwrapOutlookEmailPlusResponse,
 } = self.OutlookEmailPlusUtils;
+const {
+  OUTLOOK_EMAIL_GENERATOR,
+  OUTLOOK_EMAIL_PROVIDER,
+  buildOutlookEmailApiHeaders,
+  joinOutlookEmailUrl,
+  normalizeOutlookEmailAccount,
+  normalizeOutlookEmailAddress,
+  normalizeOutlookEmailBaseUrl,
+  normalizeOutlookEmailCallerIdPrefix,
+  normalizeOutlookEmailDomain,
+  normalizeOutlookEmailMessages,
+  normalizeOutlookEmailProjectKey,
+  normalizeOutlookEmailTags,
+  normalizeOutlookEmailVerificationCode,
+  replaceOutlookEmailDomain,
+  unwrapOutlookEmailResponse,
+} = self.OutlookEmailUtils;
 const {
   findIcloudAliasByEmail,
   getConfiguredIcloudHostPreference,
@@ -1316,6 +1335,17 @@ const PERSISTED_SETTING_DEFAULTS = {
   outlookEmailPlusProjectKey: 'openai',
   outlookEmailPlusCallerIdPrefix: 'gujumpgate',
   outlookEmailPlusAliasMaxPerMailbox: OUTLOOK_ALIAS_DEFAULT_MAX_PER_ACCOUNT,
+  outlookEmailBaseUrl: '',
+  outlookEmailApiKey: '',
+  outlookEmailPassword: '',
+  outlookEmailProjectKey: '',
+  outlookEmailGroupId: '',
+  outlookEmailGroupName: '',
+  outlookEmailDomain: '',
+  outlookEmailRegisteredTagName: '',
+  outlookEmailPlusTagName: '',
+  outlookEmailSkipTagName: '',
+  outlookEmailCallerIdPrefix: 'gujumpgate',
   hotmailAccounts: [],
   hotmailAliasEnabled: false,
   outlookAliasMaxPerAccount: OUTLOOK_ALIAS_DEFAULT_MAX_PER_ACCOUNT,
@@ -1665,6 +1695,7 @@ const DEFAULT_STATE = {
   currentPayPalAccountId: null,
   currentHotmailAccountId: null,
   currentOutlookEmailPlusClaim: null,
+  currentOutlookEmailClaim: null,
   currentMail2925AccountId: null,
   preferredIcloudHost: '',
   ipProxyApplied: false,
@@ -2861,6 +2892,7 @@ function normalizeEmailGenerator(value = '') {
   if (normalized === FREEMAIL_GENERATOR) return FREEMAIL_GENERATOR;
   if (normalized === MOEMAIL_GENERATOR) return MOEMAIL_GENERATOR;
   if (normalized === YYDSMAIL_GENERATOR) return YYDSMAIL_GENERATOR;
+  if (normalized === OUTLOOK_EMAIL_GENERATOR) return OUTLOOK_EMAIL_GENERATOR;
   if (normalized === OUTLOOK_EMAIL_PLUS_GENERATOR) return OUTLOOK_EMAIL_PLUS_GENERATOR;
   return 'duck';
 }
@@ -3099,6 +3131,18 @@ async function markCurrentRegistrationAccountUsed(state = {}, options = {}) {
     result: 'success',
   });
   updated = Boolean(outlookEmailPlusResult?.handled) || updated;
+
+  if (hasOutlookEmailRegistrationTagTarget(latestState)) {
+    const tagResult = await markCurrentOutlookEmailRegisteredTag(latestState, {
+      level: options.level || 'ok',
+    });
+    const completion = !hasCurrentOutlookEmailClaim(latestState) || latestState.plusModeEnabled
+      ? { handled: false, reason: latestState.plusModeEnabled ? 'defer_until_plus_result' : 'missing_claim' }
+      : await completeCurrentOutlookEmailClaim(latestState, {
+        result: 'registration_success',
+      });
+    updated = Boolean(tagResult?.handled) || Boolean(completion?.handled) || updated;
+  }
 
   if (typeof markCurrentCustomEmailPoolEntryUsed === 'function') {
     const result = await markCurrentCustomEmailPoolEntryUsed(latestState, {
@@ -3368,6 +3412,7 @@ function normalizeMailProvider(value = '') {
     case FREEMAIL_PROVIDER:
     case MOEMAIL_PROVIDER:
     case YYDSMAIL_PROVIDER:
+    case OUTLOOK_EMAIL_PROVIDER:
     case OUTLOOK_EMAIL_PLUS_PROVIDER:
     case '163':
     case '163-vip':
@@ -3732,6 +3777,41 @@ const {
   pollOutlookEmailPlusVerificationCode,
   releaseOutlookEmailPlusClaim,
 } = outlookEmailPlusProvider;
+const outlookEmailProvider = self.MultiPageBackgroundOutlookEmailProvider.createOutlookEmailProvider({
+  addLog,
+  broadcastDataUpdate,
+  buildOutlookEmailApiHeaders,
+  extractVerificationCodeFromMessage,
+  fetchImpl: typeof fetch === 'function' ? fetch.bind(globalThis) : null,
+  getState,
+  joinOutlookEmailUrl,
+  normalizeOutlookEmailAccount,
+  normalizeOutlookEmailAddress,
+  normalizeOutlookEmailBaseUrl,
+  normalizeOutlookEmailCallerIdPrefix,
+  normalizeOutlookEmailDomain,
+  normalizeOutlookEmailMessages,
+  normalizeOutlookEmailProjectKey,
+  normalizeOutlookEmailTags,
+  normalizeOutlookEmailVerificationCode,
+  OUTLOOK_EMAIL_GENERATOR,
+  persistRegistrationEmailState,
+  pickVerificationMessageWithTimeFallback,
+  replaceOutlookEmailDomain,
+  setEmailState,
+  setState,
+  sleepWithStop,
+  throwIfStopped,
+  unwrapOutlookEmailResponse,
+});
+const {
+  claimOutlookEmailAddress,
+  completeOutlookEmailClaim,
+  getOutlookEmailConfig,
+  markOutlookEmailTag,
+  pollOutlookEmailVerificationCode,
+  releaseOutlookEmailClaim,
+} = outlookEmailProvider;
 
 function normalizeSub2ApiGroupNames(value = '') {
   const source = Array.isArray(value)
@@ -4261,6 +4341,9 @@ function normalizePersistentSettingValue(key, value) {
         if (normalizedMailProvider === YYDSMAIL_PROVIDER) {
           return YYDSMAIL_PROVIDER;
         }
+        if (normalizedMailProvider === OUTLOOK_EMAIL_PROVIDER) {
+          return OUTLOOK_EMAIL_PROVIDER;
+        }
         if (normalizedMailProvider === ICLOUD_PROVIDER || normalizedMailProvider === ICLOUD_API_PROVIDER) {
           return normalizedMailProvider;
         }
@@ -4399,6 +4482,22 @@ function normalizePersistentSettingValue(key, value) {
         value,
         PERSISTED_SETTING_DEFAULTS.outlookEmailPlusAliasMaxPerMailbox
       );
+    case 'outlookEmailBaseUrl':
+      return normalizeOutlookEmailBaseUrl(value);
+    case 'outlookEmailApiKey':
+    case 'outlookEmailPassword':
+    case 'outlookEmailGroupId':
+    case 'outlookEmailGroupName':
+    case 'outlookEmailRegisteredTagName':
+    case 'outlookEmailPlusTagName':
+    case 'outlookEmailSkipTagName':
+      return String(value || '').trim();
+    case 'outlookEmailProjectKey':
+      return normalizeOutlookEmailProjectKey(value);
+    case 'outlookEmailDomain':
+      return normalizeOutlookEmailDomain(value);
+    case 'outlookEmailCallerIdPrefix':
+      return normalizeOutlookEmailCallerIdPrefix(value) || PERSISTED_SETTING_DEFAULTS.outlookEmailCallerIdPrefix;
     case 'hotmailAccounts':
       return normalizeHotmailAccounts(value);
     case 'hotmailAliasEnabled':
@@ -6060,6 +6159,77 @@ async function markCurrentOutlookEmailPlusAliasUsed(state = {}, options = {}) {
     };
   } catch (error) {
     await addLog(`Outlook Email Plus：标记别名已用失败：${error?.message || error}`, 'warn');
+    return { handled: false, error };
+  }
+}
+
+function isOutlookEmailProvider(stateOrProvider) {
+  const provider = typeof stateOrProvider === 'string'
+    ? stateOrProvider
+    : stateOrProvider?.mailProvider;
+  return provider === OUTLOOK_EMAIL_PROVIDER;
+}
+
+function hasCurrentOutlookEmailClaim(state = {}) {
+  return isOutlookEmailProvider(state)
+    && Boolean(state.currentOutlookEmailClaim?.address || state.currentOutlookEmailClaim?.accountId);
+}
+
+function hasOutlookEmailRegistrationTagTarget(state = {}) {
+  if (!isOutlookEmailProvider(state)) return false;
+  if (hasCurrentOutlookEmailClaim(state)) return true;
+  return Boolean(String(state?.email || '').trim());
+}
+
+async function markCurrentOutlookEmailConfiguredTag(state = {}, tagName = '', options = {}) {
+  if (!hasOutlookEmailRegistrationTagTarget(state) || !String(tagName || '').trim() || typeof markOutlookEmailTag !== 'function') {
+    return { handled: false, reason: 'missing_target_or_tag' };
+  }
+  try {
+    const targetEmail = String(
+      state?.currentOutlookEmailClaim?.primaryEmail
+      || state?.currentOutlookEmailClaim?.address
+      || state?.email
+      || ''
+    ).trim();
+    const label = String(options.label || '').trim() || '标签';
+    await addLog(`outlookEmail：准备给 ${targetEmail || '当前账号'} 写入${label} ${String(tagName || '').trim()}`, options.level || 'ok');
+    return await markOutlookEmailTag(state, tagName, {
+      level: options.level || 'ok',
+    });
+  } catch (error) {
+    const label = String(options.label || '').trim() || '标签';
+    await addLog(`outlookEmail：${label}写入失败：${error?.message || error}`, 'warn');
+    return { handled: false, error };
+  }
+}
+
+async function markCurrentOutlookEmailRegisteredTag(state = {}, options = {}) {
+  return markCurrentOutlookEmailConfiguredTag(state, state?.outlookEmailRegisteredTagName, {
+    ...options,
+    label: '注册标签',
+  });
+}
+
+async function markCurrentOutlookEmailPlusTag(state = {}, options = {}) {
+  return markCurrentOutlookEmailConfiguredTag(state, state?.outlookEmailPlusTagName, {
+    ...options,
+    label: 'Plus 标签',
+  });
+}
+
+async function completeCurrentOutlookEmailClaim(state = {}, options = {}) {
+  if (!hasCurrentOutlookEmailClaim(state) || typeof completeOutlookEmailClaim !== 'function') {
+    return { handled: false, reason: 'missing_claim' };
+  }
+  try {
+    const result = await completeOutlookEmailClaim(state, {
+      result: options.result || 'registration_success',
+      detail: options.detail || options.result || 'registration_success',
+    });
+    return { handled: Boolean(result?.completed), result };
+  } catch (error) {
+    await addLog(`outlookEmail：完成项目邮箱回调失败：${error?.message || error}`, 'warn');
     return { handled: false, error };
   }
 }
@@ -12993,6 +13163,15 @@ async function reportCompletedStepSideEffectError(step, error) {
 
 async function runCompletedNodeSideEffects(nodeId, payload, completionState, lastNodeId) {
   await handleNodeData(nodeId, payload);
+  if (nodeId === 'fill-profile') {
+    const latestState = await getState();
+    if (hasOutlookEmailRegistrationTagTarget(latestState)) {
+      await markCurrentRegistrationAccountUsed(latestState, {
+        logPrefix: '步骤 5 完成',
+        level: 'ok',
+      });
+    }
+  }
   if (nodeId === lastNodeId) {
     await appendAndBroadcastAccountRunRecord('success', completionState);
   }
@@ -13805,6 +13984,9 @@ function getEmailGeneratorLabel(generator) {
   if (generator === CLOUDFLARE_TEMP_EMAIL_GENERATOR) return 'Cloudflare Temp Email';
   if (generator === CLOUD_MAIL_GENERATOR) return 'Cloud Mail';
   if (generator === FREEMAIL_GENERATOR) return 'freemail';
+  if (generator === MOEMAIL_GENERATOR) return 'MoeMail';
+  if (generator === YYDSMAIL_GENERATOR) return 'YYDS Mail';
+  if (generator === OUTLOOK_EMAIL_GENERATOR) return 'outlookEmail';
   if (generator === OUTLOOK_EMAIL_PLUS_GENERATOR) return 'Outlook Email Plus';
   return 'Duck 邮箱';
 }
@@ -13994,8 +14176,22 @@ async function fetchGeneratedEmail(state, options = {}) {
     yydsMailBaseUrl: options.yydsMailBaseUrl ?? currentState.yydsMailBaseUrl,
     yydsMailApiKey: options.yydsMailApiKey ?? currentState.yydsMailApiKey,
     yydsMailDomain: options.yydsMailDomain ?? currentState.yydsMailDomain,
+    outlookEmailBaseUrl: options.outlookEmailBaseUrl ?? currentState.outlookEmailBaseUrl,
+    outlookEmailApiKey: options.outlookEmailApiKey ?? currentState.outlookEmailApiKey,
+    outlookEmailPassword: options.outlookEmailPassword ?? currentState.outlookEmailPassword,
+    outlookEmailProjectKey: options.outlookEmailProjectKey ?? currentState.outlookEmailProjectKey,
+    outlookEmailGroupId: options.outlookEmailGroupId ?? currentState.outlookEmailGroupId,
+    outlookEmailGroupName: options.outlookEmailGroupName ?? currentState.outlookEmailGroupName,
+    outlookEmailDomain: options.outlookEmailDomain ?? currentState.outlookEmailDomain,
+    outlookEmailRegisteredTagName: options.outlookEmailRegisteredTagName ?? currentState.outlookEmailRegisteredTagName,
+    outlookEmailPlusTagName: options.outlookEmailPlusTagName ?? currentState.outlookEmailPlusTagName,
+    outlookEmailSkipTagName: options.outlookEmailSkipTagName ?? currentState.outlookEmailSkipTagName,
+    outlookEmailCallerIdPrefix: options.outlookEmailCallerIdPrefix ?? currentState.outlookEmailCallerIdPrefix,
   };
   const generator = normalizeEmailGenerator(options.generator ?? currentState.emailGenerator);
+  if (generator === OUTLOOK_EMAIL_GENERATOR) {
+    return claimOutlookEmailAddress(mergedState, options);
+  }
   if (generator === OUTLOOK_EMAIL_PLUS_GENERATOR) {
     return claimOutlookEmailPlusAddress(currentState, options);
   }
@@ -15683,6 +15879,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   FREEMAIL_PROVIDER,
   ICLOUD_API_PROVIDER,
   MOEMAIL_PROVIDER,
+  OUTLOOK_EMAIL_PROVIDER,
   YYDSMAIL_PROVIDER,
   OUTLOOK_EMAIL_PLUS_PROVIDER,
   completeNodeFromBackground,
@@ -15708,6 +15905,7 @@ const verificationFlowHelpers = self.MultiPageBackgroundVerificationFlow?.create
   pollFreemailVerificationCode,
   pollIcloudApiVerificationCode,
   pollMoemailVerificationCode,
+  pollOutlookEmailVerificationCode,
   pollYydsMailVerificationCode,
   pollOutlookEmailPlusVerificationCode,
   pollHotmailVerificationCode,
@@ -15855,6 +16053,7 @@ const step4Executor = self.MultiPageBackgroundStep4?.createStep4Executor({
   CLOUD_MAIL_PROVIDER,
   FREEMAIL_PROVIDER,
   MOEMAIL_PROVIDER,
+  OUTLOOK_EMAIL_PROVIDER,
   YYDSMAIL_PROVIDER,
   resolveVerificationStep: verificationFlowHelpers.resolveVerificationStep,
   reuseOrCreateTab,
@@ -15916,6 +16115,7 @@ const step8Executor = self.MultiPageBackgroundStep8?.createStep8Executor({
   CLOUD_MAIL_PROVIDER,
   FREEMAIL_PROVIDER,
   MOEMAIL_PROVIDER,
+  OUTLOOK_EMAIL_PROVIDER,
   YYDSMAIL_PROVIDER,
   completeNodeFromBackground,
   confirmCustomVerificationStepBypass: verificationFlowHelpers.confirmCustomVerificationStepBypass,
@@ -16147,6 +16347,22 @@ async function executeReloginBoundEmail(state = {}) {
   });
 }
 
+async function executePlusReturnConfirmWithOutlookEmailTag(state = {}) {
+  const result = await plusReturnConfirmExecutor.executePlusReturnConfirm(state);
+  try {
+    const latestState = await getState();
+    if (hasCurrentOutlookEmailClaim(latestState)) {
+      await markCurrentOutlookEmailPlusTag(latestState, { level: 'ok' });
+      await completeCurrentOutlookEmailClaim(latestState, {
+        result: 'plus_success',
+      });
+    }
+  } catch (error) {
+    await addLog(`outlookEmail：Plus 标签写入失败：${error?.message || error}`, 'warn');
+  }
+  return result;
+}
+
 const stepExecutorsByKey = {
   'open-chatgpt': () => step1Executor.executeStep1(),
   'submit-signup-email': (state) => step2Executor.executeStep2(state),
@@ -16161,7 +16377,7 @@ const stepExecutorsByKey = {
   'paypal-approve': (state) => normalizePlusPaymentMethod(state?.plusPaymentMethod) === PLUS_PAYMENT_METHOD_GOPAY
     ? goPayApproveExecutor.executeGoPayApprove(state)
     : payPalApproveExecutor.executePayPalApprove(state),
-  'plus-checkout-return': (state) => plusReturnConfirmExecutor.executePlusReturnConfirm(state),
+  'plus-checkout-return': (state) => executePlusReturnConfirmWithOutlookEmailTag(state),
   'sub2api-session-import': (state) => sub2ApiSessionImportExecutor.executeSub2ApiSessionImport(state),
   'cpa-session-import': (state) => cpaSessionImportExecutor.executeCpaSessionImport(state),
   'oauth-login': (state) => step7Executor.executeStep7(state),
@@ -16567,6 +16783,9 @@ function getMailConfig(state) {
   }
   if (provider === YYDSMAIL_PROVIDER) {
     return { provider: YYDSMAIL_PROVIDER, label: 'YYDS Mail' };
+  }
+  if (provider === OUTLOOK_EMAIL_PROVIDER) {
+    return { provider: OUTLOOK_EMAIL_PROVIDER, label: 'outlookEmail' };
   }
   if (provider === OUTLOOK_EMAIL_PLUS_PROVIDER) {
     return { provider: OUTLOOK_EMAIL_PLUS_PROVIDER, label: 'Outlook Email Plus' };

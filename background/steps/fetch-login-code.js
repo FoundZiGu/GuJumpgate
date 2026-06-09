@@ -12,6 +12,7 @@
       FREEMAIL_PROVIDER = 'freemail',
       ICLOUD_API_PROVIDER = 'icloud-api',
       MOEMAIL_PROVIDER = 'moemail',
+      OUTLOOK_EMAIL_PROVIDER = 'outlook-email',
       YYDSMAIL_PROVIDER = 'yydsmail',
       OUTLOOK_EMAIL_PLUS_PROVIDER = 'outlook-email-plus',
       completeNodeFromBackground,
@@ -619,6 +620,7 @@
         || mail.provider === CLOUD_MAIL_PROVIDER
         || mail.provider === FREEMAIL_PROVIDER
         || mail.provider === MOEMAIL_PROVIDER
+        || mail.provider === OUTLOOK_EMAIL_PROVIDER
         || mail.provider === YYDSMAIL_PROVIDER
         || mail.provider === OUTLOOK_EMAIL_PLUS_PROVIDER
       ) {

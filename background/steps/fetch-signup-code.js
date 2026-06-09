@@ -23,6 +23,7 @@
       CLOUD_MAIL_PROVIDER = 'cloudmail',
       FREEMAIL_PROVIDER = 'freemail',
       MOEMAIL_PROVIDER = 'moemail',
+      OUTLOOK_EMAIL_PROVIDER = 'outlook-email',
       YYDSMAIL_PROVIDER = 'yydsmail',
       OUTLOOK_EMAIL_PLUS_PROVIDER = 'outlook-email-plus',
       resolveVerificationStep,
@@ -128,6 +129,7 @@
         || mail.provider === CLOUD_MAIL_PROVIDER
         || mail.provider === FREEMAIL_PROVIDER
         || mail.provider === MOEMAIL_PROVIDER
+        || mail.provider === OUTLOOK_EMAIL_PROVIDER
         || mail.provider === YYDSMAIL_PROVIDER
         || mail.provider === OUTLOOK_EMAIL_PLUS_PROVIDER
       ) {
@@ -159,6 +161,7 @@
         CLOUD_MAIL_PROVIDER,
         FREEMAIL_PROVIDER,
         MOEMAIL_PROVIDER,
+        OUTLOOK_EMAIL_PROVIDER,
         YYDSMAIL_PROVIDER,
         OUTLOOK_EMAIL_PLUS_PROVIDER,
       ].includes(mail.provider);

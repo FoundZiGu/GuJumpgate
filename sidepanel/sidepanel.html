@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GuJumpgate  V0.2.0</title>
+  <title>GuJumpgate  V0.2.1</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -25,7 +25,7 @@
       <div class="header-version-block">
         <div class="header-version-main">
           <button id="extension-update-status" class="header-version-title header-version-link" type="button"
-          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate  V0.2.0</button>
+          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate  V0.2.1</button>
           <button id="btn-release-log" class="header-link-btn" type="button" hidden>更新日志</button>
         </div>
         <span id="extension-version-meta" class="header-version-meta" hidden></span>
@@ -616,6 +616,7 @@
             <option value="moemail">MoeMail</option>
             <option value="yydsmail">YYDS Mail</option>
             <option value="outlook-email-plus">Outlook Email Plus</option>
+            <option value="outlook-email">outlookEmail</option>
           </select>
           <button id="btn-mail-login" class="btn btn-outline btn-sm data-inline-btn" type="button" disabled>登录</button>
         </div>
@@ -646,6 +647,7 @@
           <option value="moemail">MoeMail</option>
           <option value="yydsmail">YYDS Mail</option>
           <option value="outlook-email-plus">Outlook Email Plus</option>
+          <option value="outlook-email">outlookEmail</option>
         </select>
       </div>
       <div class="data-row data-check-row" id="row-custom-email-pool" style="display:none;">
@@ -1106,6 +1108,73 @@
             value="5" min="1" max="50" step="1" title="每个 Outlook Email Plus 认领邮箱最多使用多少个 +PayPalN 别名" />
           <span class="setting-caption">用完后自动结束当前邮箱并认领下一个</span>
         </div>
+      </div>
+    </div>
+    <div id="outlook-email-section" class="data-card hotmail-card" style="display:none;">
+      <div class="section-mini-header">
+        <div class="section-mini-copy">
+          <span class="section-label">outlookEmail</span>
+          <span class="data-value">通过 outlookEmail 分组或项目邮箱池取用账号、收码并按流程标签归档</span>
+        </div>
+        <div class="section-mini-actions">
+          <button id="btn-outlook-email-github" class="btn btn-ghost btn-xs" type="button">部署</button>
+        </div>
+      </div>
+      <div class="data-row" id="row-outlook-email-base-url" style="display:none;">
+        <span class="data-label">服务地址</span>
+        <input type="text" id="input-outlook-email-base-url" class="data-input" placeholder="https://your-outlook-email-domain" />
+      </div>
+      <div class="data-row" id="row-outlook-email-api-key" style="display:none;">
+        <span class="data-label">API Key</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-outlook-email-api-key" class="data-input data-input-with-icon"
+            placeholder="outlookEmail 外部 API Key" />
+          <button id="btn-toggle-outlook-email-api-key" class="input-icon-btn" type="button"
+            data-password-toggle="input-outlook-email-api-key" data-show-label="显示 API Key"
+            data-hide-label="隐藏 API Key" aria-label="显示 API Key" title="显示 API Key"></button>
+        </div>
+      </div>
+      <div class="data-row" id="row-outlook-email-password" style="display:none;">
+        <span class="data-label">密码</span>
+        <div class="input-with-icon">
+          <input type="password" id="input-outlook-email-password" class="data-input data-input-with-icon"
+            placeholder="用于项目认领、分组查询和标签写入" />
+          <button id="btn-toggle-outlook-email-password" class="input-icon-btn" type="button"
+            data-password-toggle="input-outlook-email-password" data-show-label="显示密码"
+            data-hide-label="隐藏密码" aria-label="显示密码" title="显示密码"></button>
+        </div>
+      </div>
+      <div class="data-row" id="row-outlook-email-project-key" style="display:none;">
+        <span class="data-label">项目</span>
+        <input type="text" id="input-outlook-email-project-key" class="data-input" placeholder="可留空；留空时按分组直接取邮箱" />
+      </div>
+      <div class="data-row" id="row-outlook-email-group-id" style="display:none;">
+        <span class="data-label">分组 ID</span>
+        <input type="text" id="input-outlook-email-group-id" class="data-input" placeholder="可留空；项目为空时用于限定账号分组" />
+      </div>
+      <div class="data-row" id="row-outlook-email-group-name" style="display:none;">
+        <span class="data-label">分组名</span>
+        <input type="text" id="input-outlook-email-group-name" class="data-input" placeholder="可留空；用于按名称解析分组" />
+      </div>
+      <div class="data-row" id="row-outlook-email-domain" style="display:none;">
+        <span class="data-label">邮箱后缀</span>
+        <input type="text" id="input-outlook-email-domain" class="data-input" placeholder="例如 mail.example.com；留空使用原邮箱域名" />
+      </div>
+      <div class="data-row" id="row-outlook-email-registered-tag-name" style="display:none;">
+        <span class="data-label">注册标签</span>
+        <input type="text" id="input-outlook-email-registered-tag-name" class="data-input" placeholder="注册成功后添加；留空不打标签" />
+      </div>
+      <div class="data-row" id="row-outlook-email-plus-tag-name" style="display:none;">
+        <span class="data-label">Plus 标签</span>
+        <input type="text" id="input-outlook-email-plus-tag-name" class="data-input" placeholder="Plus 开通后添加；留空不打标签" />
+      </div>
+      <div class="data-row" id="row-outlook-email-skip-tag-name" style="display:none;">
+        <span class="data-label">跳过标签</span>
+        <input type="text" id="input-outlook-email-skip-tag-name" class="data-input" placeholder="认领邮箱已有此标签时跳过；例如 已注册" />
+      </div>
+      <div class="data-row" id="row-outlook-email-caller-id-prefix" style="display:none;">
+        <span class="data-label">调用方</span>
+        <input type="text" id="input-outlook-email-caller-id-prefix" class="data-input" placeholder="gujumpgate" />
       </div>
     </div>
     <div id="hotmail-section" class="data-card hotmail-card" style="display:none;">
@@ -2378,6 +2447,7 @@
   <script src="../mail-provider-utils.js"></script>
   <script src="../hotmail-utils.js"></script>
   <script src="../luckmail-utils.js"></script>
+  <script src="../outlook-email-utils.js"></script>
   <script src="../shared/flow-capabilities.js"></script>
   <script src="../data/step-definitions.js"></script>
   <script src="update-service.js"></script>
